@@ -590,4 +590,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit for host-safe plugin archive naming.
+- Host-safe plugin archive naming commit: `1d6fa63` (`Correct plugin archive naming rule`).
