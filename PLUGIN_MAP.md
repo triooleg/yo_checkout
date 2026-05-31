@@ -36,6 +36,9 @@ Rules for future work:
 - `includes/class-yo-checkout-monobank.php`
   Monobank payment service. Owns Monobank invoice creation, invoice status requests, local invoice-to-order mapping helpers, and webhook handling. Shared payment finalization remains in the main plugin.
 
+- `includes/class-yo-checkout-keycrm.php`
+  KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names.
+
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger.
 
@@ -268,7 +271,8 @@ WayForPay:
 KeyCRM:
 
 - Settings tab: token, source/currency/tag/status IDs, payment method IDs.
-- Main flow creates/updates buyer/order and records payments.
+- KeyCRM marker lookup/reuse, buyer/order create/update, product sync, comments, payments, and raw API requests are delegated to `includes/class-yo-checkout-keycrm.php`.
+- `yoleotard-checkout-invoice.php` keeps wrapper methods around the service for compatibility with existing checkout, bank invoice, card finalization, and unpaid-order flows.
 - Current behavior: after successful card payment, the frontend waits for the real KeyCRM order ID before showing Step 4.
 
 Dompdf:

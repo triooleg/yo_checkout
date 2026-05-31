@@ -376,3 +376,37 @@ Documentation updates:
 Repository rollback point:
 
 - Monobank service extraction commit: `c40e4fa` (`Extract Monobank service`).
+
+## 2026-05-31 - Extract KeyCRM Service
+
+User request:
+
+- Move all KeyCRM-related functionality into a separate file and connect it back to the main plugin file.
+
+Files changed:
+
+- Added `includes/class-yo-checkout-keycrm.php`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No intended customer-facing behavior change.
+- KeyCRM marker lookup/reuse, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests now live in `YO_Checkout_KeyCRM_Service`.
+- The main plugin file keeps thin wrapper methods for the existing KeyCRM method names so checkout, invoice, payment finalization, and unpaid-order flows continue to call the same internal API.
+- Plugin version and `CHANGELOG.txt` were not changed because this is an internal extraction without functional behavior changes.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md` updated with the new KeyCRM service and delegated KeyCRM flow.
+
+Repository rollback point:
+
+- Pending commit and push.
