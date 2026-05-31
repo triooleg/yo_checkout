@@ -20,7 +20,10 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, KeyCRM integration, shipping logic, payment finalization, YOOtheme sold-item hiding, invoice generation, and email sending.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, KeyCRM integration, shipping logic, payment finalization, wrappers for YOOtheme sold-item hiding, invoice generation, and email sending.
+
+- `includes/class-yo-checkout-sold-items.php`
+  Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
 
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger.
@@ -140,9 +143,9 @@ Line numbers are approximate and should be refreshed after larger edits.
 - Shipping, bank total, and card fee data: lines 3770-3859.
 - KeyCRM payment/comment updates: lines 3861-3884.
 - Successful card payment finalization: lines 3886-4024.
-- Auto-hide sold items after payment and logs: lines 4026-4114.
-- Title matching and YOOtheme content modification helpers: lines 4116-4613.
-- Frontend fallback sold-item hider script: lines 4611-4713.
+- Auto-hide sold items after payment and logs: delegated to `includes/class-yo-checkout-sold-items.php` through wrapper methods around lines 4036-4041.
+- Title matching and YOOtheme content modification helpers: service-owned in `includes/class-yo-checkout-sold-items.php`; legacy private helper copies still exist in the main file and can be removed in a later cleanup.
+- Frontend fallback sold-item hider script: delegated to `includes/class-yo-checkout-sold-items.php`; legacy inline copy remains below the delegating `return` for transition safety.
 - Unpaid-order cancellation: lines 4715-4719.
 - Bank details and invoice generation: lines 4721-5061.
 - Email helpers and outgoing bank/paid emails: lines 5063-5240.
@@ -269,6 +272,7 @@ YOOtheme:
 
 - Product cards are discovered from YOOtheme-generated DOM.
 - After purchase, plugin attempts to hide sold product cards both server-side in YOOtheme content and frontend-side as fallback.
+- Sold-item logs should display the real KeyCRM order number when `order_id` is available, with local WordPress order ID shown only as a technical reference.
 
 ## Development Notes
 

@@ -35,11 +35,14 @@ if (!function_exists('mb_convert_encoding')) {
     }
 }
 
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-sold-items.php';
+
 
 class YO_Checkout_Invoice_Plugin {
     const OPT = 'yo_checkout_invoice_settings';
     const CPT = 'yo_invoice_order';
     const NS  = 'yoleotard/v1';
+    private $sold_items_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -88,6 +91,13 @@ class YO_Checkout_Invoice_Plugin {
         add_action('rest_api_init', [$this, 'rest_routes']);
         add_action('yo_checkout_check_unpaid_order', [$this, 'check_unpaid_order']);
         add_action('yo_checkout_deferred_payment_finalizer', [$this, 'deferred_payment_finalizer'], 10, 2);
+    }
+
+    private function sold_items_service() {
+        if (!$this->sold_items_service instanceof YO_Checkout_Sold_Items_Service) {
+            $this->sold_items_service = new YO_Checkout_Sold_Items_Service();
+        }
+        return $this->sold_items_service;
     }
 
     public static function default_shipping_rates_eur() {
@@ -1763,7 +1773,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
             if ($has_paid_side_effects) {
                 update_post_meta($local_id, 'paid', '1');
                 if (!get_post_meta($local_id, 'paid_at', true)) update_post_meta($local_id, 'paid_at', time());
-                $this->append_auto_hide_log('[' . current_time('mysql') . '] Payment poll normalized paid status for local order #' . $local_id . ' from side-effect markers. Reason: ' . sanitize_text_field($_POST['poll_reason'] ?? '') . ".
+                $this->append_auto_hide_log('[' . current_time('mysql') . '] Payment poll normalized paid status for ' . $this->sold_items_service()->order_label($local_id) . ' from side-effect markers. Reason: ' . sanitize_text_field($_POST['poll_reason'] ?? '') . ".
 ");
             }
         }
@@ -3931,7 +3941,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
             $this->process_successful_card_payment($local_id, sanitize_text_field((string)$invoice_id));
         } catch (Throwable $e) {
             update_post_meta($local_id, 'deferred_finalizer_error', $e->getMessage());
-            $this->append_auto_hide_log('[' . current_time('mysql') . '] Deferred finalizer fatal prevented for local order #' . $local_id . ': ' . $e->getMessage() . "\n");
+            $this->append_auto_hide_log('[' . current_time('mysql') . '] Deferred finalizer fatal prevented for ' . $this->sold_items_service()->order_label($local_id) . ': ' . $e->getMessage() . "\n");
         }
     }
 
@@ -3940,7 +3950,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
         if (!$local_id) return;
         if (get_post_meta($local_id, 'paid', true) !== '1') return;
         if (get_post_meta($local_id, 'auto_hide_sold_done', true) === '1') return;
-        $this->append_auto_hide_log('[' . current_time('mysql') . '] Finalizer check from ' . sanitize_text_field($source) . ' for local order #' . $local_id . ".
+        $this->append_auto_hide_log('[' . current_time('mysql') . '] Finalizer check from ' . sanitize_text_field($source) . ' for ' . $this->sold_items_service()->order_label($local_id) . ".
 ");
         $this->auto_hide_sold_items_after_payment($local_id);
     }
@@ -3951,7 +3961,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
         if (!$local_id) return;
 
         if (!add_post_meta($local_id, '_yo_payment_processing_lock', time() . ':' . $invoice_id, true)) {
-            $this->append_auto_hide_log('[' . current_time('mysql') . '] Payment finalizer lock is active for local order #' . $local_id . ". Skipped duplicate run.
+            $this->append_auto_hide_log('[' . current_time('mysql') . '] Payment finalizer lock is active for ' . $this->sold_items_service()->order_label($local_id) . ". Skipped duplicate run.
 ");
             if (get_post_meta($local_id, 'paid', true) === '1' || get_post_meta($local_id, 'paid_email_sent', true) === '1') {
                 if (get_post_meta($local_id, 'paid', true) !== '1') update_post_meta($local_id, 'paid', '1');
@@ -4005,7 +4015,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
                 try {
                     $this->auto_hide_sold_items_after_payment($local_id);
                 } catch (Throwable $e) {
-                    $this->append_auto_hide_log('[' . current_time('mysql') . '] Auto-hide fatal prevented for local order #' . $local_id . ': ' . $e->getMessage() . "\n");
+                    $this->append_auto_hide_log('[' . current_time('mysql') . '] Auto-hide fatal prevented for ' . $this->sold_items_service()->order_label($local_id) . ': ' . $e->getMessage() . "\n");
                     update_post_meta($local_id, 'auto_hide_sold_error', $e->getMessage());
                 }
             }
@@ -4013,7 +4023,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
             // The browser must still receive a JSON response after a successful payment.
             // Store the error for debugging, but do not let a KeyCRM/email/autohide problem break Step 4.
             update_post_meta($local_id, 'payment_finalizer_error', $e->getMessage());
-            $this->append_auto_hide_log('[' . current_time('mysql') . '] Payment finalizer fatal prevented for local order #' . $local_id . ': ' . $e->getMessage() . "\n");
+            $this->append_auto_hide_log('[' . current_time('mysql') . '] Payment finalizer fatal prevented for ' . $this->sold_items_service()->order_label($local_id) . ': ' . $e->getMessage() . "\n");
             if (get_post_meta($local_id, 'paid', true) !== '1' && (get_post_meta($local_id, 'paid_email_sent', true) === '1' || get_post_meta($local_id, 'keycrm_after_payment_done', true) === '1')) {
                 update_post_meta($local_id, 'paid', '1');
                 if (!get_post_meta($local_id, 'paid_at', true)) update_post_meta($local_id, 'paid_at', time());
@@ -4024,93 +4034,11 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
     }
 
     private function auto_hide_sold_items_after_payment($local_id) {
-        $s = self::settings();
-        $this->append_auto_hide_log('[' . current_time('mysql') . '] Auto-hide started for local order #' . absint($local_id) . ".
-");
-        if (($s['auto_hide_sold_enabled'] ?? '1') !== '1') {
-            $this->append_auto_hide_log('[' . current_time('mysql') . '] Order #' . (get_post_meta($local_id, 'order_id', true) ?: $local_id) . ": auto-hide is disabled in settings.
-");
-            return;
-        }
-        $d = $this->get_order_data($local_id);
-        $items = $this->cart_items_from_order_data($d);
-        $titles = [];
-        foreach ($items as $item) {
-            $title = trim(wp_strip_all_tags((string)($item['title'] ?? '')));
-            if ($title !== '') $titles[] = $title;
-        }
-        $titles = array_values(array_unique($titles));
-        if (!$titles) {
-            $this->append_auto_hide_log('[' . current_time('mysql') . '] Order #' . (get_post_meta($local_id, 'order_id', true) ?: $local_id) . ": no product title found for auto-hide. Builder status was not changed.\n");
-            return;
-        }
-
-        // Frontend fallback is optional. It is not used for the real YOOtheme Builder status change.
-        if (($s['auto_hide_sold_frontend_fallback'] ?? '0') === '1') {
-            $sold = get_option('yo_checkout_sold_hidden_titles', []);
-            if (!is_array($sold)) $sold = [];
-            foreach ($titles as $title) if (!in_array($title, $sold, true)) $sold[] = $title;
-            update_option('yo_checkout_sold_hidden_titles', array_values($sold), false);
-        }
-
-        $page_id = absint($s['auto_hide_sold_page_id'] ?? 0);
-        if (!$page_id) $page_id = absint(get_option('page_on_front'));
-        $log = '[' . current_time('mysql') . '] Order #' . (get_post_meta($local_id, 'order_id', true) ?: $local_id) . ': ' . implode(' | ', $titles) . "\n";
-        if (!$page_id || get_post_type($page_id) === false) {
-            $this->append_auto_hide_log($log . "No valid YOOtheme page ID. Builder status was not changed.\n");
-            return;
-        }
-
-        $backup_key = '_yo_checkout_autohide_backup_order_' . absint($local_id);
-        if (!get_post_meta($page_id, $backup_key, true)) {
-            update_post_meta($page_id, $backup_key, [
-                'created_at' => current_time('mysql'),
-                'post_content' => get_post_field('post_content', $page_id),
-                'meta' => get_post_meta($page_id),
-            ]);
-        }
-
-        $changed_any = false;
-        $post = get_post($page_id);
-        if ($post) {
-            $content = (string)$post->post_content;
-            $new_content = $this->disable_titles_in_yootheme_storage_string($content, $titles, $changed_content);
-            if ($changed_content && $new_content !== $content) {
-                wp_update_post(wp_slash(['ID'=>$page_id, 'post_content'=>$new_content]));
-                $changed_any = true;
-                $log .= "Updated post_content.\n";
-            }
-        }
-
-        $meta = get_post_meta($page_id);
-        foreach ($meta as $meta_key => $values) {
-            if (strpos($meta_key, '_yo_checkout_autohide_backup_') === 0) continue;
-            foreach ((array)$values as $value) {
-                $changed_meta = false;
-                $new_value = $this->disable_titles_in_yootheme_storage_mixed($value, $titles, $changed_meta);
-                if ($changed_meta && $new_value !== $value) {
-                    update_post_meta($page_id, $meta_key, $new_value);
-                    $changed_any = true;
-                    $log .= "Updated meta: " . $meta_key . "\n";
-                    break;
-                }
-            }
-        }
-
-        if (!$changed_any) {
-            $log .= "YOOtheme Builder JSON grid item was not found in the published page content/meta. Builder status was not changed.\n";
-        } else {
-            update_post_meta($local_id, 'auto_hide_sold_done', '1');
-        }
-        $this->append_auto_hide_log($log);
-        if (function_exists('clean_post_cache')) clean_post_cache($page_id);
+        $this->sold_items_service()->auto_hide_sold_items_after_payment($local_id);
     }
 
     private function append_auto_hide_log($entry) {
-        $saved = get_option(self::OPT, []);
-        $old = (string)($saved['auto_hide_sold_log'] ?? '');
-        $saved['auto_hide_sold_log'] = mb_substr($entry . $old, 0, 5000);
-        update_option(self::OPT, $saved, false);
+        $this->sold_items_service()->append_auto_hide_log($entry);
     }
 
     private function decode_loose_unicode_sequences($text) {
@@ -4547,41 +4475,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
     }
 
     private function is_yootheme_product_title_available($page_id, $title) {
-        $title = (string)$title;
-        if ($title === '') return false;
-
-        $content = (string)get_post_field('post_content', $page_id);
-        if ($content !== '') {
-            $segment = $this->find_yootheme_layout_json_segment($content);
-            if ($segment && !empty($segment['json'])) {
-                $json = trim($segment['json']);
-                $decoded = json_decode($json, true);
-                if (!is_array($decoded)) {
-                    $unslashed = wp_unslash($json);
-                    if ($unslashed !== $json) $decoded = json_decode($unslashed, true);
-                }
-                if (is_array($decoded)) {
-                    $available = $this->yootheme_product_availability_from_node($decoded, $title);
-                    if ($available !== null) return (bool)$available;
-                }
-            }
-
-            // If Builder JSON is not available for some reason, use the published HTML as a safe fallback.
-            // A product is considered available only if a matching rendered card is still present in post_content.
-            if ($this->title_matches_sold_item($content, [$title]) && stripos($content, '<li') !== false) return true;
-        }
-
-        // Also inspect YOOtheme-related page meta because some layouts can be stored there.
-        $meta = get_post_meta($page_id);
-        foreach ($meta as $meta_key => $values) {
-            if (strpos((string)$meta_key, '_yo_checkout_autohide_backup_') === 0) continue;
-            foreach ((array)$values as $value) {
-                $found = $this->yootheme_product_availability_from_storage_value($value, $title);
-                if ($found !== null) return (bool)$found;
-            }
-        }
-
-        return false;
+        return $this->sold_items_service()->is_yootheme_product_title_available($page_id, $title);
     }
 
     private function yootheme_product_availability_from_storage_value($value, $title) {
@@ -4609,6 +4503,9 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
     }
 
     public function render_sold_items_hider() {
+        $this->sold_items_service()->render_sold_items_hider();
+        return;
+
         $s = self::settings();
         if (($s['auto_hide_sold_enabled'] ?? '1') !== '1') return;
         if (isset($s['auto_hide_sold_frontend_fallback']) && (string)$s['auto_hide_sold_frontend_fallback'] === '0') return;

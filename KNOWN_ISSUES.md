@@ -49,6 +49,22 @@ Handling:
 - Use normal `git commit` and `git push` for rollback points when credentials are available.
 - Install GitHub CLI only if PR creation, GitHub auth inspection, or GitHub issue/PR workflows are needed.
 
+### Sold-item auto-hide previously logged local IDs and backed up too much meta
+
+Status: fixed in current code, monitor after next live Monobank purchase.
+
+Details:
+
+- Older admin logs used local WordPress checkout post IDs like `local order #21953`, which looked arbitrary compared with the intended KeyCRM order number.
+- Auto-hide backed up the full page meta array before every first order-specific hide, including previous `_yo_checkout_autohide_backup_*` entries. On a YOOtheme page with repeated purchases this could recursively grow backup meta and increase timeout/memory risk before the final hide-result log was written.
+
+Handling:
+
+- Sold-item hiding now lives in `includes/class-yo-checkout-sold-items.php`.
+- Logs now prefer KeyCRM `order_id`, formatted as `Order #KEYCRM (local #ID)`.
+- Backup now excludes previous auto-hide backup meta.
+- Watch the next real successful card purchase for a final log line such as `Updated post_content.`, `Updated meta: ...`, or `YOOtheme Builder JSON grid item was not found...`.
+
 ## Watch Areas
 
 - Payment finalization must remain idempotent. Repeated webhooks or polling must not create duplicate KeyCRM payments, emails, or status updates.
