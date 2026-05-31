@@ -160,4 +160,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Invoice invalid-buyer retry commit: `dbbe888` (`Fix bank invoice invalid buyer retry`).
