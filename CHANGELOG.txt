@@ -218,3 +218,9 @@ YOleotard Checkout v4.0.30
 - Stops expired promo code data from being saved/restored in the frontend cart.
 - Removes invalid or expired promo discounts from reused local bank-invoice orders before invoice totals are calculated.
 
+YOleotard Checkout v4.0.31
+- Adds detailed Step 3 bank invoice diagnostics for connection errors.
+- Bank invoice alerts now show AJAX action, HTTP status, debug ID, local order ID, KeyCRM marker, cart count, and a response excerpt when available.
+- Server-side order save and bank invoice creation now write `checkout-debug` trace lines to the admin Hiding log and PHP error log.
+- Fatal shutdown diagnostics are recorded for the order-save and bank-invoice AJAX actions when PHP stops before returning JSON.
+

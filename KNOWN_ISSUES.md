@@ -100,7 +100,7 @@ Handling:
 
 ### Repeated bank invoice requests could duplicate emails and KeyCRM product rows
 
-Status: fixed in v4.0.28-v4.0.30, monitor next multi-item invoice test.
+Status: fixed in v4.0.28-v4.0.30, diagnostics expanded in v4.0.31, monitor next multi-item invoice test.
 
 Details:
 
@@ -115,6 +115,7 @@ Handling:
 - Backend bank invoice creation now uses a short lock, cart hash reuse, and per-hash email marker.
 - Active lock responses now return a retryable `preparing` state instead of a visible error alert.
 - KeyCRM update now matches existing product rows before update and avoids unsafe zero-quantity row deletion.
+- If Step 3 still shows a connection error, the frontend alert should now include an AJAX action, HTTP status/response excerpt, and a `Debug ID`. The admin Hiding log should include matching `checkout-debug` lines for the same ID.
 
 ### Expired promo discount could survive in a stored cart/order
 

@@ -624,3 +624,42 @@ Documentation updates:
 Repository rollback point:
 
 - ZIP path separator packaging documentation commit: `85ca1f5` (`Document host-safe zip paths`).
+
+## 2026-06-01 - Add Bank Invoice Step 3 Diagnostics
+
+User request:
+
+- Step 3 still shows `Connection error`; KeyCRM orders are not created and customer invoice emails are not sent. Add extended logging so the cause can be identified.
+
+Files changed:
+
+- Updated `assets/yo-checkout.js`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `CHANGELOG.txt`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `KNOWN_ISSUES.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- Plugin version increased to `4.0.31`.
+- Frontend bank invoice connection errors now display the AJAX action, HTTP status, debug ID, local order ID, KeyCRM marker, cart count, server message/details, and response excerpt when available.
+- The bank invoice flow now sends one debug ID through `yo_checkout_create_order` and `yo_checkout_create_bank_invoice`.
+- Server-side order save and bank invoice creation write `checkout-debug` trace lines to the existing admin Hiding log and to PHP `error_log`.
+- Fatal PHP shutdown diagnostics are recorded for these AJAX actions when PHP stops before returning JSON.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Documentation updates:
+
+- Updated project context, plugin map, known issues, and changelog for v4.0.31 diagnostics.
+
+Repository rollback point:
+
+- Pending commit for bank invoice diagnostics.

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.30. Refreshes bank invoice order data and removes expired promo discounts before invoice creation.
- * Version: 4.0.30
+ * Description: v4.0.31. Adds detailed checkout diagnostics for bank invoice Step 3 failures.
+ * Version: 4.0.31
  * Author: YOleotard / ChatGPT
  */
 
@@ -1265,9 +1265,19 @@ EUR=1',
 
     public function ajax_create_order() {
         $this->verify_nonce();
+        $debug_id = $this->checkout_debug_id();
+        $this->register_ajax_debug_shutdown($debug_id, 'yo_checkout_create_order');
+        $this->append_checkout_debug_log($debug_id, 'create_order started', [
+            'posted_local_id' => absint($_POST['local_id'] ?? 0),
+            'cart_items_count' => absint($_POST['cart_items_count'] ?? 0),
+            'has_cart_json' => !empty($_POST['cart_items_json']) ? 'yes' : 'no',
+        ]);
         $s = self::settings();
         $data = $this->sanitize_order_input();
-        if (is_wp_error($data)) wp_send_json_error(['message' => $data->get_error_message()]);
+        if (is_wp_error($data)) {
+            $this->append_checkout_debug_log($debug_id, 'create_order sanitize failed', ['error' => $data->get_error_message()]);
+            wp_send_json_error(['message' => $data->get_error_message(), 'debugId' => $debug_id]);
+        }
         // This is the browser reservation/customer marker from localStorage, not the KeyCRM buyer ID.
         // Store it separately so we can find the same unpaid checkout draft even after the customer
         // returns from the card payment screen, refreshes the page, or the frontend loses local_id.
@@ -1323,9 +1333,11 @@ EUR=1',
             foreach ($cart_items_to_check as $check_item) {
                 $check_title = is_array($check_item) ? sanitize_text_field($check_item['title'] ?? '') : '';
                 if ($check_title && $page_id_for_check && (!$this->is_yootheme_product_title_available($page_id_for_check, $check_title) || !$this->ensure_reservation_for_title($check_title, $buyer_id))) {
+                    $this->append_checkout_debug_log($debug_id, 'create_order item unavailable', ['title' => $check_title, 'page_id' => $page_id_for_check]);
                     wp_send_json_error([
                         'message' => 'One or more items in your cart are no longer available. Please refresh the cart and choose another model.',
                         'unavailable_title' => $check_title,
+                        'debugId' => $debug_id,
                     ]);
                 }
             }
@@ -1431,7 +1443,10 @@ EUR=1',
             wp_update_post(['ID'=>$local_id, 'post_title'=>($existing_keycrm_order ? ('Order #' . $existing_keycrm_order . ' - ') : 'YOleotard checkout draft - ') . $data['full_name']]);
         } else {
             $local_id = wp_insert_post(['post_type'=>self::CPT,'post_status'=>'publish','post_title'=>'YOleotard checkout draft - ' . $data['full_name']]);
-            if (is_wp_error($local_id) || !$local_id) wp_send_json_error(['message'=>'Local checkout draft was not created']);
+            if (is_wp_error($local_id) || !$local_id) {
+                $this->append_checkout_debug_log($debug_id, 'create_order local draft was not created', ['error' => is_wp_error($local_id) ? $local_id->get_error_message() : 'empty local id']);
+                wp_send_json_error(['message'=>'Local checkout draft was not created', 'debugId' => $debug_id]);
+            }
             update_post_meta($local_id, 'paid', '0');
             update_post_meta($local_id, 'keycrm_created', '0');
         }
@@ -1451,7 +1466,13 @@ EUR=1',
         $provider_preview = $this->card_provider_for_order($local_id);
         $shipping_preview = $this->shipping_data($local_id);
         $fee_preview = $this->card_fee_data($local_id, $provider_preview);
-        wp_send_json_success(['localId'=>$local_id,'orderId'=>get_post_meta($local_id,'order_id',true),'buyerId'=>get_post_meta($local_id,'buyer_id',true),'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],'cardProvider'=>$provider_preview,'cardFee'=>$fee_preview,'shipping'=>$shipping_preview,'shippingOptions'=>$this->shipping_options_for_order($local_id),'bankTotal'=>$this->bank_total_data($local_id)]);
+        $this->append_checkout_debug_log($debug_id, 'create_order success', [
+            'local_id' => $local_id,
+            'order_id' => get_post_meta($local_id, 'order_id', true),
+            'provider' => $provider_preview,
+            'bank_total' => $this->bank_total_data($local_id)['total'] ?? '',
+        ]);
+        wp_send_json_success(['localId'=>$local_id,'orderId'=>get_post_meta($local_id,'order_id',true),'buyerId'=>get_post_meta($local_id,'buyer_id',true),'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],'cardProvider'=>$provider_preview,'cardFee'=>$fee_preview,'shipping'=>$shipping_preview,'shippingOptions'=>$this->shipping_options_for_order($local_id),'bankTotal'=>$this->bank_total_data($local_id),'debugId'=>$debug_id]);
     }
 
 
@@ -1555,17 +1576,29 @@ EUR=1',
 
     public function ajax_create_bank_invoice() {
         $this->verify_nonce();
+        $debug_id = $this->checkout_debug_id();
         $s = self::settings();
         $local_id = absint($_POST['local_id'] ?? 0);
-        if (!$local_id || get_post_type($local_id) !== self::CPT) wp_send_json_error(['message'=>'Order not found']);
+        $this->register_ajax_debug_shutdown($debug_id, 'yo_checkout_create_bank_invoice', $local_id);
+        $this->append_checkout_debug_log($debug_id, 'bank_invoice started', [
+            'local_id' => $local_id,
+            'posted_keycrm_order_id' => sanitize_text_field(wp_unslash($_POST['keycrm_order_id'] ?? '')),
+            'buyer_id' => sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? '')),
+        ]);
+        if (!$local_id || get_post_type($local_id) !== self::CPT) {
+            $this->append_checkout_debug_log($debug_id, 'bank_invoice order not found', ['local_id' => $local_id]);
+            wp_send_json_error(['message'=>'Order not found', 'debugId'=>$debug_id]);
+        }
         $existing_lock = absint(get_post_meta($local_id, 'bank_invoice_lock', true));
         if ($existing_lock && (time() - $existing_lock) < 45) {
             $existing_response = $this->bank_invoice_existing_response($local_id, true);
             if ($existing_response) wp_send_json_success($existing_response);
+            $this->append_checkout_debug_log($debug_id, 'bank_invoice active lock, returning preparing', ['local_id' => $local_id, 'lock_age' => time() - $existing_lock]);
             wp_send_json_success([
                 'preparing' => true,
                 'retryAfter' => 2,
                 'message' => 'Bank invoice is being prepared.',
+                'debugId' => $debug_id,
                 'cartMarker' => ['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],
             ]);
         }
@@ -1576,7 +1609,8 @@ EUR=1',
         $payable = $this->order_items_are_payable_for_buyer($local_id, $buyer_id);
         if (is_wp_error($payable)) {
             delete_post_meta($local_id, 'bank_invoice_lock');
-            wp_send_json_error(['message'=>$payable->get_error_message(), 'details'=>$payable->get_error_data()]);
+            $this->append_checkout_debug_log($debug_id, 'bank_invoice payable check failed', ['local_id' => $local_id, 'details' => $payable->get_error_data()]);
+            wp_send_json_error(['message'=>$payable->get_error_message(), 'details'=>$payable->get_error_data(), 'debugId'=>$debug_id]);
         }
         update_post_meta($local_id, 'payment_type', 'bank');
         update_post_meta($local_id, 'payment_provider', 'bank');
@@ -1590,19 +1624,24 @@ EUR=1',
         update_post_meta($local_id, 'card_fee_amount', '0.00');
         update_post_meta($local_id, 'card_total_amount', $bank_total['total']);
         $cart_hash = $this->bank_invoice_cart_hash($local_id);
+        $this->append_checkout_debug_log($debug_id, 'bank_invoice totals ready', ['local_id' => $local_id, 'bank_total' => $bank_total['total'] ?? '', 'cart_hash' => $cart_hash]);
         if (get_post_meta($local_id, 'bank_invoice_created', true) === '1' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_cart_hash', true), $cart_hash)) {
             $existing_response = $this->bank_invoice_existing_response($local_id, false);
             if ($existing_response) {
                 delete_post_meta($local_id, 'bank_invoice_lock');
+                $this->append_checkout_debug_log($debug_id, 'bank_invoice reused existing invoice', ['local_id' => $local_id, 'cart_hash' => $cart_hash]);
                 wp_send_json_success($existing_response);
             }
         }
 
+        $this->append_checkout_debug_log($debug_id, 'bank_invoice ensure_keycrm_order started', ['local_id' => $local_id]);
         $created = $this->ensure_keycrm_order($local_id, 'bank');
         if (is_wp_error($created)) {
             delete_post_meta($local_id, 'bank_invoice_lock');
-            wp_send_json_error(['message'=>'KeyCRM order was not created','details'=>$created->get_error_data() ?: $created->get_error_message()]);
+            $this->append_checkout_debug_log($debug_id, 'bank_invoice keycrm failed', ['local_id' => $local_id, 'details' => $created->get_error_data() ?: $created->get_error_message()]);
+            wp_send_json_error(['message'=>'KeyCRM order was not created','details'=>$created->get_error_data() ?: $created->get_error_message(), 'debugId'=>$debug_id]);
         }
+        $this->append_checkout_debug_log($debug_id, 'bank_invoice keycrm ready', ['local_id' => $local_id, 'order_id' => get_post_meta($local_id, 'order_id', true)]);
         $order_data_for_bank = $this->get_order_data($local_id);
         $bank_for_order = $this->bank_details_for_country($order_data_for_bank['country']);
         update_post_meta($local_id, 'bank_invoice_type', $bank_for_order['type']);
@@ -1610,7 +1649,8 @@ EUR=1',
         $files = $this->generate_invoice_files($local_id);
         if (is_wp_error($files)) {
             delete_post_meta($local_id, 'bank_invoice_lock');
-            wp_send_json_error(['message'=>$files->get_error_message()]);
+            $this->append_checkout_debug_log($debug_id, 'bank_invoice file generation failed', ['local_id' => $local_id, 'error' => $files->get_error_message()]);
+            wp_send_json_error(['message'=>$files->get_error_message(), 'debugId'=>$debug_id]);
         }
         update_post_meta($local_id, 'invoice_pdf_url', $files['pdf_url']);
         update_post_meta($local_id, 'invoice_pdf_path', $files['pdf_path']);
@@ -1623,12 +1663,14 @@ EUR=1',
             update_post_meta($local_id, 'bank_invoice_keycrm_payment_hash', $cart_hash);
         }
         if (!hash_equals((string)get_post_meta($local_id, 'bank_invoice_email_sent_hash', true), $cart_hash)) {
+            $this->append_checkout_debug_log($debug_id, 'bank_invoice email sending started', ['local_id' => $local_id, 'cart_hash' => $cart_hash]);
             $this->send_bank_invoice_email($local_id, !empty($files['pdf_path']) ? $files['pdf_path'] : $files['html_path']);
             update_post_meta($local_id, 'bank_invoice_email_sent', '1');
             update_post_meta($local_id, 'bank_invoice_email_sent_hash', $cart_hash);
         }
         delete_post_meta($local_id, 'bank_invoice_lock');
-        wp_send_json_success(['invoiceUrl'=>$files['pdf_url'], 'htmlUrl'=>$files['html_url'], 'pdfMessage'=>$files['pdf_message'] ?? '', 'bankType'=>$bank_for_order['type'], 'orderId'=>get_post_meta($local_id,'order_id',true), 'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id]]);
+        $this->append_checkout_debug_log($debug_id, 'bank_invoice success', ['local_id' => $local_id, 'order_id' => get_post_meta($local_id,'order_id',true), 'invoice_url' => $files['pdf_url'] ?? '', 'html_url' => $files['html_url'] ?? '']);
+        wp_send_json_success(['invoiceUrl'=>$files['pdf_url'], 'htmlUrl'=>$files['html_url'], 'pdfMessage'=>$files['pdf_message'] ?? '', 'bankType'=>$bank_for_order['type'], 'orderId'=>get_post_meta($local_id,'order_id',true), 'debugId'=>$debug_id, 'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id]]);
     }
 
     private function remove_invalid_promo_from_order($local_id) {
@@ -3164,6 +3206,50 @@ EUR=1',
 
     private function append_auto_hide_log($entry) {
         $this->sold_items_service()->append_auto_hide_log($entry);
+    }
+
+    private function checkout_debug_id() {
+        $raw = sanitize_text_field(wp_unslash($_POST['yo_checkout_debug_id'] ?? ''));
+        $raw = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$raw);
+        if ($raw !== '') return substr($raw, 0, 80);
+        return 'srv-' . gmdate('YmdHis') . '-' . wp_generate_password(6, false, false);
+    }
+
+    private function register_ajax_debug_shutdown($debug_id, $action, $local_id = 0) {
+        register_shutdown_function(function() use ($debug_id, $action, $local_id) {
+            $error = error_get_last();
+            if (!$error || empty($error['type'])) return;
+            $fatal_types = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR];
+            if (!in_array((int)$error['type'], $fatal_types, true)) return;
+            $this->append_checkout_debug_log($debug_id, $action . ' fatal shutdown', [
+                'local_id' => $local_id,
+                'type' => $error['type'],
+                'message' => $error['message'] ?? '',
+                'file' => $error['file'] ?? '',
+                'line' => $error['line'] ?? '',
+            ]);
+        });
+    }
+
+    private function append_checkout_debug_log($debug_id, $message, $context = []) {
+        $debug_id = $debug_id ?: $this->checkout_debug_id();
+        $clean_context = [];
+        if (is_array($context)) {
+            foreach ($context as $key => $value) {
+                $key = sanitize_key((string)$key);
+                if ($key === '') continue;
+                if (is_scalar($value) || $value === null) {
+                    $clean_context[$key] = sanitize_text_field((string)$value);
+                } else {
+                    $clean_context[$key] = mb_substr(wp_json_encode($value, JSON_UNESCAPED_UNICODE), 0, 800);
+                }
+            }
+        }
+        $line = '[' . current_time('mysql') . '] checkout-debug ' . $debug_id . ': ' . sanitize_text_field((string)$message);
+        if ($clean_context) $line .= ' | ' . wp_json_encode($clean_context, JSON_UNESCAPED_UNICODE);
+        $line .= "\n";
+        error_log('YOleotard ' . trim($line));
+        $this->append_auto_hide_log($line);
     }
 
     private function decode_loose_unicode_sequences($text) {

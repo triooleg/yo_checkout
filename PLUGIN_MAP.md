@@ -47,7 +47,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.30`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.31`.
 
 - `WESTERN_BID_MIGRATION_MAP.md`
   Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
@@ -150,7 +150,7 @@ Line numbers are approximate and should be refreshed after larger edits.
 - Order creation AJAX: lines 1318-1508.
 - Shipping option update AJAX: lines 1510-1530.
 - Payability checks and card-payment start: lines 1532-1636.
-- Bank invoice creation AJAX: validates payable items, removes invalid/expired promo data from stale local orders, recalculates bank totals, then generates or reuses the bank invoice by cart hash.
+- Bank invoice creation AJAX: validates payable items, writes checkout-debug trace lines, removes invalid/expired promo data from stale local orders, recalculates bank totals, then generates or reuses the bank invoice by cart hash.
 - Final order status and payment status polling AJAX: lines 1674-1822.
 - REST route registration and payment webhooks: lines 1824-1950.
 - WayForPay helpers: lines 1964-2100.
@@ -201,7 +201,7 @@ Important frontend entry points:
 - Click on `.yo-main-buy-btn` adds/reserves product and opens checkout.
 - Submit `#yo-pay-form` creates or updates local order.
 - Click `#yo-pay-card` starts card payment.
-- Click `#yo-pay-bank` creates bank invoice.
+- Click `#yo-pay-bank` creates bank invoice with a frontend/server debug ID. If an AJAX connection or parse error occurs, the alert shows action, HTTP status, debug ID, local ID, KeyCRM marker, cart count, and a response excerpt.
 - `startPaymentPolling()` and related helpers manage card-payment completion.
 
 ## Localized Frontend Config
@@ -276,6 +276,7 @@ KeyCRM:
 - `yoleotard-checkout-invoice.php` keeps wrapper methods around the service for compatibility with existing checkout, bank invoice, card finalization, and unpaid-order flows.
 - Current behavior: after successful card payment, the frontend waits for the real KeyCRM order ID before showing Step 4.
 - Bank invoice flow now saves the current frontend cart before invoice creation, uses frontend click guarding plus server-side invoice lock/cart hash reuse, and strips invalid/expired promo data from stale local order meta before totals are calculated. Active lock responses return a retryable `preparing` state instead of a customer-facing error.
+- Bank invoice Step 3 diagnostics write `checkout-debug` lines into the existing admin log shown under the Hiding section and into PHP `error_log`.
 - Existing KeyCRM product rows are matched by row ID/title/image/position before order update so repeated invoice requests update rows instead of appending duplicates.
 
 Dompdf:

@@ -461,10 +461,52 @@
       formData.append('nonce', YOCheckout.nonce);
       return fetch(YOCheckout.ajaxUrl, {method:'POST', body:formData}).then(function(r){
         return r.text().then(function(t){
-          try{ return JSON.parse(t); }
-          catch(e){ return Promise.reject(new Error((t || 'Connection error').slice(0, 500))); }
+          let parsed = null;
+          try{ parsed = JSON.parse(t); }
+          catch(e){
+            const err = new Error((t || 'Connection error').slice(0, 1200));
+            err.action = action;
+            err.status = r.status;
+            err.statusText = r.statusText || '';
+            err.responseText = t || '';
+            err.url = YOCheckout.ajaxUrl;
+            return Promise.reject(err);
+          }
+          if(!r.ok){
+            const err = new Error(parsed?.data?.message || parsed?.message || t || 'Connection error');
+            err.action = action;
+            err.status = r.status;
+            err.statusText = r.statusText || '';
+            err.responseText = t || '';
+            err.data = parsed;
+            err.url = YOCheckout.ajaxUrl;
+            return Promise.reject(err);
+          }
+          return parsed;
         });
       });
+    }
+    function checkoutDebugId(prefix){
+      return String(prefix || 'yo') + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    }
+    function checkoutAjaxErrorMessage(action, err, context){
+      err = err || {};
+      const lines = ['Connection error'];
+      lines.push('AJAX action: ' + (err.action || action || 'unknown'));
+      if(err.status) lines.push('HTTP status: ' + err.status + (err.statusText ? ' ' + err.statusText : ''));
+      if(context && context.debugId) lines.push('Debug ID: ' + context.debugId);
+      if(context && context.localId) lines.push('Local ID: ' + context.localId);
+      if(context && context.orderId) lines.push('KeyCRM/order marker: ' + context.orderId);
+      if(context && typeof context.cartItems !== 'undefined') lines.push('Cart items: ' + context.cartItems);
+      const data = err.data && err.data.data ? err.data.data : null;
+      if(data && data.debugId && (!context || data.debugId !== context.debugId)) lines.push('Server debug ID: ' + data.debugId);
+      if(data && data.message) lines.push('Server message: ' + data.message);
+      if(data && data.details) lines.push('Server details: ' + JSON.stringify(data.details, null, 2).slice(0, 1000));
+      const body = String(err.responseText || err.message || '').trim();
+      if(body) lines.push('Response: ' + body.slice(0, 1200));
+      lines.push('Check plugin admin log: Settings -> YOleotard Checkout -> Hiding / Last auto-hide log, search for checkout-debug.');
+      console.error('[YO Checkout AJAX error]', {action: action, error: err, context: context});
+      return lines.join('\n\n');
     }
     function money(v){ return (parseFloat(v || 0) || 0).toFixed(2); }
     function yoEstimatedDeliveryDate(){
@@ -1339,6 +1381,7 @@
       if(bankInvoiceInProgress) return;
       if(!byId('yo-accept-terms')?.checked){ alert('Please confirm that you agree to the Terms & Conditions before continuing.'); return; }
       bankInvoiceInProgress = true;
+      const bankDebugId = checkoutDebugId('bank');
       const bankBtn = byId('yo-pay-bank');
       if(bankBtn) bankBtn.disabled = true;
       validateCartAvailability(true).then(function(v){
@@ -1350,6 +1393,7 @@
       const cartMarkerForOrder = getCartKeycrmMarker();
       const draftLocalId = current.localId || (cartMarkerForOrder && cartMarkerForOrder.local_id ? cartMarkerForOrder.local_id : '') || getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id');
       if(draftLocalId) orderFd.append('local_id', draftLocalId);
+      orderFd.append('yo_checkout_debug_id', bankDebugId);
       orderFd.append('checkout_session_id', checkoutSessionId());
       orderFd.append('buyer_id', buyerId());
       const storedKeycrmOrderId = current.orderId || (cartMarkerForOrder && cartMarkerForOrder.keycrm_order_id ? cartMarkerForOrder.keycrm_order_id : '') || getStoredKeycrmOrderId();
@@ -1378,10 +1422,10 @@
         current.shippingOptions = orderData.data.shippingOptions || [];
         current.bankTotal = orderData.data.bankTotal || null;
         submitBankInvoice(0);
-      }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
+      }).catch(function(err){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert(checkoutAjaxErrorMessage('yo_checkout_create_order', err, {debugId: bankDebugId, localId: draftLocalId, orderId: storedKeycrmOrderId, cartItems: cartItems.length})); setStep(2); });
       function submitBankInvoice(attempt){
         attempt = attempt || 0;
-        const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
+        const fd=new FormData(); fd.append('local_id', current.localId); fd.append('yo_checkout_debug_id', bankDebugId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
         setStep('loading');
         post('yo_checkout_create_bank_invoice', fd).then(function(data){
           if(data.success && data.data && data.data.preparing && attempt < 12){
@@ -1402,12 +1446,12 @@
             }
           }
           else { bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert((data.data?.message || 'Invoice error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
-        }).catch(function(){
+        }).catch(function(err){
           if(attempt < 2){ setTimeout(function(){ submitBankInvoice(attempt + 1); }, 2000); return; }
-          bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2);
+          bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert(checkoutAjaxErrorMessage('yo_checkout_create_bank_invoice', err, {debugId: bankDebugId, localId: current.localId, orderId: current.orderId || getStoredKeycrmOrderId(), cartItems: cartItems.length})); setStep(2);
         });
       }
-      }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
+      }).catch(function(err){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert(checkoutAjaxErrorMessage('yo_checkout_validate_cart_items', err, {debugId: bankDebugId, localId: current.localId, orderId: current.orderId || getStoredKeycrmOrderId(), cartItems: cartItems.length})); setStep(2); });
     });
     function releaseReservationsForItems(items){
       const seen = new Set();
