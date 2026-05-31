@@ -488,4 +488,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Bank invoice retry-safe lock commit: `7e40e33` (`Make bank invoice lock retry safe`).
