@@ -702,4 +702,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit for checkout JS cache and auto-hide matching fix.
+- Checkout JS cache and auto-hide matching fix commit: `1693d79` (`Bust checkout asset cache and tighten auto-hide`).
