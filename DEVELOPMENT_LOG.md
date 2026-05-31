@@ -308,4 +308,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Google Reviews service extraction commit: `a3c81e3` (`Extract Google Reviews service`).
