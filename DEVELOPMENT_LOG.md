@@ -196,4 +196,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Version accounting commit: `4dceda3` (`Add plugin version accounting`).
