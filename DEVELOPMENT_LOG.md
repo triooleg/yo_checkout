@@ -450,4 +450,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Duplicate bank invoice handling fix commit: `855ca0d` (`Fix duplicate bank invoice handling`).
