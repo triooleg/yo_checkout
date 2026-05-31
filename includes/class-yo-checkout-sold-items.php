@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) exit;
 class YO_Checkout_Sold_Items_Service {
     const OPT = 'yo_checkout_invoice_settings';
     const CPT = 'yo_invoice_order';
+    private $disabled_match_log = [];
 
     public function append_auto_hide_log($entry) {
         $saved = get_option(self::OPT, []);
@@ -63,6 +64,7 @@ class YO_Checkout_Sold_Items_Service {
         }
 
         $this->ensure_page_backup($page_id, $local_id);
+        $this->disabled_match_log = [];
 
         $changed_any = false;
         $post = get_post($page_id);
@@ -96,6 +98,11 @@ class YO_Checkout_Sold_Items_Service {
             $log .= "YOOtheme Builder JSON grid item was not found in the published page content/meta. Builder status was not changed.\n";
         } else {
             update_post_meta($local_id, 'auto_hide_sold_done', '1');
+            if ($this->disabled_match_log) {
+                foreach (array_values(array_unique($this->disabled_match_log)) as $match_line) {
+                    $log .= "Disabled matched item: " . $match_line . "\n";
+                }
+            }
         }
         $this->append_auto_hide_log($log);
         if (function_exists('clean_post_cache')) clean_post_cache($page_id);
@@ -345,6 +352,33 @@ class YO_Checkout_Sold_Items_Service {
         return array_keys($words);
     }
 
+    private function title_height_range($text) {
+        $norm = $this->normalize_match_text($text);
+        if (preg_match('/\b(\d{2,3})\s*-\s*(\d{2,3})\b/u', $norm, $m)) return $m[1] . '-' . $m[2];
+        return '';
+    }
+
+    private function quoted_model_names($title) {
+        $raw = $this->decode_loose_unicode_sequences((string)$title);
+        $raw = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $models = [];
+        if (preg_match_all('/["Р’В«РІР‚Сљ]([^"Р’В»РІР‚Сњ]{3,})["Р’В»РІР‚Сњ]/u', $raw, $qm)) {
+            foreach ($qm[1] as $q) {
+                $q_norm = $this->normalize_match_text($q);
+                if ($q_norm !== '') $models[] = $q_norm;
+            }
+        }
+        return array_values(array_unique($models));
+    }
+
+    private function product_identity_key($title) {
+        $quoted = $this->quoted_model_names($title);
+        if ($quoted) return $quoted[0] . '|' . $this->title_height_range($title);
+        $words = $this->important_title_words($title);
+        if (!$words) return '';
+        return implode(' ', array_slice($words, 0, min(4, count($words)))) . '|' . $this->title_height_range($title);
+    }
+
     private function title_aliases_for_matching($title) {
         $raw = $this->decode_loose_unicode_sequences((string)$title);
         $raw = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -373,10 +407,22 @@ class YO_Checkout_Sold_Items_Service {
     private function title_matches_sold_item($text, $titles) {
         $hay = $this->normalize_match_text($text);
         if ($hay === '') return false;
+        $hay_identity = $this->product_identity_key($text);
+        $hay_height = $this->title_height_range($text);
 
         foreach ($titles as $title) {
+            $title_identity = $this->product_identity_key($title);
+            if ($hay_identity !== '' && $title_identity !== '' && hash_equals($hay_identity, $title_identity)) return true;
+
+            $title_height = $this->title_height_range($title);
+            foreach ($this->quoted_model_names($title) as $model) {
+                if ($model !== '' && strpos($hay, $model) !== false) {
+                    if ($title_height === '' || $hay_height === '' || hash_equals($title_height, $hay_height) || strpos($hay, $title_height) !== false) return true;
+                }
+            }
+
             foreach ($this->title_aliases_for_matching($title) as $alias) {
-                if ($alias !== '' && mb_strlen($alias) >= 3 && strpos($hay, $alias) !== false) return true;
+                if ($alias !== '' && mb_strlen($alias) >= 8 && strpos($hay, $alias) !== false && ($title_height === '' || strpos($hay, $title_height) !== false || hash_equals($title_height, $hay_height))) return true;
             }
 
             $words = $this->important_title_words($title);
@@ -384,7 +430,11 @@ class YO_Checkout_Sold_Items_Service {
             foreach ($words as $w) {
                 if (strpos($hay, $w) !== false) $hits++;
             }
-            if ($hits >= 2) return true;
+            if ($hits >= 2) {
+                if ($title_height === '') return true;
+                if ($hay_height !== '' && hash_equals($title_height, $hay_height)) return true;
+                if (strpos($hay, $title_height) !== false) return true;
+            }
 
             if ($hits >= 1 && preg_match('/\b(\d{2,3})\s*[-вЂ“вЂ”]\s*(\d{2,3})\b/u', (string)$title, $hm)) {
                 $height = $hm[1] . '-' . $hm[2];
@@ -588,6 +638,19 @@ class YO_Checkout_Sold_Items_Service {
         $node['props']['_yo_checkout_auto_hidden'] = current_time('mysql');
     }
 
+    private function yootheme_node_display_title($node) {
+        if (!is_array($node)) return '';
+        foreach (['title','name','label'] as $key) {
+            if (isset($node[$key]) && is_string($node[$key]) && trim($node[$key]) !== '') return $this->clean_log_text($node[$key]);
+        }
+        if (isset($node['props']) && is_array($node['props'])) {
+            foreach (['title','name','label'] as $key) {
+                if (isset($node['props'][$key]) && is_string($node['props'][$key]) && trim($node['props'][$key]) !== '') return $this->clean_log_text($node['props'][$key]);
+            }
+        }
+        return '';
+    }
+
     private function yootheme_node_self_matches_title($node, $titles) {
         if (!is_array($node)) return false;
         foreach (['title','name','content','text','meta','description','label'] as $key) {
@@ -618,6 +681,8 @@ class YO_Checkout_Sold_Items_Service {
         $matches = $self_match || $child_match;
         if ($matches && $this->is_yootheme_disable_candidate($node, $depth)) {
             $this->apply_yootheme_disabled_status($node);
+            $display_title = $this->yootheme_node_display_title($node);
+            if ($display_title !== '') $this->disabled_match_log[] = $display_title;
             $changed = true;
             return true;
         }

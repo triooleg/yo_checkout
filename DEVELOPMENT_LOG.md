@@ -663,3 +663,43 @@ Documentation updates:
 Repository rollback point:
 
 - Bank invoice diagnostics commit: `2b576eb` (`Add bank invoice diagnostics`).
+
+## 2026-06-01 - Bust Checkout JS Cache And Tighten Auto-Hide Matching
+
+User request:
+
+- Step 3 still showed the old `Connection error` with no expanded diagnostics, and a three-product card payment appeared to hide six products in YOOtheme Builder.
+
+Files changed:
+
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `assets/yo-checkout.js`.
+- Updated `includes/class-yo-checkout-sold-items.php`.
+- Updated `CHANGELOG.txt`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `KNOWN_ISSUES.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- Plugin version increased to `4.0.32`.
+- `yo-checkout.js` is now enqueued with `filemtime()` instead of static version `4.0.19`, so live pages should load the updated diagnostic/payment JS after upload.
+- Frontend immediate card-payment hiding now uses exact product identity matching only, not broad text matching.
+- Backend YOOtheme auto-hide matching now uses stricter model/height identity checks and logs each disabled matched Builder item.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Live page check before this fix showed `yo-checkout.js?ver=4.0.19`, confirming the site could keep serving stale checkout JavaScript.
+
+Documentation updates:
+
+- Updated project context, plugin map, known issues, and changelog for v4.0.32.
+
+Repository rollback point:
+
+- Pending commit for checkout JS cache and auto-hide matching fix.

@@ -41,13 +41,13 @@ Rules for future work:
   KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names.
 
 - `assets/yo-checkout.js`
-  Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger.
+  Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
 
 - `assets/yo-checkout.css`
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.31`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.32`.
 
 - `WESTERN_BID_MIGRATION_MAP.md`
   Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
@@ -292,7 +292,7 @@ Google Customer Reviews:
 YOOtheme:
 
 - Product cards are discovered from YOOtheme-generated DOM.
-- After purchase, plugin attempts to hide sold product cards both server-side in YOOtheme content and frontend-side as fallback.
+- After purchase, plugin attempts to hide sold product cards both server-side in YOOtheme content and frontend-side as fallback. Matching is intentionally strict: current-card frontend hiding uses the product identity key, and backend Builder auto-hide logs each disabled matched item.
 - Sold-item logs should display the real KeyCRM order number when `order_id` is available, with local WordPress order ID shown only as a technical reference.
 
 ## Development Notes

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.31. Adds detailed checkout diagnostics for bank invoice Step 3 failures.
- * Version: 4.0.31
+ * Description: v4.0.32. Busts checkout asset cache and tightens sold-item auto-hide matching.
+ * Version: 4.0.32
  * Author: YOleotard / ChatGPT
  */
 
@@ -986,7 +986,9 @@ EUR=1',
 
     public function enqueue() {
         $s = self::settings();
-        wp_enqueue_script('yo-checkout-invoice', plugin_dir_url(__FILE__) . 'assets/yo-checkout.js', [], '4.0.19', true);
+        $js_path = plugin_dir_path(__FILE__) . 'assets/yo-checkout.js';
+        $js_version = file_exists($js_path) ? (string)filemtime($js_path) : '4.0.32';
+        wp_enqueue_script('yo-checkout-invoice', plugin_dir_url(__FILE__) . 'assets/yo-checkout.js', [], $js_version, true);
         wp_localize_script('yo-checkout-invoice', 'YOCheckout', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('yo_checkout_nonce'),

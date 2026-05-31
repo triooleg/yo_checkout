@@ -1482,7 +1482,7 @@
       candidates.forEach(function(card){
         const cardTitle = titleFromCard(card);
         for(const title of titles){
-          if(sameProductTitle(cardTitle, title) || textMatchesTitle(cardTitle, title) || textMatchesTitle(title, cardTitle)){
+          if(sameProductTitle(cardTitle, title)){
             hideProductCard(card);
             break;
           }

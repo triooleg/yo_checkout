@@ -224,3 +224,9 @@ YOleotard Checkout v4.0.31
 - Server-side order save and bank invoice creation now write `checkout-debug` trace lines to the admin Hiding log and PHP error log.
 - Fatal shutdown diagnostics are recorded for the order-save and bank-invoice AJAX actions when PHP stops before returning JSON.
 
+YOleotard Checkout v4.0.32
+- Busts checkout JavaScript cache by enqueueing `yo-checkout.js` with the file modification time instead of the old static `4.0.19` version.
+- Tightens frontend immediate hiding after successful card payment to exact product identity matches only.
+- Tightens backend YOOtheme sold-item matching with model/height identity checks.
+- Adds auto-hide log lines for each matched Builder item that was disabled.
+

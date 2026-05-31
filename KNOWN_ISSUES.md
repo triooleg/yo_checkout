@@ -100,7 +100,7 @@ Handling:
 
 ### Repeated bank invoice requests could duplicate emails and KeyCRM product rows
 
-Status: fixed in v4.0.28-v4.0.30, diagnostics expanded in v4.0.31, monitor next multi-item invoice test.
+Status: fixed in v4.0.28-v4.0.30, diagnostics expanded in v4.0.31, cache-bust fixed in v4.0.32; monitor next multi-item invoice test.
 
 Details:
 
@@ -116,6 +116,35 @@ Handling:
 - Active lock responses now return a retryable `preparing` state instead of a visible error alert.
 - KeyCRM update now matches existing product rows before update and avoids unsafe zero-quantity row deletion.
 - If Step 3 still shows a connection error, the frontend alert should now include an AJAX action, HTTP status/response excerpt, and a `Debug ID`. The admin Hiding log should include matching `checkout-debug` lines for the same ID.
+
+### Checkout JS cache could keep old Step 3 behavior
+
+Status: fixed in v4.0.32, verify live page source after upload.
+
+Details:
+
+- The frontend checkout script was still enqueued with static version `4.0.19`.
+- Browser, WordPress, or host cache could keep serving an old `yo-checkout.js`, so newer Step 3 diagnostics did not appear and the alert still showed only `Connection error`.
+
+Handling:
+
+- `yo-checkout.js` is now enqueued with `filemtime()` so the URL version changes when the file changes.
+- After uploading a test ZIP, inspect page source or browser devtools and confirm `yo-checkout.js?ver=` changed from the old static value.
+
+### Sold-item auto-hide can overmatch similar Builder items
+
+Status: tightened in v4.0.32, monitor next multi-item card payment.
+
+Details:
+
+- A three-item card payment appeared to disable six YOOtheme items in Builder.
+- Some disabled items may have been from previous tests, but matching was still too permissive because broad text/alias matching could match more than the exact purchased card.
+
+Handling:
+
+- Frontend immediate hide after card payment now uses exact product identity matching only.
+- Backend YOOtheme auto-hide now requires stricter model/height identity checks and logs each disabled matched item as `Disabled matched item: ...`.
+- Existing already-disabled wrong Builder items are not automatically restored; use the YOOtheme backup/custom fields or manually re-enable them if needed.
 
 ### Expired promo discount could survive in a stored cart/order
 
