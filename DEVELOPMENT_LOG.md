@@ -489,3 +489,43 @@ Documentation updates:
 Repository rollback point:
 
 - Bank invoice retry-safe lock commit: `7e40e33` (`Make bank invoice lock retry safe`).
+
+## 2026-06-01 - Refresh Bank Invoice Cart And Expired Promo State
+
+User request:
+
+- Fix the Step 3 bank invoice `Connection error` after adding two products, and fix one-product invoice generation that reused two old products and an expired May 31 promo discount on June 1.
+
+Files changed:
+
+- Updated `assets/yo-checkout.js`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `CHANGELOG.txt`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `KNOWN_ISSUES.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- Plugin version increased to `4.0.30`.
+- Bank invoice click now saves the current checkout form and current cart through `yo_checkout_create_order` before calling `yo_checkout_create_bank_invoice`.
+- Bank invoice reuse metadata is cleared when the local order is refreshed, so a stale invoice/cart hash cannot be reused after the customer changes products.
+- Frontend promo cart persistence now depends on the current active promo configuration.
+- Bank invoice creation strips invalid or expired promo code data from reused local order meta before recalculating bank totals and generating invoice files.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `php -l includes\class-yo-checkout-promo.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Documentation updates:
+
+- `CHANGELOG.txt`, `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, and `KNOWN_ISSUES.md` updated for v4.0.30.
+
+Repository rollback point:
+
+- Pending commit for bank invoice cart refresh and expired promo cleanup.

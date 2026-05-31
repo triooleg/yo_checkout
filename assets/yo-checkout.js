@@ -511,7 +511,7 @@
         }
         const marker = getCartKeycrmMarker();
         const payload = {savedAt:Date.now(), items:cartItems};
-        if(appliedCartPromo && cartEligiblePromoBase() > 0){ payload.applied_cart_promo = appliedCartPromo; }
+        if(promoEnabled() && appliedCartPromo && cartEligiblePromoBase() > 0){ payload.applied_cart_promo = appliedCartPromo; }
         if(marker && marker.keycrm_order_id){
           payload.keycrm_order_id = marker.keycrm_order_id;
           payload.local_id = marker.local_id || current.localId || getStoredDraftLocalId() || '';
@@ -544,7 +544,7 @@
           if(data.local_id) storeDraftLocalId(data.local_id);
         }
         appliedCartPromo = null;
-        if(data.applied_cart_promo && cartEligiblePromoBase() > 0){
+        if(promoEnabled() && data.applied_cart_promo && cartEligiblePromoBase() > 0){
           appliedCartPromo = data.applied_cart_promo;
         }
       }catch(e){ try{ localStorage.removeItem(CART_STORAGE_KEY); }catch(_){} }
@@ -761,6 +761,7 @@
       return {original: original, productDiscount: productDiscount, promoDiscount: promoDiscount, promoBase: promoBase, regularFinal: regularFinal, finalTotal: finalTotal, totalDiscount: productDiscount + promoDiscount};
     }
     function cartItemPromoDiscount(item){
+      if(!promoEnabled()) return 0;
       if(!appliedCartPromo) return 0;
       if((parseFloat(item.product_discount_eur || 0) || 0) > 0) return 0;
       const eligibleBase = cartEligiblePromoBase();
@@ -784,8 +785,8 @@
         original_price_eur: money(totals.original || totals.finalTotal),
         discount_eur: money(totals.totalDiscount),
         product_discount_eur: money(totals.productDiscount),
-        promo_applied: !!appliedCartPromo,
-        promo_code_applied: appliedCartPromo ? appliedCartPromo.code : '',
+        promo_applied: promoEnabled() && !!appliedCartPromo,
+        promo_code_applied: (promoEnabled() && appliedCartPromo) ? appliedCartPromo.code : '',
         image_url: cartItems[0]?.image_url || '',
         image_urls: cartItems.map(function(item){ return item.image_url || ''; }).filter(Boolean),
         shipping_weight_kg: cartTotalWeight()
@@ -1342,6 +1343,42 @@
       if(bankBtn) bankBtn.disabled = true;
       validateCartAvailability(true).then(function(v){
       if(v && v.removed > 0){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; setStep(1); return; }
+      if(!cartItems.length){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; setStep(1); return; }
+      const form = byId('yo-pay-form');
+      if(!form){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Order form is missing. Please refresh the page.'); setStep(1); return; }
+      const orderFd = new FormData(form);
+      const cartMarkerForOrder = getCartKeycrmMarker();
+      const draftLocalId = current.localId || (cartMarkerForOrder && cartMarkerForOrder.local_id ? cartMarkerForOrder.local_id : '') || getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id');
+      if(draftLocalId) orderFd.append('local_id', draftLocalId);
+      orderFd.append('checkout_session_id', checkoutSessionId());
+      orderFd.append('buyer_id', buyerId());
+      const storedKeycrmOrderId = current.orderId || (cartMarkerForOrder && cartMarkerForOrder.keycrm_order_id ? cartMarkerForOrder.keycrm_order_id : '') || getStoredKeycrmOrderId();
+      if(storedKeycrmOrderId) orderFd.append('keycrm_order_id', storedKeycrmOrderId);
+      if(cartMarkerForOrder && cartMarkerForOrder.keycrm_order_id){ orderFd.append('cart_marker_keycrm_order_id', cartMarkerForOrder.keycrm_order_id); if(cartMarkerForOrder.local_id) orderFd.append('cart_marker_local_id', cartMarkerForOrder.local_id); orderFd.append('cart_marker_json', JSON.stringify(cartMarkerForOrder)); }
+      buildSelectedProductFromCart();
+      orderFd.append('title', selectedProduct.title); orderFd.append('price_eur', selectedProduct.price_eur); orderFd.append('original_price_eur', selectedProduct.original_price_eur || selectedProduct.price_eur); orderFd.append('discount_eur', selectedProduct.discount_eur || '0.00'); orderFd.append('image_url', selectedProduct.image_url);
+      if(selectedProduct.shipping_weight_kg){ orderFd.append('shipping_weight_kg', String(selectedProduct.shipping_weight_kg)); }
+      if(selectedProduct.promo_applied && selectedProduct.promo_code_applied){ orderFd.append('promo_code_applied', selectedProduct.promo_code_applied); }
+      orderFd.append('cart_items_count', String(cartItems.length));
+      orderFd.append('cart_items_json', JSON.stringify(cartItems.map(function(item){
+        const promoDiscount = cartItemPromoDiscount(item);
+        const productDiscount = parseFloat(item.product_discount_eur || item.discount_eur || 0) || 0;
+        return {title:item.title, price_eur:item.price_eur, original_price_eur:item.original_price_eur, discount_eur:money(productDiscount + promoDiscount), product_discount_eur:money(productDiscount), promo_discount_eur:money(promoDiscount), image_url:item.image_url, weight_kg:item.weight_kg || item.product_weight_kg || item.weight || ''};
+      })));
+      setStep('loading');
+      post('yo_checkout_create_order', orderFd).then(function(orderData){
+        if(!orderData.success){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert((orderData.data?.message || 'Order error')+'\n\n'+JSON.stringify(orderData.data?.details || orderData, null, 2)); setStep(1); return; }
+        rememberKeycrmFromResponse(orderData);
+        current.localId = orderData.data.localId;
+        storeDraftLocalId(current.localId);
+        current.orderId = orderData.data.orderId || current.orderId || getStoredKeycrmOrderId();
+        if(current.orderId){ storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); }
+        current.cardFee = orderData.data.cardFee || null;
+        current.shipping = orderData.data.shipping || null;
+        current.shippingOptions = orderData.data.shippingOptions || [];
+        current.bankTotal = orderData.data.bankTotal || null;
+        submitBankInvoice(0);
+      }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
       function submitBankInvoice(attempt){
         attempt = attempt || 0;
         const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
@@ -1370,7 +1407,6 @@
           bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2);
         });
       }
-      submitBankInvoice(0);
       }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
     });
     function releaseReservationsForItems(items){

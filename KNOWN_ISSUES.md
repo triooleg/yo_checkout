@@ -83,7 +83,7 @@ Handling:
 
 ### Repeated bank invoice requests could duplicate emails and KeyCRM product rows
 
-Status: fixed in v4.0.28 and softened in v4.0.29, monitor next multi-item invoice test.
+Status: fixed in v4.0.28-v4.0.30, monitor next multi-item invoice test.
 
 Details:
 
@@ -94,9 +94,25 @@ Details:
 Handling:
 
 - Frontend bank invoice click now has an in-progress guard.
+- Before creating a bank invoice, the frontend now saves the current cart/order data through `yo_checkout_create_order`, so an older local order cannot be reused with stale product rows.
 - Backend bank invoice creation now uses a short lock, cart hash reuse, and per-hash email marker.
 - Active lock responses now return a retryable `preparing` state instead of a visible error alert.
 - KeyCRM update now matches existing product rows before update and avoids unsafe zero-quantity row deletion.
+
+### Expired promo discount could survive in a stored cart/order
+
+Status: fixed in v4.0.30, monitor after promo date changes.
+
+Details:
+
+- Browser localStorage could keep `applied_cart_promo` from a previous day.
+- A reused local bank-invoice order could still contain old `promo_code_applied` and per-item promo discount meta after the promo expiration date.
+- This could make a new invoice show a promo discount after the promo was no longer active.
+
+Handling:
+
+- Frontend cart saving/loading and item discount calculation now require the current localized promo setting to be active.
+- Bank invoice creation now removes invalid or expired promo data from the local order before bank totals, invoice files, email, and KeyCRM payment data are generated.
 
 ## Watch Areas
 

@@ -212,3 +212,9 @@ YOleotard Checkout v4.0.29
 - Frontend now waits and retries while the server is preparing the invoice instead of showing a lock alert.
 - Keeps duplicate email/payment protection and KeyCRM product row matching from v4.0.28.
 
+YOleotard Checkout v4.0.30
+- Refreshes the current cart/order through the normal order-save flow before creating a SEPA/SWIFT bank invoice.
+- Prevents old local order data from reusing stale invoice product rows after the customer changes the cart.
+- Stops expired promo code data from being saved/restored in the frontend cart.
+- Removes invalid or expired promo discounts from reused local bank-invoice orders before invoice totals are calculated.
+

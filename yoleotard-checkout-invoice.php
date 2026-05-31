@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.29. Makes bank invoice preparation retry-safe without customer-facing lock alerts.
- * Version: 4.0.29
+ * Description: v4.0.30. Refreshes bank invoice order data and removes expired promo discounts before invoice creation.
+ * Version: 4.0.30
  * Author: YOleotard / ChatGPT
  */
 
@@ -1444,7 +1444,7 @@ EUR=1',
         }
         $this->remember_keycrm_checkout_marker($local_id);
         // Clear payment preview meta that depends on country/price/payment route; it will be recalculated below.
-        foreach (['shipping_price','shipping_country','shipping_source','card_fee_percent','card_fee_amount','card_total_amount','bank_total_amount','payment_provider','payment_type'] as $meta_key) {
+        foreach (['shipping_price','shipping_country','shipping_source','card_fee_percent','card_fee_amount','card_total_amount','bank_total_amount','payment_provider','payment_type','bank_invoice_lock','bank_invoice_cart_hash','bank_invoice_created','bank_invoice_email_sent','bank_invoice_email_sent_hash','bank_invoice_keycrm_payment_added','bank_invoice_keycrm_payment_hash','invoice_pdf_url','invoice_pdf_path','invoice_html_url','bank_invoice_type'] as $meta_key) {
             delete_post_meta($local_id, $meta_key);
         }
 
@@ -1580,6 +1580,7 @@ EUR=1',
         }
         update_post_meta($local_id, 'payment_type', 'bank');
         update_post_meta($local_id, 'payment_provider', 'bank');
+        $this->remove_invalid_promo_from_order($local_id);
 
         // Recalculate and persist Nova Post shipping exactly when the customer selects SEPA/SWIFT invoice.
         // Bank invoice total must include product + delivery, but must NOT include card provider service fee.
@@ -1628,6 +1629,56 @@ EUR=1',
         }
         delete_post_meta($local_id, 'bank_invoice_lock');
         wp_send_json_success(['invoiceUrl'=>$files['pdf_url'], 'htmlUrl'=>$files['html_url'], 'pdfMessage'=>$files['pdf_message'] ?? '', 'bankType'=>$bank_for_order['type'], 'orderId'=>get_post_meta($local_id,'order_id',true), 'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id]]);
+    }
+
+    private function remove_invalid_promo_from_order($local_id) {
+        $d = $this->get_order_data($local_id);
+        $code = trim((string)($d['promo_code_applied'] ?? ''));
+        if ($code === '') return false;
+        $s = self::settings();
+        $valid = $this->promo_is_configured()
+            && strcasecmp($code, trim((string)($s['promo_code'] ?? ''))) === 0
+            && !$this->promo_is_expired($s);
+        if ($valid) return false;
+
+        $items = $this->cart_items_from_order_data($d);
+        $clean_items = [];
+        $original_total = 0;
+        $final_total = 0;
+        $product_discount_total = 0;
+        foreach ($items as $item) {
+            if (!is_array($item)) continue;
+            $item_price = round(floatval($item['price_eur'] ?? 0), 2);
+            $item_original = round(floatval($item['original_price_eur'] ?? $item_price), 2);
+            if ($item_original < $item_price) $item_original = $item_price;
+            $item_product_discount = round(floatval($item['product_discount_eur'] ?? 0), 2);
+            if ($item_product_discount <= 0) {
+                $legacy_discount = round(floatval($item['discount_eur'] ?? 0), 2);
+                $legacy_promo = round(floatval($item['promo_discount_eur'] ?? 0), 2);
+                $item_product_discount = max(0, round($legacy_discount - $legacy_promo, 2));
+            }
+            $item_final = round(max(0, $item_original - $item_product_discount), 2);
+            $item['price_eur'] = number_format($item_final, 2, '.', '');
+            $item['original_price_eur'] = number_format($item_original, 2, '.', '');
+            $item['product_discount_eur'] = number_format($item_product_discount, 2, '.', '');
+            $item['promo_discount_eur'] = '0.00';
+            $item['discount_eur'] = number_format($item_product_discount, 2, '.', '');
+            $clean_items[] = $item;
+            $original_total += $item_original;
+            $final_total += $item_final;
+            $product_discount_total += $item_product_discount;
+        }
+        if (!$clean_items) return false;
+
+        update_post_meta($local_id, 'cart_items_json', wp_json_encode($clean_items));
+        update_post_meta($local_id, 'cart_items_count', count($clean_items));
+        update_post_meta($local_id, 'original_price_eur', number_format($original_total, 2, '.', ''));
+        update_post_meta($local_id, 'price_eur', number_format($final_total, 2, '.', ''));
+        update_post_meta($local_id, 'discount_eur', number_format($product_discount_total, 2, '.', ''));
+        delete_post_meta($local_id, 'promo_code_applied');
+        delete_post_meta($local_id, 'promo_discount_type');
+        delete_post_meta($local_id, 'promo_discount_value');
+        return true;
     }
 
     private function bank_invoice_cart_hash($local_id) {
