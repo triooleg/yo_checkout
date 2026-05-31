@@ -42,6 +42,9 @@ Rules for future work:
 - `CHANGELOG.txt`
   Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.27`.
 
+- `WESTERN_BID_MIGRATION_MAP.md`
+  Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
+
 - `PROJECT_CONTEXT.md`
   Project-level context and required rules for future Codex work.
 

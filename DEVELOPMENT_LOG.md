@@ -309,3 +309,36 @@ Documentation updates:
 Repository rollback point:
 
 - Google Reviews service extraction commit: `a3c81e3` (`Extract Google Reviews service`).
+
+## 2026-05-31 - Western Bid Migration Map
+
+User request:
+
+- Analyze the provided Western Bid documentation and credentials.
+- Create a complete action map for replacing WayForPay with Western Bid later.
+- Do not implement the replacement now.
+
+Files changed:
+
+- Added `WESTERN_BID_MIGRATION_MAP.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No runtime plugin behavior changed.
+- Western Bid implementation plan is now stored as a repository document.
+- Secret key was not written to any repository file.
+
+Verification performed:
+
+- Extracted Western Bid documentation text from the provided PDFs using local `pdftotext`.
+- Reviewed current WayForPay code surface and identified settings, AJAX, REST, provider routing, fee, KeyCRM, polling, webhook, and frontend touchpoints.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md` updated with `WESTERN_BID_MIGRATION_MAP.md`.
+
+Repository rollback point:
+
+- Pending commit and push.
