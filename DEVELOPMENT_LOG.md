@@ -410,3 +410,44 @@ Documentation updates:
 Repository rollback point:
 
 - KeyCRM service extraction commit: `4b03c8b` (`Extract KeyCRM service`).
+
+## 2026-06-01 - Prevent Duplicate Bank Invoice Emails And KeyCRM Product Rows
+
+User request:
+
+- Fix the issue found during testing where a two-item bank invoice order sent two emails and duplicated one product row in KeyCRM.
+
+Files changed:
+
+- Updated `assets/yo-checkout.js`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `includes/class-yo-checkout-keycrm.php`.
+- Updated `CHANGELOG.txt`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `KNOWN_ISSUES.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- Plugin version increased to `4.0.28`.
+- Bank invoice button now has a frontend in-progress guard to prevent repeat submissions.
+- Bank invoice creation now has a server-side lock and cart hash reuse so the same request returns the existing invoice without resending email or adding another KeyCRM bank payment.
+- Bank invoice email sending is idempotent per cart hash.
+- KeyCRM existing product rows are matched before order update so repeated invoice requests update rows instead of appending duplicate products.
+- Unsafe KeyCRM zero-quantity row deletion remains disabled.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed.
+
+Documentation updates:
+
+- `CHANGELOG.txt`, `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, and `KNOWN_ISSUES.md` updated for v4.0.28.
+
+Repository rollback point:
+
+- Pending commit and push.

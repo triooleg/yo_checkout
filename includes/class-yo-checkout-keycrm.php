@@ -748,11 +748,6 @@ class YO_Checkout_KeyCRM_Service {
         }
 
     public function keycrm_prepare_products_for_full_sync($order_id, $payload, $s) {
-            // v3.3.75: keep Step 3 stable. Do not call extra KeyCRM product-row sync endpoints here.
-            // KeyCRM safely updates the main order through PUT /order/{id}; product-row deletion/zeroing
-            // is not reliable in the public API and previously caused a frontend "Connection error".
-            return $payload;
-    
             // KeyCRM uses products.*.id as the ID of the product row inside this order
             // (not the catalog product ID). When the website cart is edited, we try to
             // attach these row IDs to the current cart items so KeyCRM updates rows instead
@@ -811,22 +806,9 @@ class YO_Checkout_KeyCRM_Service {
                 }
             }
     
-            // KeyCRM OpenAPI documents PUT /order/{id}, but it does not expose a separate
-            // public DELETE endpoint for product rows. To make the CRM order follow the
-            // current website cart as closely as the API allows, send removed rows back
-            // with quantity = 0. If KeyCRM accepts this as a removal/zeroing operation,
-            // the old product stops affecting the order. If KeyCRM rejects quantity 0,
-            // keycrm_update_existing_order() retries once without these zero rows.
-            foreach ($rows as $row) {
-                if (empty($row['id']) || isset($used_ids[$row['id']])) continue;
-                $payload['products'][] = [
-                    'id' => intval($row['id']),
-                    'name' => $this->clean_product_title_for_display($row['name'] ?: 'Removed from website cart'),
-                    'price' => 0,
-                    'quantity' => 0,
-                    'picture' => '',
-                ];
-            }
+            // Do not send removed rows back with quantity = 0 here. The public KeyCRM API has been
+            // unreliable for row deletion, and the important safety fix is preventing duplicates by
+            // attaching IDs to matched rows before PUT /order/{id}.
     
             return $payload;
         }

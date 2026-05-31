@@ -81,6 +81,22 @@ Handling:
 - If the retry still fails, the KeyCRM error remains visible so the next issue is not hidden.
 - Test with bank invoice after uploading the next ZIP: expected result is invoice generation, KeyCRM order creation/update, and no browser alert containing `buyer.id is invalid`.
 
+### Repeated bank invoice requests could duplicate emails and KeyCRM product rows
+
+Status: fixed in v4.0.28, monitor next multi-item invoice test.
+
+Details:
+
+- A repeated `yo_checkout_create_bank_invoice` request could send a second bank invoice email for the same KeyCRM order.
+- When the same KeyCRM order was updated again, product rows could be appended because existing KeyCRM product row IDs were not attached before `PUT /order/{id}`.
+- This was visible with a multi-item invoice order: one email showed one item, a later email showed two items, and KeyCRM displayed a duplicated first item.
+
+Handling:
+
+- Frontend bank invoice click now has an in-progress guard.
+- Backend bank invoice creation now uses a short lock, cart hash reuse, and per-hash email marker.
+- KeyCRM update now matches existing product rows before update and avoids unsafe zero-quantity row deletion.
+
 ## Watch Areas
 
 - Payment finalization must remain idempotent. Repeated webhooks or polling must not create duplicate KeyCRM payments, emails, or status updates.

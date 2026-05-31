@@ -201,3 +201,9 @@ YOleotard Checkout v4.0.27
 - Keeps one append-only plugin changelog file: CHANGELOG.txt.
 - Removes separate per-version CHANGELOG-v*.txt files from the plugin package.
 
+YOleotard Checkout v4.0.28
+- Prevents repeated bank invoice clicks/requests from sending duplicate customer emails.
+- Reuses an already generated bank invoice for the same local order and cart hash.
+- Adds server-side bank invoice locking and idempotent KeyCRM bank payment/email markers.
+- Matches existing KeyCRM product rows before order update so repeated invoice requests do not append duplicate products.
+

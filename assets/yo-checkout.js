@@ -4,6 +4,7 @@
     let cartItems = [];
     let appliedCartPromo = null;
     let current = {localId:'', orderId:'', invoiceId:'', customer:{}, cardFee:null, bankTotal:null, shipping:null, shippingOptions:[]};
+    let bankInvoiceInProgress = false;
     function yoDebug(msg, obj){
       // Visible Step 3 debug panel removed in v4.0.24.
       // Keep optional console diagnostics only when explicitly enabled by admin in browser.
@@ -1334,9 +1335,13 @@
       });
     });
     byId('yo-pay-bank')?.addEventListener('click', function(){
+      if(bankInvoiceInProgress) return;
       if(!byId('yo-accept-terms')?.checked){ alert('Please confirm that you agree to the Terms & Conditions before continuing.'); return; }
+      bankInvoiceInProgress = true;
+      const bankBtn = byId('yo-pay-bank');
+      if(bankBtn) bankBtn.disabled = true;
       validateCartAvailability(true).then(function(v){
-      if(v && v.removed > 0){ setStep(1); return; }
+      if(v && v.removed > 0){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; setStep(1); return; }
       const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
       setStep('loading');
       post('yo_checkout_create_bank_invoice', fd).then(function(data){
@@ -1353,9 +1358,9 @@
             console.warn('YOleotard invoice PDF was not generated:', data.data.pdfMessage);
           }
         }
-        else { alert((data.data?.message || 'Invoice error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
-      }).catch(function(){ alert('Connection error'); setStep(2); });
-      });
+        else { bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert((data.data?.message || 'Invoice error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
+      }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
+      }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
     });
     function releaseReservationsForItems(items){
       const seen = new Set();

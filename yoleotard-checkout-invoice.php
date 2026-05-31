@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.27. Adds product thumbnails to customer order emails and uses one append-only changelog file.
- * Version: 4.0.27
+ * Description: v4.0.28. Prevents duplicate bank invoice emails and KeyCRM product rows on repeated invoice requests.
+ * Version: 4.0.28
  * Author: YOleotard / ChatGPT
  */
 
@@ -1558,9 +1558,19 @@ EUR=1',
         $s = self::settings();
         $local_id = absint($_POST['local_id'] ?? 0);
         if (!$local_id || get_post_type($local_id) !== self::CPT) wp_send_json_error(['message'=>'Order not found']);
+        $existing_lock = absint(get_post_meta($local_id, 'bank_invoice_lock', true));
+        if ($existing_lock && (time() - $existing_lock) < 120) {
+            wp_send_json_error(['message'=>'Bank invoice is already being prepared. Please wait a moment and try again.']);
+        }
+        delete_post_meta($local_id, 'bank_invoice_lock');
+        add_post_meta($local_id, 'bank_invoice_lock', time(), true);
+
         $buyer_id = sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? ''));
         $payable = $this->order_items_are_payable_for_buyer($local_id, $buyer_id);
-        if (is_wp_error($payable)) wp_send_json_error(['message'=>$payable->get_error_message(), 'details'=>$payable->get_error_data()]);
+        if (is_wp_error($payable)) {
+            delete_post_meta($local_id, 'bank_invoice_lock');
+            wp_send_json_error(['message'=>$payable->get_error_message(), 'details'=>$payable->get_error_data()]);
+        }
         update_post_meta($local_id, 'payment_type', 'bank');
         update_post_meta($local_id, 'payment_provider', 'bank');
 
@@ -1571,21 +1581,90 @@ EUR=1',
         update_post_meta($local_id, 'card_fee_percent', '0.00');
         update_post_meta($local_id, 'card_fee_amount', '0.00');
         update_post_meta($local_id, 'card_total_amount', $bank_total['total']);
+        $cart_hash = $this->bank_invoice_cart_hash($local_id);
+        if (get_post_meta($local_id, 'bank_invoice_created', true) === '1' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_cart_hash', true), $cart_hash)) {
+            $existing_response = $this->bank_invoice_existing_response($local_id, false);
+            if ($existing_response) {
+                delete_post_meta($local_id, 'bank_invoice_lock');
+                wp_send_json_success($existing_response);
+            }
+        }
 
         $created = $this->ensure_keycrm_order($local_id, 'bank');
-        if (is_wp_error($created)) wp_send_json_error(['message'=>'KeyCRM order was not created','details'=>$created->get_error_data() ?: $created->get_error_message()]);
+        if (is_wp_error($created)) {
+            delete_post_meta($local_id, 'bank_invoice_lock');
+            wp_send_json_error(['message'=>'KeyCRM order was not created','details'=>$created->get_error_data() ?: $created->get_error_message()]);
+        }
         $order_data_for_bank = $this->get_order_data($local_id);
         $bank_for_order = $this->bank_details_for_country($order_data_for_bank['country']);
         update_post_meta($local_id, 'bank_invoice_type', $bank_for_order['type']);
         $this->keycrm_update_order_comment($local_id, 'Order from YOleotard website - Invoice ' . $bank_for_order['type']);
         $files = $this->generate_invoice_files($local_id);
-        if (is_wp_error($files)) wp_send_json_error(['message'=>$files->get_error_message()]);
+        if (is_wp_error($files)) {
+            delete_post_meta($local_id, 'bank_invoice_lock');
+            wp_send_json_error(['message'=>$files->get_error_message()]);
+        }
         update_post_meta($local_id, 'invoice_pdf_url', $files['pdf_url']);
         update_post_meta($local_id, 'invoice_pdf_path', $files['pdf_path']);
         update_post_meta($local_id, 'invoice_html_url', $files['html_url']);
-        if (!empty($s['keycrm_payment_method_bank'])) $this->keycrm_add_payment($local_id, 'not_paid', 'Bank transfer invoice created');
-        $this->send_bank_invoice_email($local_id, !empty($files['pdf_path']) ? $files['pdf_path'] : $files['html_path']);
+        update_post_meta($local_id, 'bank_invoice_cart_hash', $cart_hash);
+        update_post_meta($local_id, 'bank_invoice_created', '1');
+        if (!empty($s['keycrm_payment_method_bank']) && !hash_equals((string)get_post_meta($local_id, 'bank_invoice_keycrm_payment_hash', true), $cart_hash)) {
+            $this->keycrm_add_payment($local_id, 'not_paid', 'Bank transfer invoice created');
+            update_post_meta($local_id, 'bank_invoice_keycrm_payment_added', '1');
+            update_post_meta($local_id, 'bank_invoice_keycrm_payment_hash', $cart_hash);
+        }
+        if (!hash_equals((string)get_post_meta($local_id, 'bank_invoice_email_sent_hash', true), $cart_hash)) {
+            $this->send_bank_invoice_email($local_id, !empty($files['pdf_path']) ? $files['pdf_path'] : $files['html_path']);
+            update_post_meta($local_id, 'bank_invoice_email_sent', '1');
+            update_post_meta($local_id, 'bank_invoice_email_sent_hash', $cart_hash);
+        }
+        delete_post_meta($local_id, 'bank_invoice_lock');
         wp_send_json_success(['invoiceUrl'=>$files['pdf_url'], 'htmlUrl'=>$files['html_url'], 'pdfMessage'=>$files['pdf_message'] ?? '', 'bankType'=>$bank_for_order['type'], 'orderId'=>get_post_meta($local_id,'order_id',true), 'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id]]);
+    }
+
+    private function bank_invoice_cart_hash($local_id) {
+        $d = $this->get_order_data($local_id);
+        $items = $this->cart_items_from_order_data($d);
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) continue;
+            $normalized[] = [
+                'title' => $this->clean_product_title_for_display($item['title'] ?? ''),
+                'price' => number_format(round(floatval($item['price_eur'] ?? 0), 2), 2, '.', ''),
+                'original' => number_format(round(floatval($item['original_price_eur'] ?? ($item['price_eur'] ?? 0)), 2), 2, '.', ''),
+                'discount' => number_format(round(floatval($item['discount_eur'] ?? 0), 2), 2, '.', ''),
+                'image' => esc_url_raw($item['image_url'] ?? ''),
+            ];
+        }
+        return md5(wp_json_encode([
+            'items' => $normalized,
+            'shipping' => number_format(round(floatval($d['shipping_cost_eur'] ?? 0), 2), 2, '.', ''),
+            'bank_total' => number_format(round(floatval($d['bank_total_amount'] ?? 0), 2), 2, '.', ''),
+            'country' => sanitize_text_field($d['country'] ?? ''),
+        ]));
+    }
+
+    private function bank_invoice_existing_response($local_id, $locked = false) {
+        $invoice_url = get_post_meta($local_id, 'invoice_pdf_url', true);
+        $html_url = get_post_meta($local_id, 'invoice_html_url', true);
+        if (!$invoice_url && !$html_url) return null;
+        $d = $this->get_order_data($local_id);
+        $bank_type = get_post_meta($local_id, 'bank_invoice_type', true);
+        if (!$bank_type && !empty($d['country'])) {
+            $bank = $this->bank_details_for_country($d['country']);
+            $bank_type = $bank['type'] ?? '';
+        }
+        return [
+            'invoiceUrl' => $invoice_url,
+            'htmlUrl' => $html_url,
+            'pdfMessage' => '',
+            'bankType' => $bank_type,
+            'orderId' => get_post_meta($local_id, 'order_id', true),
+            'reused' => true,
+            'locked' => (bool)$locked,
+            'cartMarker' => ['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],
+        ];
     }
 
 
