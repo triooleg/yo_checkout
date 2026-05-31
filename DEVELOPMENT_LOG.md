@@ -126,4 +126,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Sold-item service extraction commit pushed to GitHub: `28613e4` (`Extract sold item auto-hide service`).
