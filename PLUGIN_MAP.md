@@ -13,8 +13,8 @@ Rules for future work:
 - New backend functionality should gradually move into separate classes, preferably under `includes/`.
 - If an existing function must be worked on, first consider moving the related block into a separate included file, then make the change there.
 - Runtime behavior changes should update the plugin header version and append a concise entry to the single `CHANGELOG.txt` file.
-- Do not create test ZIP archives unless the user explicitly requests one. When creating one, include the current plugin version in the archive filename.
-- Test archive packaging rule: the ZIP may be named like `yoleotard-checkout-invoice-test-vX.Y.Z-description.zip`, but inside it the only top-level plugin folder must be `yoleotard-checkout-invoice/`. WordPress uses this folder name to update the existing plugin instead of installing a second plugin.
+- Do not create test ZIP archives unless the user explicitly requests one.
+- Test archive packaging rule for this host: the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip`, and inside it the only top-level plugin folder must be `yoleotard-checkout-invoice/`. This host may create a duplicate plugin folder if the ZIP filename includes a test/version suffix.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - If code structure, hooks, files, settings, AJAX actions, REST routes, or frontend behavior changed, update this map.
 - After each task, check syntax and basic runtime logic as much as possible in the local environment.
@@ -298,7 +298,7 @@ YOOtheme:
 
 - The main PHP file is large. Prefer extracting new areas into `includes/*.php` and loading them from the main file.
 - For frontend additions, prefer new files under `assets/` and enqueue/localize them from PHP.
-- When building a test ZIP, stage/copy the plugin files into a temporary `yoleotard-checkout-invoice/` folder first, then compress that folder. Exclude `.git`, old ZIP archives, temporary package folders, and unrelated local files.
+- When building a test ZIP, stage/copy the plugin files into a temporary `yoleotard-checkout-invoice/` folder first, then compress that folder to `yoleotard-checkout-invoice.zip`. Exclude `.git`, old ZIP archives, temporary package folders, and unrelated local files. Keep the version in the plugin header and `CHANGELOG.txt`, not in the installable ZIP filename.
 - If touching payment, KeyCRM, or sold-item hiding, preserve idempotency. Many methods use post meta flags/locks to avoid duplicate payments, emails, and status updates.
 - If touching AJAX, always verify nonce handling and guest-user behavior.
 - If touching checkout pricing, check product price, promo discount, shipping, card fee, bank total, and KeyCRM payment amount together.

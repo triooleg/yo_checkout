@@ -559,3 +559,35 @@ Documentation updates:
 Repository rollback point:
 
 - Archive packaging documentation commit: `909e622` (`Document plugin archive packaging`).
+
+## 2026-06-01 - Correct Host-Safe Plugin ZIP Name Rule
+
+User request:
+
+- The uploaded test archive still created a duplicate plugin in WordPress and a duplicate plugin folder on hosting. Document and use the archive format that updates the existing plugin folder.
+
+Files changed:
+
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+- Created local test archive `yoleotard-checkout-invoice.zip`.
+
+Behavior changed:
+
+- No plugin runtime behavior changed.
+- Documentation now requires the installable ZIP filename to be exactly `yoleotard-checkout-invoice.zip` for this host, with one internal top-level folder `yoleotard-checkout-invoice/`.
+- Version information remains in the plugin header and `CHANGELOG.txt`, not in the upload ZIP filename.
+
+Verification performed:
+
+- Verified `yoleotard-checkout-invoice.zip` contains `yoleotard-checkout-invoice/` as its top-level folder.
+- Documentation-only code change; no PHP/JS syntax check required.
+
+Documentation updates:
+
+- Corrected the previous archive naming rule in project context and plugin map.
+
+Repository rollback point:
+
+- Pending commit for host-safe plugin archive naming.
