@@ -267,4 +267,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Promo service extraction commit: `2fa9cb3` (`Extract promo code service`).
