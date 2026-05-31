@@ -12,7 +12,7 @@ Rules for future work:
 - New functionality should be placed in a separate PHP/JS/CSS file and included/enqueued from the main plugin file, so `yoleotard-checkout-invoice.php` does not keep growing.
 - New backend functionality should gradually move into separate classes, preferably under `includes/`.
 - If an existing function must be worked on, first consider moving the related block into a separate included file, then make the change there.
-- Runtime behavior changes should update the plugin header version and add a concise `CHANGELOG-vX.Y.Z.txt` entry.
+- Runtime behavior changes should update the plugin header version and append a concise entry to the single `CHANGELOG.txt` file.
 - Do not create test ZIP archives unless the user explicitly requests one.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - If code structure, hooks, files, settings, AJAX actions, REST routes, or frontend behavior changed, update this map.
@@ -33,8 +33,8 @@ Rules for future work:
 - `assets/yo-checkout.css`
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
-- `CHANGELOG-v*.txt`
-  Version notes from plugin updates. Current visible version in plugin header is `4.0.26`. Add a short matching changelog file when a task changes runtime behavior.
+- `CHANGELOG.txt`
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.27`.
 
 - `PROJECT_CONTEXT.md`
   Project-level context and required rules for future Codex work.
@@ -258,7 +258,7 @@ KeyCRM:
 
 - Settings tab: token, source/currency/tag/status IDs, payment method IDs.
 - Main flow creates/updates buyer/order and records payments.
-- Current v4.0.25 behavior: after successful card payment, the frontend waits for the real KeyCRM order ID before showing Step 4.
+- Current behavior: after successful card payment, the frontend waits for the real KeyCRM order ID before showing Step 4.
 
 Dompdf:
 

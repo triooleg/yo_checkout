@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.26. Retries bank-invoice KeyCRM sync with a fresh buyer when a stale buyer.id is rejected and cleans sold-item log titles.
- * Version: 4.0.26
+ * Description: v4.0.27. Adds product thumbnails to customer order emails and uses one append-only changelog file.
+ * Version: 4.0.27
  * Author: YOleotard / ChatGPT
  */
 
@@ -5043,6 +5043,28 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
         return implode('<br>', $parts);
     }
 
+    private function email_products_html($d) {
+        $items = $this->cart_items_from_order_data($d);
+        if (!$items) return '<strong>' . esc_html($d['title']) . '</strong>';
+
+        $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">';
+        foreach ($items as $idx => $item) {
+            $title = $this->clean_product_title_for_display($item['title'] ?? 'Selected leotard');
+            $image = esc_url($item['image_url'] ?? '');
+            $border = $idx > 0 ? 'border-top:1px solid #e5e7eb;' : '';
+            $html .= '<tr>';
+            if ($image) {
+                $html .= '<td width="72" valign="top" style="padding:' . ($idx > 0 ? '10px' : '0') . ' 12px 10px 0;' . $border . '">';
+                $html .= '<img src="' . $image . '" alt="' . esc_attr($title) . '" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;display:block;">';
+                $html .= '</td>';
+            }
+            $html .= '<td valign="middle" style="padding:' . ($idx > 0 ? '10px' : '0') . ' 0 10px 0;' . $border . 'text-align:left;"><strong>' . esc_html($title) . '</strong></td>';
+            $html .= '</tr>';
+        }
+        $html .= '</table>';
+        return $html;
+    }
+
     private function email_order_table_html($d, $show_status = true) {
         $original = (float)($d['original_price_eur'] ?: $d['price_eur']);
         $discount = (float)($d['discount_eur'] ?: 0);
@@ -5051,7 +5073,7 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
         $is_card = in_array(($d['payment_type'] ?? ''), ['card'], true);
         $total = (float)$d['price_eur'] + $shipping + ($is_card ? $service_fee : 0);
         $rows = '';
-        $rows .= '<tr><td style="padding:10px 0;color:#64748b;">Product</td><td style="padding:10px 0;text-align:right;"><strong>' . esc_html($d['title']) . '</strong></td></tr>';
+        $rows .= '<tr><td style="padding:10px 0;color:#64748b;vertical-align:top;">Product</td><td style="padding:10px 0;text-align:left;">' . $this->email_products_html($d) . '</td></tr>';
         $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Items total</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;">' . $this->money_html($original) . '</td></tr>';
         if ($discount > 0) {
             $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Discount</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;">- ' . $this->money_html($discount) . '</td></tr>';

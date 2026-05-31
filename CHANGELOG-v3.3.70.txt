@@ -1,4 +1,0 @@
-v3.3.70
-- Restored styled add-to-cart popup CSS and added a separate admin tab for cart notification settings.
-- Added stricter KeyCRM existing-order reuse before creating a new KeyCRM order.
-- Built as an update of the existing yoleotard-checkout-invoice plugin folder.

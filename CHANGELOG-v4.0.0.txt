@@ -1,5 +1,0 @@
-YOleotard Checkout v4.0.0
-- Added automatic currency conversion for imported shipping tariffs using NBU exchange rates.
-- Added FX cache settings and safety markup for shipping calculations.
-- Manual USD/UAH/EUR conversion table is kept as fallback or manual mode.
-- Shipping calculator now converts database and structured import tariffs to EUR automatically.

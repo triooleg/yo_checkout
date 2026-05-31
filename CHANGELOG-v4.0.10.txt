@@ -1,5 +1,0 @@
-Version 4.0.10
-- Restored card checkout flow so KeyCRM buyer/order is not created before successful card payment.
-- Monobank/WayForPay now use local website checkout references before payment.
-- After successful card payment, a fresh KeyCRM buyer/order is created without reusing stale buyer_id values.
-- If KeyCRM creation fails after payment, the customer confirmation, paid email, cart cleanup, and product hiding still continue; the KeyCRM error is saved to order meta for admin diagnostics.

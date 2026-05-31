@@ -1,5 +1,0 @@
-v3.3.72
-- Removed undocumented KeyCRM DELETE product-row calls that caused Step 3 connection errors.
-- Added safer KeyCRM product row matching by row ID, title, image and position.
-- Added non-blocking clear-before-replace attempt for edited carts.
-- Kept styled cart notification admin settings.

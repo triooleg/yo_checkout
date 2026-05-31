@@ -1,4 +1,0 @@
-v4.0.21
-- Payment polling now returns paid:true immediately after Monobank success instead of running heavy finalizer inside AJAX.
-- Deferred finalizer queue added for KeyCRM/email/YOOtheme autohide.
-- Webhook finalizer wrapped with safe retry.

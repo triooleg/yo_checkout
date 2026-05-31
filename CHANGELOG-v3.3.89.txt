@@ -1,5 +1,0 @@
-v3.3.89
-- Clears local cart after SEPA/SWIFT invoice creation.
-- Releases reservation timers/overlays for invoiced cart items.
-- Keeps stable 3.3.79 payment/KeyCRM flow.
-- Improves Google Customer Reviews opt-in after successful card payment by passing ISO country codes and retrying after confirmation screen render.

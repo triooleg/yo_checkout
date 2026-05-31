@@ -1,5 +1,0 @@
-v3.3.65
-- Hard KeyCRM cart marker reuse before creating a new KeyCRM order.
-- Reuses the latest unpaid Website order by stored KeyCRM order marker, browser/session marker, email, or phone.
-- Stores KeyCRM marker in localStorage, sessionStorage, cookie, and WordPress options.
-- Keeps product article/SKU hidden unless KeyCRM explicitly requires a fallback internally.

@@ -1,5 +1,0 @@
-v4.0.22
-- Fix stale paid local order polling that opened Step 4 before a new card payment.
-- Polling now runs only for the active Step 3 payment session.
-- Responses for old local orders are ignored if localId does not match active payment.
-- Focus/iframe-load checks no longer use old stored draft IDs outside Step 3.

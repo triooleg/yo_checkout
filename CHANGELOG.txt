@@ -1,0 +1,203 @@
+﻿v3.3.60
+- Strengthened KeyCRM order reuse after customer returns from card payment and edits the cart.
+- Persists KeyCRM order marker in localStorage, cookie, WordPress options by session/browser/email/phone.
+- Reuses and updates the existing unpaid KeyCRM order instead of creating a duplicate.
+- Keeps previous Google Customer Reviews and clean title fixes.
+
+YOleotard Checkout Invoice v3.3.61
+
+- Added an explicit cart KeyCRM marker in localStorage.
+- When Step 3 creates a KeyCRM order, the order ID is stored in the cart marker.
+- If the customer returns, edits the cart, and reaches Step 3 again, the plugin sends this marker and updates the existing KeyCRM order instead of creating a duplicate.
+- Existing KeyCRM order is treated as the source of truth; current cart data replaces/syncs products, totals, delivery, discounts and fees.
+- Kept product article/SKU column empty unless KeyCRM API strictly requires fallback SKU.
+
+YOleotard Checkout Invoice v3.3.64
+
+- Strengthened KeyCRM reuse logic.
+- If a customer already reached card payment and a KeyCRM order was created, the plugin now searches by cart marker, browser marker, checkout session, email and phone before creating a new KeyCRM order.
+- When the cart is changed before payment, the existing local draft is reused and overwritten with the current cart content.
+- KeyCRM product SKU/article is not sent unless KeyCRM specifically rejects the request and requires SKU as fallback.
+
+v3.3.65
+- Hard KeyCRM cart marker reuse before creating a new KeyCRM order.
+- Reuses the latest unpaid Website order by stored KeyCRM order marker, browser/session marker, email, or phone.
+- Stores KeyCRM marker in localStorage, sessionStorage, cookie, and WordPress options.
+- Keeps product article/SKU hidden unless KeyCRM explicitly requires a fallback internally.
+
+v3.3.66
+- Save KeyCRM order ID returned on Step 3 into localStorage/sessionStorage/cookie/cart marker.
+- Reuse/update latest unpaid KeyCRM order by marker or customer contact if browser marker is missing.
+- Added response cartMarker for card and bank payment AJAX responses.
+
+v3.3.67
+- Restored light added-to-cart notification.
+- Added broad recent unpaid KeyCRM order reuse by customer email/phone to update existing checkout order instead of creating duplicates after cart edits.
+
+v3.3.68
+- Repacked as update for existing yoleotard-checkout-invoice plugin folder.
+- Keeps v3.3.67 KeyCRM reuse and cart notification fixes.
+
+v3.3.69
+- Hard server-side search for existing unpaid KeyCRM checkout by cart/browser marker, email, or phone before creating a new order.
+- Keeps current plugin folder for normal WordPress update.
+- Restores and exposes add-to-cart notification settings in admin panel.
+
+v3.3.70
+- Restored styled add-to-cart popup CSS and added a separate admin tab for cart notification settings.
+- Added stricter KeyCRM existing-order reuse before creating a new KeyCRM order.
+- Built as an update of the existing yoleotard-checkout-invoice plugin folder.
+
+v3.3.71
+- Improved KeyCRM existing-order sync when the customer edits the cart after reaching payment step.
+- Before updating an existing KeyCRM order, the plugin now reads existing order products, matches current cart items, updates matched rows, and attempts to remove product rows no longer present in the cart.
+- Added admin style controls for the cart notification popup: background, text, border, icon color, radius, and shadow opacity.
+
+v3.3.72
+- Removed undocumented KeyCRM DELETE product-row calls that caused Step 3 connection errors.
+- Added safer KeyCRM product row matching by row ID, title, image and position.
+- Added non-blocking clear-before-replace attempt for edited carts.
+- Kept styled cart notification admin settings.
+
+v3.3.73
+- Fixed cart popup background color settings so admin-selected background is applied to the visible notification body.
+- Removed the unsafe preliminary KeyCRM clear-products request that could cause Step 3 connection errors.
+- Added safer cart sync: existing KeyCRM product rows are updated by row id; removed cart rows are sent with quantity 0 and automatically retried without zero rows if KeyCRM rejects that operation.
+
+v3.3.74
+- Removed duplicate admin tab "РЈРІРµРґРѕРјР»РµРЅРёРµ РєРѕСЂР·РёРЅС‹".
+- Cart popup settings remain in "РЎРєСЂС‹С‚РёРµ / СЂРµР·РµСЂРІ".
+- Kept v3.3.73 KeyCRM and popup fixes.
+
+v3.3.76
+- Fixed SEPA/SWIFT invoice item table for orders with multiple leotards.
+- HTML invoice and PDF invoice now show every cart item as a separate row.
+- Added per-item Unit price, Discount and Line total columns.
+- Plain-text fallback invoice also includes itemized prices and discounts.
+
+v3.3.77
+- Added an active available promo code line inside the checkout promo box.
+- The promo code is shown in bold dark green text above the promo input.
+- Kept v3.3.76 invoice itemized product price/discount/line total logic.
+
+v3.3.78
+- Promo code notice in checkout is now shown only when the cart contains at least one product eligible for promo-code discount.
+- If all selected products already have product discounts, or eligible products are removed from cart, the green available promo-code notice is hidden.
+
+v3.3.79
+- Promo code availability text now turns red and strikethrough after the promo is applied.
+- Applied cart promo is preserved in the browser cart and automatically affects newly added eligible products.
+- Promo state is cleared only when no promo-eligible products remain in the cart.
+
+v3.3.89
+- Clears local cart after SEPA/SWIFT invoice creation.
+- Releases reservation timers/overlays for invoiced cart items.
+- Keeps stable 3.3.79 payment/KeyCRM flow.
+- Improves Google Customer Reviews opt-in after successful card payment by passing ISO country codes and retrying after confirmation screen render.
+
+v3.3.90
+- Hide paid product cards immediately after successful card payment.
+- Keep invoice cart cleanup and Google review logic from v3.3.89.
+
+v3.3.91
+- Added structured shipping tariff import table for Nova Post, Nova Global and Ukrposhta.
+- Added service selection mode: cheapest, fastest, or fixed service.
+- Added currency conversion rates to EUR for imported USD/UAH/PDF tariff data.
+- Structured tariff table is used before legacy country fallback, while preserving the stable v3.3.90 payment and order logic.
+
+v3.3.92
+- Added WordPress database table wp_yo_shipping_rates for imported shipping tariffs.
+- Added admin CSV import for service/country/weight/price/currency/days/zone/method rows.
+- Added imported tariffs cleanup and recent rows preview.
+- Added admin test calculator for country + weight.
+- Checkout now checks database tariffs before the settings textarea and legacy fallback table.
+
+YOleotard Checkout v4.0.0
+- Added automatic currency conversion for imported shipping tariffs using NBU exchange rates.
+- Added FX cache settings and safety markup for shipping calculations.
+- Manual USD/UAH/EUR conversion table is kept as fallback or manual mode.
+- Shipping calculator now converts database and structured import tariffs to EUR automatically.
+
+v4.0.1
+- Added zone-based CSV importer for Nova Global Seller One (zones.csv + rates_by_zone.csv).
+- Importer expands zone tariffs into country-level shipping rates in database.
+- Checkout and admin test calculator now search imported database tariffs before legacy fallback.
+- Added admin import summary and source tracking for shipping rates.
+
+YOleotard Checkout v4.0.2
+- Added selectable delivery options in checkout when multiple imported tariff options are available.
+- Customer can choose between available services/methods before card or invoice payment.
+- Shipping price, card fee and bank total are recalculated after the selected delivery option changes.
+- Selected delivery service/method/days are saved in order meta.
+
+Version 4.0.10
+- Restored card checkout flow so KeyCRM buyer/order is not created before successful card payment.
+- Monobank/WayForPay now use local website checkout references before payment.
+- After successful card payment, a fresh KeyCRM buyer/order is created without reusing stale buyer_id values.
+- If KeyCRM creation fails after payment, the customer confirmation, paid email, cart cleanup, and product hiding still continue; the KeyCRM error is saved to order meta for admin diagnostics.
+
+v4.0.14
+- Keeps the v4.0.13 duplicate protection for KeyCRM and paid emails.
+- Fixes post-payment finalization when the payment webhook marks the local order as paid before frontend polling returns.
+- The paid-state finalizer now runs the YOOtheme autohide/log once without creating duplicate KeyCRM orders or duplicate emails.
+
+v4.0.16
+- Payment status check can confirm paid orders by local_id even if invoice mapping is lost.
+- Polling starts immediately and repeats faster.
+- Keeps KeyCRM/email duplicate protection and YOOtheme autohide flow.
+
+v4.0.18
+- Fix frontend staying on Step 3 after provider confirms payment.
+- Poll by invoice_id and local_id with iframe load/focus retries.
+- Normalize paid status when paid email/KeyCRM markers already exist.
+- Keep KeyCRM/email duplicate protection.
+- Keep YOOtheme auto-hide finalizer and debug log.
+
+v4.0.19
+- Adds visible debug panel on checkout Step 3.
+- Logs invoice_id, local_id, provider status responses, finalizer/showSuccess calls, and iframe load events.
+- No intended changes to payment/KeyCRM/email/autohide logic.
+
+v4.0.20
+- Fixes AJAX critical error during payment polling after Monobank success.
+- Adds mbstring compatibility fallbacks.
+- Prevents KeyCRM/email/autohide exceptions from blocking Step 4 JSON response.
+
+v4.0.21
+- Payment polling now returns paid:true immediately after Monobank success instead of running heavy finalizer inside AJAX.
+- Deferred finalizer queue added for KeyCRM/email/YOOtheme autohide.
+- Webhook finalizer wrapped with safe retry.
+
+v4.0.22
+- Fix stale paid local order polling that opened Step 4 before a new card payment.
+- Polling now runs only for the active Step 3 payment session.
+- Responses for old local orders are ignored if localId does not match active payment.
+- Focus/iframe-load checks no longer use old stored draft IDs outside Step 3.
+
+YOleotard Checkout Invoice v4.0.23
+- Fixes non-blocking Step 4 flow from v4.0.21/4.0.22.
+- Polling may mark a local order as paid before the deferred finalizer runs.
+- The finalizer now runs missing KeyCRM creation, paid status/payment record, paid email, and auto-hide independently using existing idempotent meta markers.
+- Prevents duplicate KeyCRM/email while ensuring they are not skipped when paid=1 already exists.
+
+v4.0.24
+- Removed visible payment debug panel from Step 3.
+- Kept v4.0.23 payment finalizer behavior: Step 4, KeyCRM/email side effects, and auto-hide triggering remain unchanged.
+
+YOleotard Checkout v4.0.25
+- Keeps v4.0.24 payment/finalizer logic.
+- After successful card payment, Step 4 waits for the real KeyCRM order ID before displaying confirmation.
+- Adds a lightweight final-order-status AJAX endpoint used only to get the final KeyCRM order number.
+- Does not show temporary WEB/local checkout number as the customer order number.
+
+YOleotard Checkout v4.0.26
+- Fixes bank invoice checkout when KeyCRM rejects a stale local buyer.id.
+- Creates a fresh KeyCRM buyer and retries order create/update once after an invalid buyer.id response.
+- Cleans sold-item auto-hide log titles so loose unicode fragments such as u201c/u201d become readable text.
+- Keeps the v4.0.25 card-payment success flow that waits for the real KeyCRM order number.
+
+YOleotard Checkout v4.0.27
+- Adds mini product images to customer order emails for both card payment and bank invoice flows.
+- Keeps one append-only plugin changelog file: CHANGELOG.txt.
+- Removes separate per-version CHANGELOG-v*.txt files from the plugin package.
+

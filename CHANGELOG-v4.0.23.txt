@@ -1,5 +1,0 @@
-YOleotard Checkout Invoice v4.0.23
-- Fixes non-blocking Step 4 flow from v4.0.21/4.0.22.
-- Polling may mark a local order as paid before the deferred finalizer runs.
-- The finalizer now runs missing KeyCRM creation, paid status/payment record, paid email, and auto-hide independently using existing idempotent meta markers.
-- Prevents duplicate KeyCRM/email while ensuring they are not skipped when paid=1 already exists.

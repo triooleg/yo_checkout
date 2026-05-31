@@ -1,3 +1,0 @@
-v3.3.68
-- Repacked as update for existing yoleotard-checkout-invoice plugin folder.
-- Keeps v3.3.67 KeyCRM reuse and cart notification fixes.

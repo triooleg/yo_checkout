@@ -1,4 +1,0 @@
-v4.0.20
-- Fixes AJAX critical error during payment polling after Monobank success.
-- Adds mbstring compatibility fallbacks.
-- Prevents KeyCRM/email/autohide exceptions from blocking Step 4 JSON response.

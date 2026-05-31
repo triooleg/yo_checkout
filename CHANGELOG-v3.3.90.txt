@@ -1,3 +1,0 @@
-v3.3.90
-- Hide paid product cards immediately after successful card payment.
-- Keep invoice cart cleanup and Google review logic from v3.3.89.

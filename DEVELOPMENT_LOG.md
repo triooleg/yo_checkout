@@ -197,3 +197,40 @@ Documentation updates:
 Repository rollback point:
 
 - Version accounting commit: `4dceda3` (`Add plugin version accounting`).
+
+## 2026-05-31 - Email Product Thumbnails And Single Changelog
+
+User request:
+
+- Keep only one plugin update text file and append future version notes to it.
+- Add mini product images to customer emails for card payments and bank invoice payments.
+
+Files changed:
+
+- Updated `yoleotard-checkout-invoice.php`.
+- Added `CHANGELOG.txt`.
+- Removed separate `CHANGELOG-v*.txt` files from the plugin package.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.27`.
+- Customer order emails now show a compact product list with 64px thumbnails when order items have image URLs.
+- The same shared email order block is used by both paid-card emails and bank-invoice emails.
+- Version notes now live in one append-only `CHANGELOG.txt` file.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- Confirmed only one changelog text file remains: `CHANGELOG.txt`.
+
+Documentation updates:
+
+- Updated version/changelog rules to require one append-only `CHANGELOG.txt`.
+
+Repository rollback point:
+
+- Pending commit and push.

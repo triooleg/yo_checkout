@@ -1,4 +1,0 @@
-v3.3.73
-- Fixed cart popup background color settings so admin-selected background is applied to the visible notification body.
-- Removed the unsafe preliminary KeyCRM clear-products request that could cause Step 3 connection errors.
-- Added safer cart sync: existing KeyCRM product rows are updated by row id; removed cart rows are sent with quantity 0 and automatically retried without zero rows if KeyCRM rejects that operation.

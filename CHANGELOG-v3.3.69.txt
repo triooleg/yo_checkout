@@ -1,4 +1,0 @@
-v3.3.69
-- Hard server-side search for existing unpaid KeyCRM checkout by cart/browser marker, email, or phone before creating a new order.
-- Keeps current plugin folder for normal WordPress update.
-- Restores and exposes add-to-cart notification settings in admin panel.

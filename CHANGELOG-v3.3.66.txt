@@ -1,4 +1,0 @@
-v3.3.66
-- Save KeyCRM order ID returned on Step 3 into localStorage/sessionStorage/cookie/cart marker.
-- Reuse/update latest unpaid KeyCRM order by marker or customer contact if browser marker is missing.
-- Added response cartMarker for card and bank payment AJAX responses.

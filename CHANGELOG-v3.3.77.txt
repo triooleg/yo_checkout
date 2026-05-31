@@ -1,4 +1,0 @@
-v3.3.77
-- Added an active available promo code line inside the checkout promo box.
-- The promo code is shown in bold dark green text above the promo input.
-- Kept v3.3.76 invoice itemized product price/discount/line total logic.

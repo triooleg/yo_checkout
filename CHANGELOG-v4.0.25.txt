@@ -1,5 +1,0 @@
-YOleotard Checkout v4.0.25
-- Keeps v4.0.24 payment/finalizer logic.
-- After successful card payment, Step 4 waits for the real KeyCRM order ID before displaying confirmation.
-- Adds a lightweight final-order-status AJAX endpoint used only to get the final KeyCRM order number.
-- Does not show temporary WEB/local checkout number as the customer order number.

@@ -1,4 +1,0 @@
-v3.3.79
-- Promo code availability text now turns red and strikethrough after the promo is applied.
-- Applied cart promo is preserved in the browser cart and automatically affects newly added eligible products.
-- Promo state is cleared only when no promo-eligible products remain in the cart.

@@ -1,7 +1,0 @@
-YOleotard Checkout Invoice v3.3.61
-
-- Added an explicit cart KeyCRM marker in localStorage.
-- When Step 3 creates a KeyCRM order, the order ID is stored in the cart marker.
-- If the customer returns, edits the cart, and reaches Step 3 again, the plugin sends this marker and updates the existing KeyCRM order instead of creating a duplicate.
-- Existing KeyCRM order is treated as the source of truth; current cart data replaces/syncs products, totals, delivery, discounts and fees.
-- Kept product article/SKU column empty unless KeyCRM API strictly requires fallback SKU.

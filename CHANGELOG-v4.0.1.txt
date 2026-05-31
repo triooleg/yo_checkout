@@ -1,5 +1,0 @@
-v4.0.1
-- Added zone-based CSV importer for Nova Global Seller One (zones.csv + rates_by_zone.csv).
-- Importer expands zone tariffs into country-level shipping rates in database.
-- Checkout and admin test calculator now search imported database tariffs before legacy fallback.
-- Added admin import summary and source tracking for shipping rates.

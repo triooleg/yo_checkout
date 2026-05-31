@@ -1,3 +1,0 @@
-v3.3.78
-- Promo code notice in checkout is now shown only when the cart contains at least one product eligible for promo-code discount.
-- If all selected products already have product discounts, or eligible products are removed from cart, the green available promo-code notice is hidden.

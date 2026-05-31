@@ -1,4 +1,0 @@
-v3.3.71
-- Improved KeyCRM existing-order sync when the customer edits the cart after reaching payment step.
-- Before updating an existing KeyCRM order, the plugin now reads existing order products, matches current cart items, updates matched rows, and attempts to remove product rows no longer present in the cart.
-- Added admin style controls for the cart notification popup: background, text, border, icon color, radius, and shadow opacity.
