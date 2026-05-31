@@ -558,4 +558,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit for archive packaging documentation.
+- Archive packaging documentation commit: `909e622` (`Document plugin archive packaging`).
