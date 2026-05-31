@@ -56,6 +56,7 @@ Preferred direction:
 - Prefer small, reversible changes.
 - When a completed task changes runtime behavior, bump the plugin header version at the maintainer's discretion and append a short entry to the single `CHANGELOG.txt` file.
 - Test ZIP archives must be created only when the user explicitly asks for a test archive, and the archive filename must include the current plugin version.
+- For WordPress update uploads, the ZIP filename may include the test label/version, but the ZIP contents must have one top-level folder named exactly `yoleotard-checkout-invoice/`. Do not place plugin files directly at the ZIP root and do not name the internal folder after the test archive.
 - Keep a repository rollback point after each completed task.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - Keep `PLUGIN_MAP.md` current when structure changes.

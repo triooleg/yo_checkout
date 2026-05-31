@@ -529,3 +529,33 @@ Documentation updates:
 Repository rollback point:
 
 - Bank invoice cart refresh and expired promo cleanup commit: `6a80172` (`Refresh bank invoice cart state`).
+
+## 2026-06-01 - Document Test Archive Packaging Rule
+
+User request:
+
+- Remember the correct archive structure so WordPress updates the existing plugin instead of installing a new plugin.
+
+Files changed:
+
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No plugin runtime behavior changed.
+- Documentation now requires test ZIP files to contain one top-level folder named exactly `yoleotard-checkout-invoice/`, even when the ZIP filename includes the test version and description.
+
+Verification performed:
+
+- Documentation-only change; no PHP/JS syntax check required.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Documentation updates:
+
+- Added the archive packaging rule to the project context and plugin map.
+
+Repository rollback point:
+
+- Pending commit for archive packaging documentation.
