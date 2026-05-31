@@ -662,4 +662,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit for bank invoice diagnostics.
+- Bank invoice diagnostics commit: `2b576eb` (`Add bank invoice diagnostics`).
