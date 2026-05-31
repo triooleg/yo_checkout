@@ -1,6 +1,8 @@
 # YOleotard Checkout Work History
 
-This file records what was changed after each development task. Before starting a new task, read this file and `PLUGIN_MAP.md`.
+This file is a legacy initial history file. For new work, use `DEVELOPMENT_LOG.md`.
+
+Before starting a new task, Codex must read `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, `DEVELOPMENT_LOG.md`, and `KNOWN_ISSUES.md`.
 
 ## Working Rules
 

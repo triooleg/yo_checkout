@@ -4,17 +4,18 @@ Last updated: 2026-05-31
 
 ## Purpose
 
-This file is the navigation map for the YOleotard checkout plugin. Before any new development task, read this file and `WORK_HISTORY.md`.
+This file is the navigation map for the YOleotard checkout plugin. Before any new development task, Codex must read `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, `DEVELOPMENT_LOG.md`, and `KNOWN_ISSUES.md`.
 
 Rules for future work:
 
 - Do not change existing behavior unless the current task explicitly requires it.
 - New functionality should be placed in a separate PHP/JS/CSS file and included/enqueued from the main plugin file, so `yoleotard-checkout-invoice.php` does not keep growing.
+- New backend functionality should gradually move into separate classes, preferably under `includes/`.
 - If an existing function must be worked on, first consider moving the related block into a separate included file, then make the change there.
-- After each task, update `WORK_HISTORY.md`.
+- After each task, update `DEVELOPMENT_LOG.md`.
 - If code structure, hooks, files, settings, AJAX actions, REST routes, or frontend behavior changed, update this map.
 - After each task, check syntax and basic runtime logic as much as possible in the local environment.
-- After each completed code change, save a rollback point in the repository when `.git` is available: check status, add the task files, and create a clear commit. If git is not available, record that limitation in `WORK_HISTORY.md` and keep the changed-file list precise.
+- After each completed code change, save a rollback point in the repository when `.git` is available: check status, add the task files, create a clear commit, and push to GitHub when credentials allow it. If git or push is not available, record that limitation in `DEVELOPMENT_LOG.md` and keep the changed-file list precise.
 
 ## File Structure
 
@@ -29,6 +30,18 @@ Rules for future work:
 
 - `CHANGELOG-v*.txt`
   Version notes from previous plugin updates. Current visible version in plugin header is `4.0.25`.
+
+- `PROJECT_CONTEXT.md`
+  Project-level context and required rules for future Codex work.
+
+- `DEVELOPMENT_LOG.md`
+  Current development history, verification notes, and repository rollback points.
+
+- `KNOWN_ISSUES.md`
+  Known limitations, environment blockers, and risky areas to watch.
+
+- `WORK_HISTORY.md`
+  Legacy initial mapping/history file kept for continuity. Use `DEVELOPMENT_LOG.md` for new entries.
 
 ## Main PHP Class
 
@@ -278,4 +291,4 @@ Use the checks that fit the change:
 - Payment: no duplicate KeyCRM orders/payments/emails after repeated webhook/polling calls.
 - Shipping: country autocomplete, available options, selected option, and totals remain consistent.
 - Invoice/email: HTML/PDF invoice paths and email totals match checkout totals.
-- Rollback point: if the folder is a git repository, run `git status`, commit the completed task, and mention the commit hash in `WORK_HISTORY.md`.
+- Rollback point: if the folder is a git repository, run `git status`, commit the completed task, push to GitHub when possible, and mention the commit hash in `DEVELOPMENT_LOG.md`.
