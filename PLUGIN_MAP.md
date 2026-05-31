@@ -46,7 +46,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.28`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.29`.
 
 - `WESTERN_BID_MIGRATION_MAP.md`
   Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
@@ -274,7 +274,7 @@ KeyCRM:
 - KeyCRM marker lookup/reuse, buyer/order create/update, product sync, comments, payments, and raw API requests are delegated to `includes/class-yo-checkout-keycrm.php`.
 - `yoleotard-checkout-invoice.php` keeps wrapper methods around the service for compatibility with existing checkout, bank invoice, card finalization, and unpaid-order flows.
 - Current behavior: after successful card payment, the frontend waits for the real KeyCRM order ID before showing Step 4.
-- Bank invoice flow now uses frontend click guarding plus server-side invoice lock/cart hash reuse to avoid duplicate invoice emails and repeated KeyCRM bank payment records.
+- Bank invoice flow now uses frontend click guarding plus server-side invoice lock/cart hash reuse to avoid duplicate invoice emails and repeated KeyCRM bank payment records. Active lock responses return a retryable `preparing` state instead of a customer-facing error.
 - Existing KeyCRM product rows are matched by row ID/title/image/position before order update so repeated invoice requests update rows instead of appending duplicates.
 
 Dompdf:

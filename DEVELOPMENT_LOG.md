@@ -451,3 +451,41 @@ Documentation updates:
 Repository rollback point:
 
 - Duplicate bank invoice handling fix commit: `855ca0d` (`Fix duplicate bank invoice handling`).
+
+## 2026-06-01 - Make Bank Invoice Lock Retry-Safe
+
+User request:
+
+- Fix the Step 3 bank invoice message `Bank invoice is already being prepared` / `Connection error` after testing one-item and two-item invoice orders.
+
+Files changed:
+
+- Updated `assets/yo-checkout.js`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `CHANGELOG.txt`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `KNOWN_ISSUES.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- Plugin version increased to `4.0.29`.
+- Active bank invoice locks now return `success:true` with `preparing:true` instead of a customer-facing error.
+- Frontend bank invoice flow now waits and retries while invoice preparation is active.
+- Frontend still resets the bank invoice button on real failure.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed.
+
+Documentation updates:
+
+- `CHANGELOG.txt`, `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, and `KNOWN_ISSUES.md` updated for v4.0.29.
+
+Repository rollback point:
+
+- Pending commit and push.

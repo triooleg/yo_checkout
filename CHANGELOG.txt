@@ -207,3 +207,8 @@ YOleotard Checkout v4.0.28
 - Adds server-side bank invoice locking and idempotent KeyCRM bank payment/email markers.
 - Matches existing KeyCRM product rows before order update so repeated invoice requests do not append duplicate products.
 
+YOleotard Checkout v4.0.29
+- Changes active bank invoice lock responses from visible errors to a retryable preparing state.
+- Frontend now waits and retries while the server is preparing the invoice instead of showing a lock alert.
+- Keeps duplicate email/payment protection and KeyCRM product row matching from v4.0.28.
+

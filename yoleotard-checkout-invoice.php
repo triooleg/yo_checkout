@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.28. Prevents duplicate bank invoice emails and KeyCRM product rows on repeated invoice requests.
- * Version: 4.0.28
+ * Description: v4.0.29. Makes bank invoice preparation retry-safe without customer-facing lock alerts.
+ * Version: 4.0.29
  * Author: YOleotard / ChatGPT
  */
 
@@ -1559,8 +1559,15 @@ EUR=1',
         $local_id = absint($_POST['local_id'] ?? 0);
         if (!$local_id || get_post_type($local_id) !== self::CPT) wp_send_json_error(['message'=>'Order not found']);
         $existing_lock = absint(get_post_meta($local_id, 'bank_invoice_lock', true));
-        if ($existing_lock && (time() - $existing_lock) < 120) {
-            wp_send_json_error(['message'=>'Bank invoice is already being prepared. Please wait a moment and try again.']);
+        if ($existing_lock && (time() - $existing_lock) < 45) {
+            $existing_response = $this->bank_invoice_existing_response($local_id, true);
+            if ($existing_response) wp_send_json_success($existing_response);
+            wp_send_json_success([
+                'preparing' => true,
+                'retryAfter' => 2,
+                'message' => 'Bank invoice is being prepared.',
+                'cartMarker' => ['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],
+            ]);
         }
         delete_post_meta($local_id, 'bank_invoice_lock');
         add_post_meta($local_id, 'bank_invoice_lock', time(), true);

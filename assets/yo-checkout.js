@@ -1342,24 +1342,35 @@
       if(bankBtn) bankBtn.disabled = true;
       validateCartAvailability(true).then(function(v){
       if(v && v.removed > 0){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; setStep(1); return; }
-      const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
-      setStep('loading');
-      post('yo_checkout_create_bank_invoice', fd).then(function(data){
-        if(data.success && (data.data.invoiceUrl || data.data.htmlUrl)){
-          rememberKeycrmFromResponse(data);
-          if(data.data.orderId){ current.orderId=data.data.orderId; storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); }
-          const link = data.data.invoiceUrl || data.data.htmlUrl;
-          byId('yo-bank-invoice-link').href = link;
-          byId('yo-bank-invoice-link').textContent = data.data.invoiceUrl ? 'Download PDF invoice' : 'Open invoice';
-          if(byId('yo-bank-invoice-html-link')) byId('yo-bank-invoice-html-link').href = data.data.htmlUrl || link;
-          setStep('bank');
-          clearCartAfterInvoiceOrder();
-          if(!data.data.invoiceUrl && data.data.pdfMessage){
-            console.warn('YOleotard invoice PDF was not generated:', data.data.pdfMessage);
+      function submitBankInvoice(attempt){
+        attempt = attempt || 0;
+        const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
+        setStep('loading');
+        post('yo_checkout_create_bank_invoice', fd).then(function(data){
+          if(data.success && data.data && data.data.preparing && attempt < 12){
+            setTimeout(function(){ submitBankInvoice(attempt + 1); }, Math.max(1, parseInt(data.data.retryAfter || 2, 10) || 2) * 1000);
+            return;
           }
-        }
-        else { bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert((data.data?.message || 'Invoice error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
-      }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
+          if(data.success && (data.data.invoiceUrl || data.data.htmlUrl)){
+            rememberKeycrmFromResponse(data);
+            if(data.data.orderId){ current.orderId=data.data.orderId; storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); }
+            const link = data.data.invoiceUrl || data.data.htmlUrl;
+            byId('yo-bank-invoice-link').href = link;
+            byId('yo-bank-invoice-link').textContent = data.data.invoiceUrl ? 'Download PDF invoice' : 'Open invoice';
+            if(byId('yo-bank-invoice-html-link')) byId('yo-bank-invoice-html-link').href = data.data.htmlUrl || link;
+            setStep('bank');
+            clearCartAfterInvoiceOrder();
+            if(!data.data.invoiceUrl && data.data.pdfMessage){
+              console.warn('YOleotard invoice PDF was not generated:', data.data.pdfMessage);
+            }
+          }
+          else { bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert((data.data?.message || 'Invoice error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
+        }).catch(function(){
+          if(attempt < 2){ setTimeout(function(){ submitBankInvoice(attempt + 1); }, 2000); return; }
+          bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2);
+        });
+      }
+      submitBankInvoice(0);
       }).catch(function(){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert('Connection error'); setStep(2); });
     });
     function releaseReservationsForItems(items){
