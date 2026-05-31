@@ -341,4 +341,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Western Bid migration map commit: `df0d529` (`Add Western Bid migration map`).
