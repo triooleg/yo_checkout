@@ -528,4 +528,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit for bank invoice cart refresh and expired promo cleanup.
+- Bank invoice cart refresh and expired promo cleanup commit: `6a80172` (`Refresh bank invoice cart state`).
