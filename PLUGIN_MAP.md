@@ -14,7 +14,7 @@ Rules for future work:
 - If an existing function must be worked on, first consider moving the related block into a separate included file, then make the change there.
 - Runtime behavior changes should update the plugin header version and append a concise entry to the single `CHANGELOG.txt` file.
 - Do not create test ZIP archives unless the user explicitly requests one.
-- Test archive packaging rule for this host: the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip`, and inside it the only top-level plugin folder must be `yoleotard-checkout-invoice/`. This host may create a duplicate plugin folder if the ZIP filename includes a test/version suffix.
+- Test archive packaging rule for this host: the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip`, and inside it the only top-level plugin folder must be `yoleotard-checkout-invoice/`. Internal ZIP paths must use forward slashes (`/`), not Windows backslashes (`\`). This host may create a duplicate plugin folder if the ZIP filename includes a test/version suffix, and may create flat files with `\` in their names if the ZIP is built incorrectly.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - If code structure, hooks, files, settings, AJAX actions, REST routes, or frontend behavior changed, update this map.
 - After each task, check syntax and basic runtime logic as much as possible in the local environment.
@@ -298,7 +298,8 @@ YOOtheme:
 
 - The main PHP file is large. Prefer extracting new areas into `includes/*.php` and loading them from the main file.
 - For frontend additions, prefer new files under `assets/` and enqueue/localize them from PHP.
-- When building a test ZIP, stage/copy the plugin files into a temporary `yoleotard-checkout-invoice/` folder first, then compress that folder to `yoleotard-checkout-invoice.zip`. Exclude `.git`, old ZIP archives, temporary package folders, and unrelated local files. Keep the version in the plugin header and `CHANGELOG.txt`, not in the installable ZIP filename.
+- When building a test ZIP, create `yoleotard-checkout-invoice.zip` with explicit forward-slash arc names such as `yoleotard-checkout-invoice/includes/file.php`. Prefer Python `zipfile` or another ZIP tool that lets arc names be normalized. Do not use PowerShell `Compress-Archive` directly for the installable ZIP. Exclude `.git`, old ZIP archives, temporary package folders, and unrelated local files. Keep the version in the plugin header and `CHANGELOG.txt`, not in the installable ZIP filename.
+- After building a test ZIP, verify: filename is `yoleotard-checkout-invoice.zip`; first entry is `yoleotard-checkout-invoice/`; no ZIP entry contains `\`; local extraction creates real `assets/` and `includes/` directories.
 - If touching payment, KeyCRM, or sold-item hiding, preserve idempotency. Many methods use post meta flags/locks to avoid duplicate payments, emails, and status updates.
 - If touching AJAX, always verify nonce handling and guest-user behavior.
 - If touching checkout pricing, check product price, promo discount, shipping, card fee, bank total, and KeyCRM payment amount together.

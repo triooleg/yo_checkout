@@ -591,3 +591,36 @@ Documentation updates:
 Repository rollback point:
 
 - Host-safe plugin archive naming commit: `1d6fa63` (`Correct plugin archive naming rule`).
+
+## 2026-06-01 - Fix ZIP Path Separator Packaging
+
+User request:
+
+- After uploading the archive, WordPress asked to activate the plugin and then showed `Plugin file not found`; on hosting the plugin folder contained flat filenames with backslashes instead of real directories.
+
+Files changed:
+
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `KNOWN_ISSUES.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+- Rebuilt local test archive `yoleotard-checkout-invoice.zip` using forward-slash ZIP paths.
+
+Behavior changed:
+
+- No plugin runtime behavior changed.
+- Test archive creation now avoids PowerShell `Compress-Archive` for the installable package and requires explicit forward-slash ZIP entries.
+
+Verification performed:
+
+- Verified `yoleotard-checkout-invoice.zip` contains zero entries with `\`.
+- Verified the first entries are under `yoleotard-checkout-invoice/`.
+- Locally extracted the ZIP and confirmed `assets/` and `includes/` are real directories.
+
+Documentation updates:
+
+- Added host-specific ZIP path separator warning and verification steps to project context, plugin map, and known issues.
+
+Repository rollback point:
+
+- Pending commit for ZIP path separator packaging documentation.

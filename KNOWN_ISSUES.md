@@ -49,6 +49,23 @@ Handling:
 - Use normal `git commit` and `git push` for rollback points when credentials are available.
 - Install GitHub CLI only if PR creation, GitHub auth inspection, or GitHub issue/PR workflows are needed.
 
+### Host upload is sensitive to ZIP names and path separators
+
+Status: packaging rule fixed in documentation, use the corrected archive builder for every future test ZIP.
+
+Details:
+
+- A ZIP named with a test/version suffix caused the host to create a second plugin folder instead of updating `yoleotard-checkout-invoice`.
+- A ZIP built with Windows-style path separators caused the host file manager to unpack files named like `yoleotard-checkout-invoice\assets\yo-checkout.js` instead of creating real nested folders.
+- WordPress then showed `Plugin file not found` because the expected `yoleotard-checkout-invoice/yoleotard-checkout-invoice.php` path did not exist as real directories.
+
+Handling:
+
+- Installable ZIP must be named exactly `yoleotard-checkout-invoice.zip`.
+- ZIP entries must use forward slashes and start with `yoleotard-checkout-invoice/`.
+- Verify no entry contains `\` before giving the archive to the user.
+- Do not use PowerShell `Compress-Archive` directly for this plugin package.
+
 ### Sold-item auto-hide previously logged local IDs and backed up too much meta
 
 Status: fixed in current code, monitor after next live Monobank purchase.

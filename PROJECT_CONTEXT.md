@@ -56,7 +56,8 @@ Preferred direction:
 - Prefer small, reversible changes.
 - When a completed task changes runtime behavior, bump the plugin header version at the maintainer's discretion and append a short entry to the single `CHANGELOG.txt` file.
 - Test ZIP archives must be created only when the user explicitly asks for a test archive.
-- For this hosting/WordPress upload flow, the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip` and the ZIP contents must have one top-level folder named exactly `yoleotard-checkout-invoice/`. Do not place plugin files directly at the ZIP root and do not name the ZIP or internal folder after the test version, otherwise the host may create a duplicate plugin folder.
+- For this hosting/WordPress upload flow, the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip` and the ZIP contents must have one top-level folder named exactly `yoleotard-checkout-invoice/`. All internal ZIP paths must use forward slashes (`/`), for example `yoleotard-checkout-invoice/assets/yo-checkout.js`. Do not use PowerShell `Compress-Archive` directly for the installable plugin ZIP because this host may unpack Windows backslashes (`\`) as literal filename characters.
+- After creating the ZIP, verify with Python `zipfile` or another ZIP listing that there are zero entries containing `\`, and verify a local extraction creates real `assets/` and `includes/` directories.
 - Record the test version in the plugin header and `CHANGELOG.txt`; do not rely on the ZIP filename for the version.
 - Keep a repository rollback point after each completed task.
 - After each task, update `DEVELOPMENT_LOG.md`.
