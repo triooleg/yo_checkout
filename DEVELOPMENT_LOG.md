@@ -56,3 +56,33 @@ Documentation updates:
 Repository rollback point:
 
 - Baseline documentation commit pushed to GitHub: `ee843e6` (`Add project documentation baseline`).
+
+## 2026-05-31 - PHP Syntax Verification
+
+User request:
+
+- Check the plugin code through PHP because the previous PHP check could not run.
+
+Files changed:
+
+- Updated `DEVELOPMENT_LOG.md`.
+- Updated `KNOWN_ISSUES.md`.
+
+Behavior changed:
+
+- No runtime plugin behavior changed. Documentation and verification only.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- PHP executable found at `D:\Projects\php-8.5.6-nts-Win32-vs17-x64\php.exe`.
+- Output: `No syntax errors detected in yoleotard-checkout-invoice.php`.
+
+Documentation updates:
+
+- Recorded successful PHP syntax verification.
+- Updated PHP CLI known issue from active environment limitation to resolved environment note.
+
+Repository rollback point:
+
+- Pending commit and push for this verification log update.

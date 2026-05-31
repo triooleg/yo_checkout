@@ -21,19 +21,20 @@ Handling:
 - New backend features should be added as separate classes, preferably under `includes/`.
 - Existing logic should be extracted gradually when a task touches that area.
 
-### PHP CLI may be unavailable locally
+### PHP CLI availability was restored
 
-Status: environment limitation.
+Status: resolved environment note.
 
 Details:
 
 - A previous `php -l yoleotard-checkout-invoice.php` check failed because `php` was not available in PATH.
+- On 2026-05-31, PHP was found at `D:\Projects\php-8.5.6-nts-Win32-vs17-x64\php.exe`.
+- `php -l yoleotard-checkout-invoice.php` passed with no syntax errors.
 
 Handling:
 
 - Try `php -l` after each PHP change.
-- If PHP is still unavailable, record the failed check in `DEVELOPMENT_LOG.md`.
-- Install or expose PHP CLI in PATH to enable proper syntax checks.
+- If PHP becomes unavailable again, record the failed check in `DEVELOPMENT_LOG.md`.
 
 ### GitHub CLI is unavailable locally
 
