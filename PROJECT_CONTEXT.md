@@ -55,7 +55,7 @@ Preferred direction:
 - Do not rewrite large working areas just for style.
 - Prefer small, reversible changes.
 - When a completed task changes runtime behavior, bump the plugin header version at the maintainer's discretion and append a short entry to the single `CHANGELOG.txt` file.
-- Test ZIP archives must be created only when the user explicitly asks for a test archive.
+- Test ZIP archives must be created only when the user explicitly asks for a test archive, and the archive filename must include the current plugin version.
 - Keep a repository rollback point after each completed task.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - Keep `PLUGIN_MAP.md` current when structure changes.

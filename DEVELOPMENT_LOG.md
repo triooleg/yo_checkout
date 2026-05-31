@@ -268,3 +268,44 @@ Documentation updates:
 Repository rollback point:
 
 - Promo service extraction commit: `2fa9cb3` (`Extract promo code service`).
+
+## 2026-05-31 - Extract Google Reviews Service
+
+User request:
+
+- In future test ZIP archive names, include the current working plugin version.
+- Move Google Reviews into a separate file/function and connect it back to the main file.
+- Check whether the Google Reviews function still works.
+
+Files changed:
+
+- Added `includes/class-yo-checkout-google-reviews.php`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No intended customer-facing behavior change.
+- Google Customer Reviews footer script rendering now lives in `YO_Checkout_Google_Reviews_Service`.
+- The main plugin file delegates `render_google_customer_reviews_scripts()` to the service.
+- The frontend callback name `window.YOCheckoutGoogleReviews` and queue/render logic are preserved.
+- Test archive naming rule updated: include the current plugin version in archive filenames.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-google-reviews.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- Confirmed the service still renders `window.YOCheckoutGoogleReviews`, `yoRenderGoogleCustomerReviewsOptIn`, Google `platform.js`, merchant widget script, `surveyoptin.render`, and `merchantWidget.start`.
+- Confirmed `assets\yo-checkout.js` still calls `window.YOCheckoutGoogleReviews()` after successful card payment when opt-in is enabled.
+
+Documentation updates:
+
+- `PROJECT_CONTEXT.md` and `PLUGIN_MAP.md` updated with versioned test archive naming rule.
+- `PLUGIN_MAP.md` updated with the new Google Reviews service and delegated render flow.
+
+Repository rollback point:
+
+- Pending commit and push.

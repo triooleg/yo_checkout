@@ -13,7 +13,7 @@ Rules for future work:
 - New backend functionality should gradually move into separate classes, preferably under `includes/`.
 - If an existing function must be worked on, first consider moving the related block into a separate included file, then make the change there.
 - Runtime behavior changes should update the plugin header version and append a concise entry to the single `CHANGELOG.txt` file.
-- Do not create test ZIP archives unless the user explicitly requests one.
+- Do not create test ZIP archives unless the user explicitly requests one. When creating one, include the current plugin version in the archive filename.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - If code structure, hooks, files, settings, AJAX actions, REST routes, or frontend behavior changed, update this map.
 - After each task, check syntax and basic runtime logic as much as possible in the local environment.
@@ -29,6 +29,9 @@ Rules for future work:
 
 - `includes/class-yo-checkout-promo.php`
   Promo code service. Owns promo configuration checks, expiration checks, discount calculation, AJAX promo application, recalculating local checkout totals after promo changes, and applying promo data during order creation.
+
+- `includes/class-yo-checkout-google-reviews.php`
+  Google Customer Reviews service. Owns footer script rendering for survey opt-in and optional merchant badge while preserving the frontend callback name `window.YOCheckoutGoogleReviews`.
 
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger.
@@ -128,7 +131,7 @@ Line numbers are approximate and should be refreshed after larger edits.
 - Settings registration, Dompdf install/status, settings sanitization: lines 513-588.
 - Admin settings page and fields: lines 607-921.
 - Frontend enqueue and localized `YOCheckout` config: lines 922-957.
-- Google Customer Reviews script output: lines 959-1023.
+- Google Customer Reviews script output: delegated to `includes/class-yo-checkout-google-reviews.php` through `render_google_customer_reviews_scripts()`.
 - Checkout modal HTML: lines 1025-1080.
 - Security nonce helper: line 1082.
 - Promo-code helpers and AJAX: delegated to `includes/class-yo-checkout-promo.php` through wrapper methods around lines 1109-1123 and AJAX action `ajax_apply_promo_code()`.
