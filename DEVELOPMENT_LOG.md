@@ -623,4 +623,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit for ZIP path separator packaging documentation.
+- ZIP path separator packaging documentation commit: `85ca1f5` (`Document host-safe zip paths`).
