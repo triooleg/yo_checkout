@@ -409,4 +409,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- KeyCRM service extraction commit: `4b03c8b` (`Extract KeyCRM service`).
