@@ -33,6 +33,9 @@ Rules for future work:
 - `includes/class-yo-checkout-google-reviews.php`
   Google Customer Reviews service. Owns footer script rendering for survey opt-in and optional merchant badge while preserving the frontend callback name `window.YOCheckoutGoogleReviews`.
 
+- `includes/class-yo-checkout-monobank.php`
+  Monobank payment service. Owns Monobank invoice creation, invoice status requests, local invoice-to-order mapping helpers, and webhook handling. Shared payment finalization remains in the main plugin.
+
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger.
 
@@ -251,9 +254,8 @@ Browser storage:
 Monobank:
 
 - Settings tab: Monobank token and card fee percent.
-- Card start: `start_monobank_payment()`.
-- Webhook: `mono_webhook()`.
-- Payment status checks feed into shared finalization.
+- Card start, invoice status requests, invoice mapping, and webhook handling are delegated to `includes/class-yo-checkout-monobank.php`.
+- Shared successful-payment finalization remains in the main plugin.
 
 WayForPay:
 

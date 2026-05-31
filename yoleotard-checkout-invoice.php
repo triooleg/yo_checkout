@@ -38,6 +38,7 @@ if (!function_exists('mb_convert_encoding')) {
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-sold-items.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-promo.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-google-reviews.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-monobank.php';
 
 
 class YO_Checkout_Invoice_Plugin {
@@ -47,6 +48,7 @@ class YO_Checkout_Invoice_Plugin {
     private $sold_items_service = null;
     private $promo_service = null;
     private $google_reviews_service = null;
+    private $monobank_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -124,6 +126,19 @@ class YO_Checkout_Invoice_Plugin {
             $this->google_reviews_service = new YO_Checkout_Google_Reviews_Service(function() { return self::settings(); });
         }
         return $this->google_reviews_service;
+    }
+
+    private function monobank_service() {
+        if (!$this->monobank_service instanceof YO_Checkout_Monobank_Service) {
+            $this->monobank_service = new YO_Checkout_Monobank_Service([
+                'settings' => function() { return self::settings(); },
+                'get_order_data' => function($local_id) { return $this->get_order_data($local_id); },
+                'card_fee_data' => function($local_id, $provider) { return $this->card_fee_data($local_id, $provider); },
+                'process_successful_card_payment' => function($local_id, $invoice_id) { return $this->process_successful_card_payment($local_id, $invoice_id); },
+                'queue_deferred_payment_finalizer' => function($local_id, $invoice_id, $source) { return $this->queue_deferred_payment_finalizer($local_id, $invoice_id, $source); },
+            ], self::NS, self::CPT);
+        }
+        return $this->monobank_service;
     }
 
     public static function default_shipping_rates_eur() {
@@ -1494,44 +1509,14 @@ EUR=1',
     }
 
     private function start_monobank_payment($local_id) {
-        $s = self::settings();
-        if (empty($s['mono_token'])) wp_send_json_error(['message'=>'Monobank token is empty']);
-        $data = $this->get_order_data($local_id);
-        $fee = $this->card_fee_data($local_id, 'monobank');
-        $amount_cents = intval(round(floatval($fee['total']) * 100));
-        update_post_meta($local_id, 'card_fee_percent', $fee['percent']);
-        update_post_meta($local_id, 'card_fee_amount', $fee['fee']);
-        update_post_meta($local_id, 'card_total_amount', $fee['total']);
-        $checkout_ref = $data['order_id'] ?: ('WEB-' . $local_id);
-        $destination = 'Payment for ' . $data['title'] . ' by checkout № ' . $checkout_ref;
-        $payload = [
-            'amount' => $amount_cents,
-            'ccy' => 978,
-            'displayType' => 'iframe',
-            'redirectUrl' => home_url('/confirm?order_id=' . urlencode($data['order_id'])),
-            'webHookUrl' => rest_url(self::NS . '/mono-webhook'),
-            'paymentType' => 'debit',
-            'merchantPaymInfo' => [
-                'reference' => 'website_checkout_' . $local_id,
-                'destination' => $destination,
-                'comment' => $destination,
-                'basketOrder' => [[
-                    'name' => $data['title'], 'qty' => 1, 'sum' => $amount_cents, 'total' => $amount_cents, 'unit' => 'pcs', 'code' => 'YO-WEB-' . $local_id
-                ]]
-            ]
-        ];
-        $resp = wp_remote_post('https://api.monobank.ua/api/merchant/invoice/create', [
-            'headers'=>['X-Token'=>$s['mono_token'],'Content-Type'=>'application/json'],
-            'body'=>wp_json_encode($payload),'timeout'=>30
-        ]);
-        $body = json_decode(wp_remote_retrieve_body($resp), true);
-        if (empty($body['pageUrl'])) wp_send_json_error(['message'=>'Monobank invoice was not created','details'=>$body]);
-        update_post_meta($local_id, 'mono_invoice_id', sanitize_text_field($body['invoiceId']));
-        update_post_meta($local_id, 'payment_provider', 'monobank');
-        update_post_meta($local_id, 'payment_type', 'card');
-        update_option('yo_mono_invoice_' . $body['invoiceId'], $local_id, false);
-        wp_schedule_single_event(time() + 120*60, 'yo_checkout_check_unpaid_order', [$local_id]);
-        wp_send_json_success(['provider'=>'monobank','invoiceId'=>$body['invoiceId'], 'pageUrl'=>$body['pageUrl'], 'orderId'=>$checkout_ref, 'cartMarker'=>['local_id'=>$local_id]]);
+        $result = $this->monobank_service()->start_payment($local_id);
+        if (is_wp_error($result)) {
+            wp_send_json_error([
+                'message' => $result->get_error_message(),
+                'details' => $result->get_error_data(),
+            ]);
+        }
+        wp_send_json_success($result);
     }
 
     private function start_wayforpay_payment($local_id) {
@@ -1716,13 +1701,10 @@ EUR=1',
         if ($invoice_id === '') {
             wp_send_json_success(['paid'=>false,'status'=>'waiting_local_only','provider'=>$provider,'localId'=>$local_id]);
         }
-        $resp = wp_remote_get('https://api.monobank.ua/api/merchant/invoice/status?invoiceId=' . urlencode($invoice_id), [
-            'headers'=>['X-Token'=>$s['mono_token'],'Accept'=>'application/json'], 'timeout'=>30
-        ]);
-        if (is_wp_error($resp)) {
-            wp_send_json_success(['paid'=>false,'status'=>'mono_status_error','provider'=>'monobank','localId'=>$local_id,'error'=>$resp->get_error_message()]);
+        $body = $this->monobank_service()->check_status($invoice_id);
+        if (is_wp_error($body)) {
+            wp_send_json_success(['paid'=>false,'status'=>'mono_status_error','provider'=>'monobank','localId'=>$local_id,'error'=>$body->get_error_message()]);
         }
-        $body = json_decode(wp_remote_retrieve_body($resp), true);
         $status = $body['status'] ?? '';
         if ($status === 'success') {
             // v4.0.21: do not run KeyCRM/email/YOOtheme autohide inside the polling AJAX response.
@@ -1746,26 +1728,7 @@ EUR=1',
         register_rest_route(self::NS, '/wayforpay-webhook', ['methods'=>'POST','callback'=>[$this,'wayforpay_webhook'],'permission_callback'=>'__return_true']);
     }
     public function mono_webhook(WP_REST_Request $req) {
-        $data = $req->get_json_params();
-        $invoice_id = sanitize_text_field($data['invoiceId'] ?? '');
-        $status = sanitize_text_field($data['status'] ?? '');
-        if (!$invoice_id) return new WP_REST_Response(['ok'=>false], 400);
-        $local_id = get_option('yo_mono_invoice_' . $invoice_id);
-        if (!$local_id) return new WP_REST_Response(['ok'=>false], 404);
-        if (in_array($status, ['success','paid'], true)) {
-            if (get_post_meta($local_id, 'paid', true) !== '1') {
-                update_post_meta($local_id, 'paid', '1');
-                update_post_meta($local_id, 'paid_at', time());
-            }
-            try {
-                // Always call the idempotent finalizer. If already paid, it will only run missing autohide.
-                $this->process_successful_card_payment($local_id, $invoice_id);
-            } catch (Throwable $e) {
-                update_post_meta($local_id, 'mono_webhook_finalizer_error', $e->getMessage());
-                $this->queue_deferred_payment_finalizer($local_id, $invoice_id, 'mono_webhook_error_retry');
-            }
-        }
-        return new WP_REST_Response(['ok'=>true], 200);
+        return $this->monobank_service()->handle_webhook($req);
     }
 
 

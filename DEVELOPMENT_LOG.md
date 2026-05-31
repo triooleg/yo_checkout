@@ -342,3 +342,37 @@ Documentation updates:
 Repository rollback point:
 
 - Western Bid migration map commit: `df0d529` (`Add Western Bid migration map`).
+
+## 2026-05-31 - Extract Monobank Service
+
+User request:
+
+- Move the Monobank function/integration into a separate file and connect it back to the main file.
+
+Files changed:
+
+- Added `includes/class-yo-checkout-monobank.php`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No intended customer-facing behavior change.
+- Monobank invoice creation, invoice status checking, invoice/local-order mapping helper, and webhook handling now live in `YO_Checkout_Monobank_Service`.
+- The main plugin file now delegates Monobank start/status/webhook work to the service while keeping the shared successful-payment finalizer in the main class.
+- Plugin version and `CHANGELOG.txt` were not changed because this is an internal extraction without functional behavior changes.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-monobank.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md` updated with the new Monobank service and delegated Monobank flow.
+
+Repository rollback point:
+
+- Pending commit and push.
