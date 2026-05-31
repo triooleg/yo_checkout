@@ -23,7 +23,7 @@ Plugin name:
 
 Current plugin version in the main PHP header:
 
-- `4.0.25`
+- `4.0.26`
 
 Main business goal:
 
@@ -54,6 +54,8 @@ Preferred direction:
 - Before editing an existing function, understand the related flow in `PLUGIN_MAP.md`.
 - Do not rewrite large working areas just for style.
 - Prefer small, reversible changes.
+- When a completed task changes runtime behavior, bump the plugin header version at the maintainer's discretion and add a short matching `CHANGELOG-vX.Y.Z.txt`.
+- Test ZIP archives must be created only when the user explicitly asks for a test archive.
 - Keep a repository rollback point after each completed task.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - Keep `PLUGIN_MAP.md` current when structure changes.

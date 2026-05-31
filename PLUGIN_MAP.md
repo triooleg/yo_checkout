@@ -12,6 +12,8 @@ Rules for future work:
 - New functionality should be placed in a separate PHP/JS/CSS file and included/enqueued from the main plugin file, so `yoleotard-checkout-invoice.php` does not keep growing.
 - New backend functionality should gradually move into separate classes, preferably under `includes/`.
 - If an existing function must be worked on, first consider moving the related block into a separate included file, then make the change there.
+- Runtime behavior changes should update the plugin header version and add a concise `CHANGELOG-vX.Y.Z.txt` entry.
+- Do not create test ZIP archives unless the user explicitly requests one.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - If code structure, hooks, files, settings, AJAX actions, REST routes, or frontend behavior changed, update this map.
 - After each task, check syntax and basic runtime logic as much as possible in the local environment.
@@ -32,7 +34,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG-v*.txt`
-  Version notes from previous plugin updates. Current visible version in plugin header is `4.0.25`.
+  Version notes from plugin updates. Current visible version in plugin header is `4.0.26`. Add a short matching changelog file when a task changes runtime behavior.
 
 - `PROJECT_CONTEXT.md`
   Project-level context and required rules for future Codex work.

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.25. Waits for the real KeyCRM order number before showing Step 4 after successful card payment.
- * Version: 4.0.25
+ * Description: v4.0.26. Retries bank-invoice KeyCRM sync with a fresh buyer when a stale buyer.id is rejected and cleans sold-item log titles.
+ * Version: 4.0.26
  * Author: YOleotard / ChatGPT
  */
 

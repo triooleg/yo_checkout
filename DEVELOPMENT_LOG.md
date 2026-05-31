@@ -161,3 +161,39 @@ Documentation updates:
 Repository rollback point:
 
 - Invoice invalid-buyer retry commit: `dbbe888` (`Fix bank invoice invalid buyer retry`).
+
+## 2026-05-31 - Version Accounting Rule
+
+User request:
+
+- Keep version accounting inside the plugin at Codex discretion.
+- Make it clear what changed compared with the previous plugin version.
+- Create test versions for site testing only when explicitly requested.
+
+Files changed:
+
+- Updated `yoleotard-checkout-invoice.php`.
+- Added `CHANGELOG-v4.0.26.txt`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.26`.
+- Plugin description now summarizes the bank-invoice invalid-buyer retry and sold-log cleanup.
+- Versioning workflow documented: runtime changes should bump the header version and add a concise matching changelog.
+- Test ZIP archive workflow documented: create ZIPs only on explicit request.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+
+Documentation updates:
+
+- Added version-accounting and test-archive rules to project context/map.
+
+Repository rollback point:
+
+- Pending commit and push.

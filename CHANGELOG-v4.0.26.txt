@@ -1,0 +1,5 @@
+YOleotard Checkout v4.0.26
+- Fixes bank invoice checkout when KeyCRM rejects a stale local buyer.id.
+- Creates a fresh KeyCRM buyer and retries order create/update once after an invalid buyer.id response.
+- Cleans sold-item auto-hide log titles so loose unicode fragments such as u201c/u201d become readable text.
+- Keeps the v4.0.25 card-payment success flow that waits for the real KeyCRM order number.
