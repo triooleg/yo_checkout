@@ -1,0 +1,4 @@
+v4.0.16
+- Payment status check can confirm paid orders by local_id even if invoice mapping is lost.
+- Polling starts immediately and repeats faster.
+- Keeps KeyCRM/email duplicate protection and YOOtheme autohide flow.

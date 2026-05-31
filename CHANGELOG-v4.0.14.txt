@@ -1,0 +1,4 @@
+v4.0.14
+- Keeps the v4.0.13 duplicate protection for KeyCRM and paid emails.
+- Fixes post-payment finalization when the payment webhook marks the local order as paid before frontend polling returns.
+- The paid-state finalizer now runs the YOOtheme autohide/log once without creating duplicate KeyCRM orders or duplicate emails.

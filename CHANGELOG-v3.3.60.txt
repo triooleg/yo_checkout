@@ -1,0 +1,5 @@
+v3.3.60
+- Strengthened KeyCRM order reuse after customer returns from card payment and edits the cart.
+- Persists KeyCRM order marker in localStorage, cookie, WordPress options by session/browser/email/phone.
+- Reuses and updates the existing unpaid KeyCRM order instead of creating a duplicate.
+- Keeps previous Google Customer Reviews and clean title fixes.

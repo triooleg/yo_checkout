@@ -1,0 +1,6 @@
+YOleotard Checkout Invoice v3.3.64
+
+- Strengthened KeyCRM reuse logic.
+- If a customer already reached card payment and a KeyCRM order was created, the plugin now searches by cart marker, browser marker, checkout session, email and phone before creating a new KeyCRM order.
+- When the cart is changed before payment, the existing local draft is reused and overwritten with the current cart content.
+- KeyCRM product SKU/article is not sent unless KeyCRM specifically rejects the request and requires SKU as fallback.

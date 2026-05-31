@@ -1,0 +1,3 @@
+v3.3.67
+- Restored light added-to-cart notification.
+- Added broad recent unpaid KeyCRM order reuse by customer email/phone to update existing checkout order instead of creating duplicates after cart edits.

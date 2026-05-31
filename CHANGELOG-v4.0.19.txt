@@ -1,0 +1,4 @@
+v4.0.19
+- Adds visible debug panel on checkout Step 3.
+- Logs invoice_id, local_id, provider status responses, finalizer/showSuccess calls, and iframe load events.
+- No intended changes to payment/KeyCRM/email/autohide logic.

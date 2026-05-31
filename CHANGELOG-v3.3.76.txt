@@ -1,0 +1,5 @@
+v3.3.76
+- Fixed SEPA/SWIFT invoice item table for orders with multiple leotards.
+- HTML invoice and PDF invoice now show every cart item as a separate row.
+- Added per-item Unit price, Discount and Line total columns.
+- Plain-text fallback invoice also includes itemized prices and discounts.

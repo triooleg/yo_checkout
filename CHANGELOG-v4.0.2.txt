@@ -1,0 +1,5 @@
+YOleotard Checkout v4.0.2
+- Added selectable delivery options in checkout when multiple imported tariff options are available.
+- Customer can choose between available services/methods before card or invoice payment.
+- Shipping price, card fee and bank total are recalculated after the selected delivery option changes.
+- Selected delivery service/method/days are saved in order meta.

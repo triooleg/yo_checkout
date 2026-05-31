@@ -1,0 +1,5 @@
+v3.3.91
+- Added structured shipping tariff import table for Nova Post, Nova Global and Ukrposhta.
+- Added service selection mode: cheapest, fastest, or fixed service.
+- Added currency conversion rates to EUR for imported USD/UAH/PDF tariff data.
+- Structured tariff table is used before legacy country fallback, while preserving the stable v3.3.90 payment and order logic.

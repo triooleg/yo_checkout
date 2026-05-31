@@ -1,0 +1,6 @@
+v4.0.18
+- Fix frontend staying on Step 3 after provider confirms payment.
+- Poll by invoice_id and local_id with iframe load/focus retries.
+- Normalize paid status when paid email/KeyCRM markers already exist.
+- Keep KeyCRM/email duplicate protection.
+- Keep YOOtheme auto-hide finalizer and debug log.

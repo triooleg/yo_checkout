@@ -1,0 +1,6 @@
+v3.3.92
+- Added WordPress database table wp_yo_shipping_rates for imported shipping tariffs.
+- Added admin CSV import for service/country/weight/price/currency/days/zone/method rows.
+- Added imported tariffs cleanup and recent rows preview.
+- Added admin test calculator for country + weight.
+- Checkout now checks database tariffs before the settings textarea and legacy fallback table.

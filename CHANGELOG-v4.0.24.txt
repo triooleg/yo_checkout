@@ -1,0 +1,3 @@
+v4.0.24
+- Removed visible payment debug panel from Step 3.
+- Kept v4.0.23 payment finalizer behavior: Step 4, KeyCRM/email side effects, and auto-hide triggering remain unchanged.
