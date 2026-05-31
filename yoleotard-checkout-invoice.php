@@ -2907,6 +2907,11 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
         update_post_meta($local_id, 'buyer_id', $buyer_id);
         $data['buyer_id'] = $buyer_id;
         $order_id = $this->keycrm_create_order($data, $buyer_id, $s, $mode);
+        if (is_wp_error($order_id) && $this->keycrm_error_invalid_buyer($order_id)) {
+            $buyer_id = $this->keycrm_refresh_buyer_for_order_data($local_id, $data, $s);
+            if (is_wp_error($buyer_id)) return $buyer_id;
+            $order_id = $this->keycrm_create_order($data, $buyer_id, $s, $mode);
+        }
         if (is_wp_error($order_id)) return $order_id;
         update_post_meta($local_id, 'order_id', $order_id);
         update_post_meta($local_id, 'keycrm_created', '1');
@@ -3138,6 +3143,13 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
         $payload = $this->keycrm_build_order_payload($d, $buyer_id, $s, $mode);
         $payload = $this->keycrm_prepare_products_for_full_sync($d['order_id'], $payload, $s);
         $body = $this->keycrm_request('PUT', '/order/' . $d['order_id'], $payload, $s);
+        if (is_wp_error($body) && $this->keycrm_error_invalid_buyer($body)) {
+            $buyer_id = $this->keycrm_refresh_buyer_for_order_data($local_id, $d, $s);
+            if (is_wp_error($buyer_id)) return $buyer_id;
+            $payload = $this->keycrm_build_order_payload($d, $buyer_id, $s, $mode);
+            $payload = $this->keycrm_prepare_products_for_full_sync($d['order_id'], $payload, $s);
+            $body = $this->keycrm_request('PUT', '/order/' . $d['order_id'], $payload, $s);
+        }
         if (is_wp_error($body) && $this->keycrm_error_needs_sku($body)) {
             // Keep the KeyCRM article column empty when possible. If KeyCRM requires SKU for this
             // specific update request, retry once with an internal fallback SKU so checkout is not blocked.
@@ -3151,6 +3163,11 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
             delete_post_meta($local_id, 'order_id');
             update_post_meta($local_id, 'keycrm_created', '0');
             $new_order_id = $this->keycrm_create_order($d, $buyer_id, $s, $mode);
+            if (is_wp_error($new_order_id) && $this->keycrm_error_invalid_buyer($new_order_id)) {
+                $buyer_id = $this->keycrm_refresh_buyer_for_order_data($local_id, $d, $s);
+                if (is_wp_error($buyer_id)) return $buyer_id;
+                $new_order_id = $this->keycrm_create_order($d, $buyer_id, $s, $mode);
+            }
             if (is_wp_error($new_order_id)) return $new_order_id;
             update_post_meta($local_id, 'order_id', $new_order_id);
             update_post_meta($local_id, 'keycrm_created', '1');
@@ -3166,10 +3183,22 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
                 $payload['products'][] = ['name'=>'Card payment service fee (' . number_format($service_percent, 2) . '%)', 'price'=>$service_fee, 'quantity'=>1, 'picture'=>''];
             }
             $body = $this->keycrm_request('PUT', '/order/' . $d['order_id'], $payload, $s);
+            if (is_wp_error($body) && $this->keycrm_error_invalid_buyer($body)) {
+                $buyer_id = $this->keycrm_refresh_buyer_for_order_data($local_id, $d, $s);
+                if (is_wp_error($buyer_id)) return $buyer_id;
+                $payload = $this->keycrm_build_order_payload($d, $buyer_id, $s, $mode);
+                $payload = $this->keycrm_prepare_products_for_full_sync($d['order_id'], $payload, $s);
+                $body = $this->keycrm_request('PUT', '/order/' . $d['order_id'], $payload, $s);
+            }
             if (is_wp_error($body) && $this->keycrm_error_is_order_not_found($body)) {
                 delete_post_meta($local_id, 'order_id');
                 update_post_meta($local_id, 'keycrm_created', '0');
                 $new_order_id = $this->keycrm_create_order($d, $buyer_id, $s, $mode);
+                if (is_wp_error($new_order_id) && $this->keycrm_error_invalid_buyer($new_order_id)) {
+                    $buyer_id = $this->keycrm_refresh_buyer_for_order_data($local_id, $d, $s);
+                    if (is_wp_error($buyer_id)) return $buyer_id;
+                    $new_order_id = $this->keycrm_create_order($d, $buyer_id, $s, $mode);
+                }
                 if (is_wp_error($new_order_id)) return $new_order_id;
                 update_post_meta($local_id, 'order_id', $new_order_id);
                 update_post_meta($local_id, 'keycrm_created', '1');
@@ -3220,6 +3249,26 @@ window.yoRenderGoogleCustomerReviewsOptIn = function(){
         $data = $err->get_error_data();
         $txt = is_scalar($data) ? (string)$data : wp_json_encode($data);
         return (stripos((string)$txt, 'sku') !== false && stripos((string)$txt, 'required') !== false);
+    }
+
+    private function keycrm_error_invalid_buyer($err) {
+        if (!is_wp_error($err)) return false;
+        $data = $err->get_error_data();
+        $txt = is_scalar($data) ? (string)$data : wp_json_encode($data);
+        $txt = (string)$txt;
+        return stripos($txt, 'buyer.id') !== false
+            && (stripos($txt, 'invalid') !== false || stripos($txt, 'selected buyer') !== false);
+    }
+
+    private function keycrm_refresh_buyer_for_order_data($local_id, &$d, $s) {
+        delete_post_meta($local_id, 'buyer_id');
+        $buyer_id = $this->keycrm_create_buyer($d, $s);
+        if (is_wp_error($buyer_id)) {
+            return new WP_Error('keycrm_buyer', 'KeyCRM buyer was not created after invalid buyer retry', $buyer_id->get_error_data());
+        }
+        update_post_meta($local_id, 'buyer_id', $buyer_id);
+        $d['buyer_id'] = $buyer_id;
+        return $buyer_id;
     }
 
     private function keycrm_create_order($d, $buyer_id, $s, $mode = 'bank') {

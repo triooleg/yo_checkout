@@ -56,7 +56,7 @@ class YO_Checkout_Sold_Items_Service {
 
         $page_id = absint($s['auto_hide_sold_page_id'] ?? 0);
         if (!$page_id) $page_id = absint(get_option('page_on_front'));
-        $log = '[' . current_time('mysql') . '] ' . $label . ': ' . implode(' | ', $titles) . "\n";
+        $log = '[' . current_time('mysql') . '] ' . $label . ': ' . implode(' | ', array_map([$this, 'clean_log_text'], $titles)) . "\n";
         if (!$page_id || get_post_type($page_id) === false) {
             $this->append_auto_hide_log($log . "No valid YOOtheme page ID. Builder status was not changed.\n");
             return;
@@ -300,6 +300,20 @@ class YO_Checkout_Sold_Items_Service {
             return $m[1] . mb_convert_encoding(pack('H*', $m[2]), 'UTF-8', 'UTF-16BE');
         }, $text);
         return $text;
+    }
+
+    private function clean_log_text($text) {
+        $text = $this->decode_loose_unicode_sequences((string)$text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = $this->decode_loose_unicode_sequences($text);
+        $text = str_replace(
+            ['вЂњ','вЂќ','В«','В»','вЂ™','вЂ','`','Вґ','вЂ“','вЂ”','в€’','&nbsp;'],
+            ['"','"','"','"',"'", "'", "'", "'", '-', '-', '-', ' '],
+            $text
+        );
+        $text = wp_strip_all_tags($text);
+        $text = preg_replace('/\s+/u', ' ', $text);
+        return trim($text);
     }
 
     private function normalize_match_text($text) {

@@ -65,6 +65,22 @@ Handling:
 - Backup now excludes previous auto-hide backup meta.
 - Watch the next real successful card purchase for a final log line such as `Updated post_content.`, `Updated meta: ...`, or `YOOtheme Builder JSON grid item was not found...`.
 
+### Bank invoice checkout can hit stale KeyCRM buyer IDs
+
+Status: fixed in current code, monitor next live invoice test.
+
+Details:
+
+- The bank invoice path can reuse an existing unpaid KeyCRM order from local/session/cart markers.
+- If the reused local draft contains an old/deleted KeyCRM `buyer_id`, KeyCRM rejects the order update with `buyer.id is invalid`.
+- Card payment did not show this after the recent change because the successful-card path creates a fresh KeyCRM buyer/order after payment.
+
+Handling:
+
+- KeyCRM update/create now detects invalid `buyer.id`, clears the stale local `buyer_id`, creates a new KeyCRM buyer from the current checkout data, and retries once.
+- If the retry still fails, the KeyCRM error remains visible so the next issue is not hidden.
+- Test with bank invoice after uploading the next ZIP: expected result is invoice generation, KeyCRM order creation/update, and no browser alert containing `buyer.id is invalid`.
+
 ## Watch Areas
 
 - Payment finalization must remain idempotent. Repeated webhooks or polling must not create duplicate KeyCRM payments, emails, or status updates.

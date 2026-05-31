@@ -127,3 +127,37 @@ Documentation updates:
 Repository rollback point:
 
 - Sold-item service extraction commit pushed to GitHub: `28613e4` (`Extract sold item auto-hide service`).
+
+## 2026-05-31 - Bank Invoice Invalid Buyer Retry And Clean Sold Logs
+
+User request:
+
+- Analyze why bank invoice checkout shows `KeyCRM order was not created` with `buyer.id is invalid`.
+- Clean auto-hide logs so product names do not show raw escape fragments such as `u201c`.
+- After comprehensive verification, propose what should be done to fix the invoice and log issues.
+
+Files changed:
+
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `includes/class-yo-checkout-sold-items.php`.
+- Updated `DEVELOPMENT_LOG.md`.
+- Updated `KNOWN_ISSUES.md`.
+
+Behavior changed:
+
+- Bank invoice KeyCRM update/create flow now detects `buyer.id` invalid errors, deletes the stale local `buyer_id`, creates a fresh KeyCRM buyer from the checkout data, and retries once.
+- Auto-hide log product titles are decoded/cleaned before saving, so JSON-style unicode fragments like `u201cBlack Radianceu201d` render as readable quoted text.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+
+Documentation updates:
+
+- `KNOWN_ISSUES.md` updated with invoice invalid-buyer diagnosis and monitoring note.
+
+Repository rollback point:
+
+- Pending commit and push.
