@@ -375,4 +375,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Monobank service extraction commit: `c40e4fa` (`Extract Monobank service`).
