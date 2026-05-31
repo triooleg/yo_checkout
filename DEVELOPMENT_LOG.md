@@ -233,4 +233,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push.
+- Email thumbnails and single changelog commit: `85cd5e9` (`Add email product thumbnails`).
