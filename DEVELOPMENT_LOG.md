@@ -55,4 +55,4 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit and push. The final commit hash will be reported after git creates it.
+- Baseline documentation commit pushed to GitHub: `ee843e6` (`Add project documentation baseline`).
