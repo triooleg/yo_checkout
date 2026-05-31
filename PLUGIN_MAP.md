@@ -27,6 +27,9 @@ Rules for future work:
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
 
+- `includes/class-yo-checkout-promo.php`
+  Promo code service. Owns promo configuration checks, expiration checks, discount calculation, AJAX promo application, recalculating local checkout totals after promo changes, and applying promo data during order creation.
+
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger.
 
@@ -128,7 +131,7 @@ Line numbers are approximate and should be refreshed after larger edits.
 - Google Customer Reviews script output: lines 959-1023.
 - Checkout modal HTML: lines 1025-1080.
 - Security nonce helper: line 1082.
-- Promo-code helpers and AJAX: lines 1086-1110 and 1273-1316.
+- Promo-code helpers and AJAX: delegated to `includes/class-yo-checkout-promo.php` through wrapper methods around lines 1109-1123 and AJAX action `ajax_apply_promo_code()`.
 - Product reservation helpers and AJAX: lines 1114-1221.
 - Cart availability AJAX: lines 1223-1271.
 - Order creation AJAX: lines 1318-1508.

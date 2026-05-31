@@ -234,3 +234,37 @@ Documentation updates:
 Repository rollback point:
 
 - Email thumbnails and single changelog commit: `85cd5e9` (`Add email product thumbnails`).
+
+## 2026-05-31 - Extract Promo Code Service
+
+User request:
+
+- Move the promo code function out of the main plugin file and connect it back to the main file so it can be changed separately later.
+
+Files changed:
+
+- Added `includes/class-yo-checkout-promo.php`.
+- Updated `yoleotard-checkout-invoice.php`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No intended customer-facing behavior change.
+- Promo code checks, expiration handling, discount calculation, AJAX application, and order-data promo application now live in `YO_Checkout_Promo_Service`.
+- The main plugin file now keeps small wrapper methods and delegates promo behavior to the service.
+- Plugin version and `CHANGELOG.txt` were not changed because this is an internal extraction without functional behavior changes.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-promo.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md` updated with the new promo service and delegated promo flow.
+
+Repository rollback point:
+
+- Pending commit and push.
