@@ -788,6 +788,82 @@ Repository rollback point:
 
 - Working bank invoice v4.0.33 rollback commit: `ad971b8` (`Finalize working bank invoice flow v4.0.33`).
 
+## 2026-06-01 - Harden Card Payment Finalization v4.0.34
+
+User request:
+
+- Implement the approved card-flow correction map without touching the working bank invoice flow.
+- Prevent Step 4 from appearing before KeyCRM order creation and paid email completion.
+- Prevent stale card polling from a previous cart/session from affecting a later checkout.
+
+Files changed:
+
+- `assets/yo-checkout.js`
+- `yoleotard-checkout-invoice.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.34`.
+- Card payment polling now uses an active payment session token.
+- `stopPaymentPolling()` fully resets interval, active invoice/local IDs, session token, and final-order polling state.
+- All card polling paths now route paid payments through `yo_checkout_final_order_status`; the interval path no longer calls `showSuccess()` directly.
+- A card-only `Payment received / Preparing your order confirmation...` state is shown while KeyCRM/email side effects complete.
+- Step 4 now requires backend `ready=true`, a numeric KeyCRM order ID, `keycrmDone=true`, and `emailSent=true`.
+- Card payment start clears stale KeyCRM order/buyer markers from the local draft before creating a card provider payment.
+- Step 1 order save no longer sends stored KeyCRM order markers from browser storage/cookies.
+- Final order status and payment status check for invoice/local mismatches to prevent stale paid local orders from driving a new payment UI.
+- Paid email failures are stored in `paid_email_error` and prevent `emailSent=true` until the email send succeeds.
+- Bank invoice flow was not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Documentation updates:
+
+- Changelog, plugin map, known issues, project context, and this log were updated.
+
+Repository rollback point:
+
+- Not created yet. This card-flow fix should be live-tested before marking it as working.
+
+## 2026-06-01 - Confirm Card Payment v4.0.34 As Working
+
+User request:
+
+- Mark the tested card payment version as working.
+- Push the working version to GitHub.
+
+Files changed:
+
+- `KNOWN_WORKING_FEATURES.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime behavior changed in this entry.
+- Documentation now records Monobank card payment, card KeyCRM order creation, card paid email sending, and Step 4 card payment success as live-tested working features.
+
+Verification performed:
+
+- User live-tested card payment and confirmed payment succeeds, KeyCRM order is created, and email notification arrives.
+
+Documentation updates:
+
+- `KNOWN_WORKING_FEATURES.md`, `KNOWN_ISSUES.md`, and this log were updated.
+
+Repository rollback point:
+
+- Pending commit/push after this documentation update.
+
 ## 2026-06-01 - Improve Bank Invoice Confirmation Screen
 
 User request:

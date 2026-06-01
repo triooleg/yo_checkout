@@ -24,7 +24,7 @@ Plugin name:
 
 Current plugin version in the main PHP header:
 
-- `4.0.33`
+- `4.0.34`
 
 Main business goal:
 

@@ -28,6 +28,8 @@
     let paymentPollingActive = false;
     let activePaymentInvoiceId = '';
     let activePaymentLocalId = '';
+    let activePaymentSessionToken = '';
+    let finalOrderPollingActive = false;
     let reservationServerOffsetMs = 0;
     const BUYER_STORAGE_KEY = 'yo_checkout_buyer_id_v1';
     const CHECKOUT_SESSION_KEY = 'yo_checkout_session_id_v1';
@@ -59,6 +61,9 @@
     }
     function setCookie(name, value, days){
       try{ const maxAge = Math.max(1, days || 2) * 24 * 60 * 60; document.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + maxAge + '; SameSite=Lax'; }catch(e){}
+    }
+    function deleteCookie(name){
+      try{ document.cookie = name + '=; path=/; max-age=0; SameSite=Lax'; }catch(e){}
     }
     function getStoredKeycrmOrderId(){
       try{ return localStorage.getItem(CHECKOUT_KEYCRM_ORDER_KEY) || sessionStorage.getItem(CHECKOUT_KEYCRM_ORDER_KEY) || getCookie('yo_checkout_keycrm_order_id') || ''; }catch(e){ return getCookie('yo_checkout_keycrm_order_id') || ''; }
@@ -135,8 +140,10 @@
 
     function clearCheckoutDraftSession(){
       try{ localStorage.removeItem(CHECKOUT_DRAFT_KEY); localStorage.removeItem(CHECKOUT_SESSION_KEY); localStorage.removeItem(CHECKOUT_KEYCRM_ORDER_KEY); localStorage.removeItem(CHECKOUT_CART_MARKER_KEY); }catch(e){}
+      deleteCookie('yo_checkout_keycrm_order_id');
+      deleteCookie('yo_checkout_local_order_id');
       current.localId = ''; current.orderId = ''; current.invoiceId = '';
-      paymentPollingActive = false; activePaymentInvoiceId = ''; activePaymentLocalId = '';
+      paymentPollingActive = false; activePaymentInvoiceId = ''; activePaymentLocalId = ''; activePaymentSessionToken = ''; finalOrderPollingActive = false;
     }
     function promoEnabled(){ return !!window.YOCheckout?.promoEnabled; }
 
@@ -144,12 +151,13 @@
     function show(id){ const el=byId(id); if(el) el.style.display='block'; }
     function hide(id){ const el=byId(id); if(el) el.style.display='none'; }
     function setStep(step){
-      ['yo-step-cart','yo-step-loading','yo-step-method','yo-step-payment','yo-step-bank','yo-step-success'].forEach(hide);
+      ['yo-step-cart','yo-step-loading','yo-step-method','yo-step-payment','yo-step-finalizing','yo-step-bank','yo-step-success'].forEach(hide);
       ['yo-pill-1','yo-pill-2','yo-pill-3','yo-pill-4'].forEach(function(id){ const el=byId(id); if(el) el.classList.remove('active'); });
       if(step===1){show('yo-step-cart'); byId('yo-pill-1').classList.add('active');}
       if(step==='loading'){show('yo-step-loading'); byId('yo-pill-1').classList.add('active');}
       if(step===2){show('yo-step-method'); byId('yo-pill-2').classList.add('active');}
       if(step===3){show('yo-step-payment'); byId('yo-pill-3').classList.add('active'); yoDebugState('entered step 3');}
+      if(step==='finalizing'){show('yo-step-finalizing'); byId('yo-pill-3').classList.add('active'); yoDebugState('entered finalizing step');}
       if(step==='bank'){show('yo-step-bank'); byId('yo-pill-4').classList.add('active');}
       if(step===4){show('yo-step-success'); byId('yo-pill-4').classList.add('active'); yoDebugState('entered step 4');}
     }
@@ -1301,9 +1309,6 @@
         if(draftLocalId) fd.append('local_id', draftLocalId);
         fd.append('checkout_session_id', checkoutSessionId());
         fd.append('buyer_id', buyerId());
-        const storedKeycrmOrderId = current.orderId || (cartMarker && cartMarker.keycrm_order_id ? cartMarker.keycrm_order_id : '') || getStoredKeycrmOrderId();
-        if(storedKeycrmOrderId) fd.append('keycrm_order_id', storedKeycrmOrderId);
-        if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
         buildSelectedProductFromCart();
         fd.append('title', selectedProduct.title); fd.append('price_eur', selectedProduct.price_eur); fd.append('original_price_eur', selectedProduct.original_price_eur || selectedProduct.price_eur); fd.append('discount_eur', selectedProduct.discount_eur || '0.00'); fd.append('image_url', selectedProduct.image_url); if(selectedProduct.product_id) fd.append('product_id', selectedProduct.product_id);
         if(selectedProduct.shipping_weight_kg){ fd.append('shipping_weight_kg', String(selectedProduct.shipping_weight_kg)); }
@@ -1317,7 +1322,7 @@
         current.customer={name:fd.get('full_name'), email:fd.get('email'), phone:fd.get('phone'), product:selectedProduct.title, amount:selectedProduct.price_eur};
         setStep('loading');
         post('yo_checkout_create_order', fd).then(function(data){
-          if(data.success){ rememberKeycrmFromResponse(data); current.localId=data.data.localId; storeDraftLocalId(current.localId); current.orderId=data.data.orderId || current.orderId || getStoredKeycrmOrderId(); if(current.orderId){ storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); } current.cardFee=data.data.cardFee || null; current.shipping=data.data.shipping || null; current.shippingOptions=data.data.shippingOptions || []; current.bankTotal=data.data.bankTotal || null; current.customer.amount = current.cardFee ? money(current.cardFee.total) : selectedProduct.price_eur; const t=byId('yo-accept-terms'); if(t) t.checked=false; updateTermsButtons(); renderCardFeeNote(); setStep(2); }
+          if(data.success){ current.localId=data.data.localId; storeDraftLocalId(current.localId); current.orderId=data.data.orderId || ''; if(current.orderId){ storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); } current.cardFee=data.data.cardFee || null; current.shipping=data.data.shipping || null; current.shippingOptions=data.data.shippingOptions || []; current.bankTotal=data.data.bankTotal || null; current.customer.amount = current.cardFee ? money(current.cardFee.total) : selectedProduct.price_eur; const t=byId('yo-accept-terms'); if(t) t.checked=false; updateTermsButtons(); renderCardFeeNote(); setStep(2); }
           else { alert((data.data?.message || 'Order error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(1); }
         }).catch(function(){ alert('Connection error'); setStep(1); });
       });
@@ -1325,6 +1330,11 @@
 
     function stopPaymentPolling(){
       if(paymentTimer){ clearInterval(paymentTimer); paymentTimer = null; }
+      paymentPollingActive = false;
+      activePaymentInvoiceId = '';
+      activePaymentLocalId = '';
+      activePaymentSessionToken = '';
+      finalOrderPollingActive = false;
     }
     byId('yo-back-to-details')?.addEventListener('click', function(){
       stopPaymentPolling();
@@ -1387,7 +1397,7 @@
       if(!byId('yo-accept-terms')?.checked){ alert('Please confirm that you agree to the Terms & Conditions before continuing.'); return; }
       validateCartAvailability(true).then(function(v){
       if(v && v.removed > 0){ setStep(1); return; }
-      const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
+      const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId());
       setStep('loading');
       post('yo_checkout_start_card_payment', fd).then(function(data){
         if(data.success && data.data.pageUrl){ rememberKeycrmFromResponse(data); current.invoiceId=data.data.invoiceId || current.invoiceId || ''; if(data.data.localId){ current.localId=String(data.data.localId); storeDraftLocalId(current.localId); } else if(data.data.cartMarker && data.data.cartMarker.local_id){ current.localId=String(data.data.cartMarker.local_id); storeDraftLocalId(current.localId); } current.orderId=''; byId('yo-payment-frame').src=data.data.pageUrl; yoDebug('start_card_payment success', {invoiceId: current.invoiceId, localId: current.localId, orderId: current.orderId, pageUrl: data.data.pageUrl}); setStep(3); startPaymentPolling(); }
@@ -1545,7 +1555,7 @@
       if(paymentCompletedShown){ yoDebug('showSuccess skipped: already shown'); return; }
       paymentCompletedShown = true;
       const cust = current.customer || {};
-      setTextSafe('yo-success-order-number', current.orderId || current.localId || current.invoiceId || '');
+      setTextSafe('yo-success-order-number', current.orderId || '');
       setTextSafe('yo-success-name', cust.name || '');
       setTextSafe('yo-success-email', cust.email || '');
       setTextSafe('yo-success-phone', cust.phone || '');
@@ -1555,6 +1565,8 @@
       paymentPollingActive = false;
       activePaymentInvoiceId = '';
       activePaymentLocalId = '';
+      activePaymentSessionToken = '';
+      finalOrderPollingActive = false;
       setStep(4);
       try{
         if(window.YOCheckout?.googleReviewsOptinEnabled && typeof window.YOCheckoutGoogleReviews === 'function'){
@@ -1575,13 +1587,31 @@
       if(count > 1) return 'custom leotard x' + count;
       return 'custom leotard';
     }
-    function waitForFinalOrderThenShowSuccess(reason){
+    function isActivePaymentSession(sessionToken){
+      return !!paymentPollingActive && !!sessionToken && sessionToken === activePaymentSessionToken;
+    }
+    function waitForFinalOrderThenShowSuccess(reason, sessionToken){
+      sessionToken = sessionToken || activePaymentSessionToken;
+      if(!isActivePaymentSession(sessionToken)){
+        yoDebug('waitForFinalOrderThenShowSuccess skipped: stale session', {reason: reason || 'paid', sessionToken: sessionToken, activeSessionToken: activePaymentSessionToken});
+        return Promise.resolve(false);
+      }
+      if(finalOrderPollingActive){
+        yoDebug('waitForFinalOrderThenShowSuccess skipped: already waiting for final order', {reason: reason || 'paid'});
+        return Promise.resolve(false);
+      }
+      finalOrderPollingActive = true;
+      setStep('finalizing');
       const localId = current.localId || activePaymentLocalId || getStoredDraftLocalId() || '';
       const invoiceId = current.invoiceId || activePaymentInvoiceId || '';
       let attempts = 0;
-      const maxAttempts = 24; // about 36 seconds
+      const maxAttempts = 80; // about 2 minutes
       yoDebug('waitForFinalOrderThenShowSuccess started', {reason: reason || 'paid', invoiceId: invoiceId, localId: localId});
       function pollFinal(){
+        if(!isActivePaymentSession(sessionToken)){
+          yoDebug('final_order_status stopped: stale session', {sessionToken: sessionToken, activeSessionToken: activePaymentSessionToken});
+          return Promise.resolve(false);
+        }
         attempts++;
         const fd = new FormData();
         fd.append('local_id', localId);
@@ -1596,20 +1626,21 @@
             storeKeycrmOrderId(current.orderId);
             storeCartKeycrmMarker(current.orderId, current.localId || localId || '');
           }
-          if(payload && payload.ready && current.orderId){
+          if(payload && payload.ready && current.orderId && payload.keycrmDone && payload.emailSent){
+            finalOrderPollingActive = false;
             showSuccess();
             return true;
           }
           if(attempts >= maxAttempts){
-            yoDebug('final_order_status timeout: showing success with available order id', {orderId: current.orderId || '', localId: current.localId || localId || ''});
-            showSuccess();
+            yoDebug('final_order_status timeout: order confirmation still preparing', {orderId: current.orderId || '', localId: current.localId || localId || '', keycrmDone: payload && payload.keycrmDone, emailSent: payload && payload.emailSent});
+            finalOrderPollingActive = false;
             return true;
           }
           setTimeout(pollFinal, 1500);
           return false;
         }).catch(function(err){
           yoDebug('final_order_status error', {error: (err && err.message) ? err.message : String(err), attempt: attempts});
-          if(attempts >= maxAttempts){ showSuccess(); return true; }
+          if(attempts >= maxAttempts){ finalOrderPollingActive = false; return true; }
           setTimeout(pollFinal, 1500);
           return false;
         });
@@ -1617,7 +1648,12 @@
       return pollFinal();
     }
 
-    function checkPaymentOnce(reason){
+    function checkPaymentOnce(reason, sessionToken){
+      sessionToken = sessionToken || activePaymentSessionToken;
+      if(!isActivePaymentSession(sessionToken)){
+        yoDebug('checkPaymentOnce skipped: stale payment session', {reason: reason || 'poll', sessionToken: sessionToken, activeSessionToken: activePaymentSessionToken});
+        return Promise.resolve(false);
+      }
       const activeInvoice = activePaymentInvoiceId || current.invoiceId || '';
       const activeLocal = activePaymentLocalId || current.localId || '';
       if(!paymentPollingActive || (!activeInvoice && !activeLocal)){
@@ -1646,7 +1682,7 @@
             return false;
           }
           if(paymentTimer) { clearInterval(paymentTimer); paymentTimer=null; }
-          waitForFinalOrderThenShowSuccess(reason || 'paid');
+          waitForFinalOrderThenShowSuccess(reason || 'paid', sessionToken);
           return true;
         }
         return false;
@@ -1656,29 +1692,38 @@
       const msg = event.data || {};
       if(!msg || msg.type !== 'yo_wayforpay_return') return;
       if(msg.invoiceId && current.invoiceId && msg.invoiceId !== current.invoiceId) return;
-      checkPaymentOnce('wayforpay-message');
-      setTimeout(function(){ checkPaymentOnce('wayforpay-message-delay'); }, 2500);
+      const sessionToken = activePaymentSessionToken;
+      checkPaymentOnce('wayforpay-message', sessionToken);
+      setTimeout(function(){ checkPaymentOnce('wayforpay-message-delay', sessionToken); }, 2500);
     });
-    window.addEventListener('focus', function(){ if(paymentPollingActive) checkPaymentOnce('window-focus'); });
-    document.addEventListener('visibilitychange', function(){ if(!document.hidden && paymentPollingActive) checkPaymentOnce('visibility'); });
+    window.addEventListener('focus', function(){ if(paymentPollingActive) checkPaymentOnce('window-focus', activePaymentSessionToken); });
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden && paymentPollingActive) checkPaymentOnce('visibility', activePaymentSessionToken); });
     function startPaymentPolling(){
       if(!current.invoiceId && !current.localId){ yoDebug('startPaymentPolling skipped: missing active invoice/local id'); return; }
       paymentPollingActive = true;
       activePaymentInvoiceId = current.invoiceId || '';
       activePaymentLocalId = current.localId || getStoredDraftLocalId() || '';
+      activePaymentSessionToken = checkoutDebugId('card');
+      const sessionToken = activePaymentSessionToken;
       yoDebugState('startPaymentPolling');
-      yoDebug('active payment session started', {invoiceId: activePaymentInvoiceId, localId: activePaymentLocalId});
+      yoDebug('active payment session started', {invoiceId: activePaymentInvoiceId, localId: activePaymentLocalId, sessionToken: sessionToken});
       if(paymentTimer) clearInterval(paymentTimer);
       paymentCompletedShown = false;
-      setTimeout(function(){ checkPaymentOnce('start-900'); }, 900);
-      setTimeout(function(){ checkPaymentOnce('start-2500'); }, 2500);
-      setTimeout(function(){ checkPaymentOnce('start-5000'); }, 5000);
-      setTimeout(function(){ checkPaymentOnce('start-9000'); }, 9000);
+      finalOrderPollingActive = false;
+      setTimeout(function(){ checkPaymentOnce('start-900', sessionToken); }, 900);
+      setTimeout(function(){ checkPaymentOnce('start-2500', sessionToken); }, 2500);
+      setTimeout(function(){ checkPaymentOnce('start-5000', sessionToken); }, 5000);
+      setTimeout(function(){ checkPaymentOnce('start-9000', sessionToken); }, 9000);
       let attempts=0;
       paymentTimer=setInterval(function(){
+        if(!isActivePaymentSession(sessionToken)){
+          if(paymentTimer){ clearInterval(paymentTimer); paymentTimer=null; }
+          return;
+        }
         attempts++;
         const fd=new FormData(); fd.append('invoice_id', activePaymentInvoiceId || current.invoiceId || ''); fd.append('local_id', activePaymentLocalId || current.localId || ''); fd.append('poll_reason', 'interval-'+attempts);
         post('yo_checkout_check_payment_status', fd).then(function(data){
+          if(!isActivePaymentSession(sessionToken)) return;
           yoDebug('interval response', data && data.success ? data.data : data);
           if(data.success && data.data.paid){
             if(data.data.localId){
@@ -1691,25 +1736,26 @@
             }
             if(data.data.orderId){ current.orderId=String(data.data.orderId); storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId || getStoredDraftLocalId() || ''); }
             clearInterval(paymentTimer); paymentTimer=null;
-            showSuccess();
+            waitForFinalOrderThenShowSuccess('interval-paid', sessionToken);
           }
         });
-        if(attempts>=60) clearInterval(paymentTimer);
+        if(attempts>=60){ clearInterval(paymentTimer); paymentTimer=null; }
       }, 3000);
     }
     const paymentFrameEl = byId('yo-payment-frame');
     if(paymentFrameEl){
       paymentFrameEl.addEventListener('load', function(){
         if(paymentPollingActive){
+          const sessionToken = activePaymentSessionToken;
           yoDebugState('payment iframe load');
-          setTimeout(function(){ checkPaymentOnce('iframe-load-600'); }, 600);
-          setTimeout(function(){ checkPaymentOnce('iframe-load-1800'); }, 1800);
+          setTimeout(function(){ checkPaymentOnce('iframe-load-600', sessionToken); }, 600);
+          setTimeout(function(){ checkPaymentOnce('iframe-load-1800', sessionToken); }, 1800);
         } else {
           yoDebug('payment iframe load ignored: no active payment session', {invoiceId: current.invoiceId || '', localId: current.localId || getStoredDraftLocalId() || '', iframe: paymentFrameEl.src || ''});
         }
       });
     }
     initCountryAutocomplete(); loadCart();
-    try{ const __m = getCartKeycrmMarker(); if(__m && __m.keycrm_order_id){ current.orderId = String(__m.keycrm_order_id); if(__m.local_id) current.localId = String(__m.local_id); } }catch(e){} ensureFloatingCart(); updateFloatingCart(); renderCartSummary(); validateCartAvailability(true); addPayButtons(); refreshReservedCards(); setInterval(updateReservedCountdowns, 1000); setInterval(refreshReservedCards, 60000); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },500); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },1500); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },3000);
+    ensureFloatingCart(); updateFloatingCart(); renderCartSummary(); validateCartAvailability(true); addPayButtons(); refreshReservedCards(); setInterval(updateReservedCountdowns, 1000); setInterval(refreshReservedCards, 60000); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },500); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },1500); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },3000);
   });
 })();

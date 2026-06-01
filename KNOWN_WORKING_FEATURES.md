@@ -13,6 +13,10 @@ Items listed here are protected: do not change them unless the current task dire
 - KeyCRM order creation for bank invoice checkout
 - Customer email sending for bank invoice checkout
 - Bank invoice confirmation screen with KeyCRM order number
+- Monobank card payment flow
+- KeyCRM order creation for card checkout
+- Customer email sending for card checkout
+- Step 4 card payment success screen after KeyCRM/email completion
 - Host-safe test ZIP packaging for this hosting flow
 - Local PHP syntax check workflow
 - Local JS syntax check workflow
@@ -21,10 +25,6 @@ Items listed here are protected: do not change them unless the current task dire
 
 These areas have worked in some tests, but they are not listed as bug-free because they currently have open monitoring notes, local uncommitted fixes, or recent reported regressions:
 
-- Monobank card payment flow
-- KeyCRM order creation/update flow
-- Customer email sending tied to card/bank checkout
-- Step 4 Success screen
 - Sold-item auto-hide
 - Promo-code state and expiration handling
 

@@ -122,7 +122,7 @@ Handling:
 
 ### Monobank multi-item destination can exceed provider length limit
 
-Status: local test fix added on 2026-06-01; monitor next multi-item card payment before committing.
+Status: fixed and live-tested on 2026-06-01.
 
 Details:
 
@@ -133,6 +133,27 @@ Handling:
 
 - Monobank destination/comment and basket item name now use a compact label like `custom leotard x5`.
 - Step 4 success product text also uses the compact label for multi-item card purchases.
+- Live card payment testing confirmed successful payment, KeyCRM order creation, and paid email delivery.
+
+### Card payment Step 4 could open before KeyCRM/email finished
+
+Status: fixed and live-tested on 2026-06-01.
+
+Details:
+
+- A successful card payment with three products could remain on Step 3 while KeyCRM/email were not completed.
+- After returning to the cart and starting a different cart, stale polling callbacks from the previous paid card session could open Step 4 for the wrong checkout state.
+- The interval polling path could call `showSuccess()` directly on `paid:true`, bypassing the final backend check for KeyCRM order creation and paid email delivery.
+
+Handling:
+
+- Card payment now uses an active session token. Old timeout, interval, focus, visibility, and iframe-load callbacks are ignored after the customer leaves that payment session.
+- `paid:true` now opens a `Payment received / Preparing your order confirmation...` finalizing state instead of Step 4.
+- Step 4 is shown only after `yo_checkout_final_order_status` returns a real KeyCRM order ID with `keycrmDone=true` and `emailSent=true`.
+- Step 1 order save no longer sends stored KeyCRM order markers from browser storage/cookies.
+- Card payment start clears stale KeyCRM markers from the local draft before creating a Monobank/WayForPay payment.
+- Bank invoice flow is intentionally unchanged.
+- Live card payment testing confirmed payment completion, KeyCRM order creation, customer email delivery, and correct Step 4 transition.
 
 ### Checkout JS cache could keep old Step 3 behavior
 

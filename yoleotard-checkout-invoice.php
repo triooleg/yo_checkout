@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.33. Confirms working bank invoice flow and improves invoice confirmation UI.
- * Version: 4.0.33
+ * Description: v4.0.34. Hardens card payment finalization before showing confirmation.
+ * Version: 4.0.34
  * Author: YOleotard / ChatGPT
  */
 
@@ -1079,6 +1079,7 @@ EUR=1',
               </div>
             </div>
             <div id="yo-step-payment" class="yo-hidden"><button id="yo-back-to-method-from-payment" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3 class="uk-modal-title">Card payment</h3><iframe id="yo-payment-frame" title="monopay" src="" allow="payment *"></iframe></div>
+            <div id="yo-step-finalizing" class="yo-hidden yo-loading"><div uk-spinner="ratio: 2"></div><h4>Payment received</h4><p>Preparing your order confirmation...</p></div>
             <div id="yo-step-bank" class="yo-hidden yo-bank-box"><button id="yo-back-to-method-from-bank" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3>Your invoice is ready</h3><p>Please download the invoice and make a bank transfer using the payment details inside.</p><p><a id="yo-bank-invoice-html-link" class="uk-button uk-button-primary" href="#" target="_blank" rel="noopener">View invoice</a> <a id="yo-bank-invoice-link" class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Download PDF copy</a></p><p>A copy of this invoice has also been sent to your email.</p><div class="uk-card uk-card-default uk-card-small uk-card-body uk-box-shadow-small yo-bank-confirmation-details"><div class="uk-grid-small uk-child-width-1-1" uk-grid><div class="uk-flex uk-flex-middle uk-flex-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: tag"></span><strong>Order <span id="yo-bank-order-number"></span></strong></div><div class="uk-flex uk-flex-middle uk-flex-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: clock"></span><span><strong>Status:</strong> Waiting for payment</span></div><div class="uk-flex uk-flex-middle uk-flex-center uk-text-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: calendar"></span><span>Bank transfers usually arrive within 1–3 business days.</span></div></div><div class="uk-margin-small-top uk-text-left"><p class="yo-bank-next-title uk-text-bold uk-text-center">Once payment is received:</p><ul class="uk-list uk-list-collapse yo-bank-next-list"><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: check"></span><span>We will confirm your payment</span></li><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: check"></span><span>We will start processing your order</span></li><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: mail"></span><span>You will receive shipment updates by email</span></li></ul></div></div></div>
             <div id="yo-step-success" class="yo-hidden yo-success"><h3>Payment successful!</h3><p>Thank you for your order.<br>Your order number is <strong id="yo-success-order-number"></strong>.</p><div class="yo-summary"><p><strong>Customer:</strong> <span id="yo-success-name"></span></p><p><strong>Email:</strong> <span id="yo-success-email"></span></p><p><strong>Phone:</strong> <span id="yo-success-phone"></span></p><p><strong>Product:</strong> <span id="yo-success-product"></span></p><p><strong>Amount paid:</strong> <span id="yo-success-amount"></span> €</p></div><p><strong>Our manager will contact you via WhatsApp and email.</strong></p></div>
           </div>
@@ -1542,6 +1543,12 @@ EUR=1',
         $provider = $this->card_provider_for_order($local_id);
         update_post_meta($local_id, 'payment_provider', $provider);
         update_post_meta($local_id, 'payment_type', 'card');
+        // Card payments create the real KeyCRM order only after the provider confirms payment.
+        // Clear any stale browser/cart KeyCRM marker that may have been attached to the local draft.
+        foreach (['order_id','buyer_id','keycrm_after_payment_done','keycrm_after_payment_error','keycrm_paid_payment_added','keycrm_paid_status_set','paid_email_sent','paid_email_error'] as $meta_key) {
+            delete_post_meta($local_id, $meta_key);
+        }
+        update_post_meta($local_id, 'keycrm_created', '0');
         $fee = $this->card_fee_data($local_id, $provider);
         update_post_meta($local_id, 'card_fee_percent', $fee['percent']);
         update_post_meta($local_id, 'card_fee_amount', $fee['fee']);
@@ -1807,6 +1814,19 @@ EUR=1',
         if (!$local_id || get_post_type($local_id) !== self::CPT) {
             wp_send_json_error(['message'=>'Local order not found','localId'=>$local_id,'invoiceId'=>$invoice_id]);
         }
+        if ($invoice_id !== '') {
+            $stored_invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
+            if ($stored_invoice_id !== '' && !hash_equals((string)$stored_invoice_id, (string)$invoice_id)) {
+                wp_send_json_success([
+                    'localId' => $local_id,
+                    'paid' => false,
+                    'orderId' => '',
+                    'ready' => false,
+                    'status' => 'invoice_mismatch',
+                    'invoiceId' => $invoice_id,
+                ]);
+            }
+        }
 
         // Make sure background finalizer is queued. This endpoint is lightweight and safe to call repeatedly.
         if (get_post_meta($local_id, 'paid', true) === '1') {
@@ -1814,19 +1834,23 @@ EUR=1',
         }
 
         $order_id = preg_replace('/[^0-9]/', '', (string)get_post_meta($local_id, 'order_id', true));
+        $paid = get_post_meta($local_id, 'paid', true) === '1';
         $keycrm_done = get_post_meta($local_id, 'keycrm_after_payment_done', true) === '1';
         $email_sent = get_post_meta($local_id, 'paid_email_sent', true) === '1';
         $auto_hide_done = get_post_meta($local_id, 'auto_hide_sold_done', true) === '1';
         $d = $this->get_order_data($local_id);
         wp_send_json_success([
             'localId' => $local_id,
-            'paid' => get_post_meta($local_id, 'paid', true) === '1',
+            'paid' => $paid,
             'orderId' => $order_id,
             'keycrmDone' => $keycrm_done,
             'emailSent' => $email_sent,
             'autoHideDone' => $auto_hide_done,
-            'ready' => ($order_id !== '' && $keycrm_done),
+            'ready' => ($paid && $order_id !== '' && $keycrm_done && $email_sent),
             'amount' => isset($d['card_total_amount']) ? $d['card_total_amount'] : '',
+            'keycrmError' => get_post_meta($local_id, 'keycrm_after_payment_error', true),
+            'finalizerError' => get_post_meta($local_id, 'payment_finalizer_error', true) ?: get_post_meta($local_id, 'deferred_finalizer_error', true),
+            'emailError' => get_post_meta($local_id, 'paid_email_error', true),
         ]);
     }
 
@@ -1878,6 +1902,18 @@ EUR=1',
         $provider = get_post_meta($local_id, 'payment_provider', true) ?: $provider;
         if ($invoice_id === '') {
             $invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
+        }
+        if ($invoice_id !== '') {
+            $stored_invoice_id = $provider === 'wayforpay' ? get_post_meta($local_id, 'wayforpay_order_reference', true) : get_post_meta($local_id, 'mono_invoice_id', true);
+            if ($stored_invoice_id !== '' && !hash_equals((string)$stored_invoice_id, (string)$invoice_id)) {
+                wp_send_json_success([
+                    'paid' => false,
+                    'status' => 'invoice_mismatch',
+                    'provider' => $provider,
+                    'localId' => $local_id,
+                    'invoiceId' => $invoice_id,
+                ]);
+            }
         }
 
         // v4.0.18: Some providers/webhooks can complete the post-payment actions before the browser polling
@@ -4411,8 +4447,13 @@ EUR=1',
         $d = $this->get_order_data($local_id);
         $subject = str_replace('{order_id}', $d['order_id'], $s['email_paid_subject']);
         $msg = $this->build_paid_email_html($local_id);
-        $this->send_html_mail($d['email'], $subject, $msg);
+        $sent = $this->send_html_mail($d['email'], $subject, $msg);
+        if (!$sent) {
+            update_post_meta($local_id, 'paid_email_error', 'Customer paid email was not sent by wp_mail.');
+            return;
+        }
         if (!empty($s['admin_email'])) $this->send_html_mail($s['admin_email'], 'Copy: ' . $subject, $msg);
+        delete_post_meta($local_id, 'paid_email_error');
         update_post_meta($local_id, 'paid_email_sent', '1');
     }
 

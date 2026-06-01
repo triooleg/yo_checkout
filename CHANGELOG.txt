@@ -235,3 +235,9 @@ YOleotard Checkout v4.0.33
 - Expands the bank invoice confirmation screen with the KeyCRM order number, waiting-for-payment status, bank-transfer timing, and next-step payment processing notes.
 - Uses UIkit card, grid, flex, list, shadow, and icon styles for the bank invoice next-steps block.
 
+YOleotard Checkout v4.0.34
+- Hardens card-payment polling so Step 4 is shown only after payment, KeyCRM order creation, and paid email completion are confirmed by the backend.
+- Adds a card-payment finalizing state after provider payment succeeds while KeyCRM/email side effects finish.
+- Prevents stale card polling callbacks from a previous cart from opening Step 4 in a later checkout session.
+- Clears stale KeyCRM markers before starting card payment while leaving the working bank invoice flow unchanged.
+

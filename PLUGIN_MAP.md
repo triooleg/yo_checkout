@@ -47,7 +47,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.33`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.34`.
 
 - `WESTERN_BID_MIGRATION_MAP.md`
   Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
@@ -279,7 +279,9 @@ KeyCRM:
 - Settings tab: token, source/currency/tag/status IDs, payment method IDs.
 - KeyCRM marker lookup/reuse, buyer/order create/update, product sync, comments, payments, and raw API requests are delegated to `includes/class-yo-checkout-keycrm.php`.
 - `yoleotard-checkout-invoice.php` keeps wrapper methods around the service for compatibility with existing checkout, bank invoice, card finalization, and unpaid-order flows.
-- Current behavior: after successful card payment, the frontend waits for the real KeyCRM order ID before showing Step 4.
+- Current behavior: after successful card payment, the frontend treats `paid:true` as payment received only, then waits on `yo_checkout_final_order_status` until the backend confirms paid status, a real KeyCRM order ID, `keycrm_after_payment_done`, and paid email delivery before showing Step 4.
+- Card payment polling uses an active session token so stale timeout/focus/iframe callbacks cannot open Step 4 after the customer goes back and starts a different cart.
+- Step 1 order save no longer trusts stored KeyCRM order IDs from browser cookies/localStorage; the real card KeyCRM order is created only after successful provider payment.
 - Bank invoice flow now saves the current frontend cart before invoice creation, ignores stale browser/cart KeyCRM markers for the bank invoice intent, uses frontend click guarding plus server-side invoice lock/cart hash reuse, and strips invalid/expired promo data from stale local order meta before totals are calculated. Active lock responses return a retryable `preparing` state instead of a customer-facing error.
 - Product card `id` / `data-feed-id` values are preserved as `product_id` in cart items and sent to KeyCRM as product SKU when available.
 - Bank invoice Step 3 diagnostics write `checkout-debug` lines into the existing admin log shown under the Hiding section and into PHP `error_log`.
