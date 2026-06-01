@@ -786,7 +786,7 @@ Documentation updates:
 
 Repository rollback point:
 
-- Working bank invoice v4.0.33 rollback commit: `c7d3a81` (`Finalize working bank invoice flow v4.0.33`).
+- Working bank invoice v4.0.33 rollback commit: `ad971b8` (`Finalize working bank invoice flow v4.0.33`).
 
 ## 2026-06-01 - Improve Bank Invoice Confirmation Screen
 
