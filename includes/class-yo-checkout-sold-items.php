@@ -5,6 +5,7 @@ class YO_Checkout_Sold_Items_Service {
     const OPT = 'yo_checkout_invoice_settings';
     const CPT = 'yo_invoice_order';
     private $disabled_match_log = [];
+    private $disabled_identity_keys = [];
 
     public function append_auto_hide_log($entry) {
         $saved = get_option(self::OPT, []);
@@ -38,9 +39,10 @@ class YO_Checkout_Sold_Items_Service {
         $titles = [];
         foreach ($items as $item) {
             $title = trim(wp_strip_all_tags((string)($item['title'] ?? '')));
-            if ($title !== '') $titles[] = $title;
+            $product_id = $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''));
+            if ($title !== '') $titles[] = ['title' => $title, 'product_id' => $product_id];
         }
-        $titles = array_values(array_unique($titles));
+        $titles = $this->unique_sold_items($titles);
         if (!$titles) {
             $this->append_auto_hide_log('[' . current_time('mysql') . '] ' . $label . ": no product title found for auto-hide. Builder status was not changed.\n");
             return;
@@ -49,7 +51,8 @@ class YO_Checkout_Sold_Items_Service {
         if (($s['auto_hide_sold_frontend_fallback'] ?? '0') === '1') {
             $sold = get_option('yo_checkout_sold_hidden_titles', []);
             if (!is_array($sold)) $sold = [];
-            foreach ($titles as $title) {
+            foreach ($titles as $item) {
+                $title = $item['title'];
                 if (!in_array($title, $sold, true)) $sold[] = $title;
             }
             update_option('yo_checkout_sold_hidden_titles', array_values($sold), false);
@@ -57,7 +60,8 @@ class YO_Checkout_Sold_Items_Service {
 
         $page_id = absint($s['auto_hide_sold_page_id'] ?? 0);
         if (!$page_id) $page_id = absint(get_option('page_on_front'));
-        $log = '[' . current_time('mysql') . '] ' . $label . ': ' . implode(' | ', array_map([$this, 'clean_log_text'], $titles)) . "\n";
+        $log_titles = array_map(function($item) { return $this->clean_log_text($item['title']) . (!empty($item['product_id']) ? ' [' . $item['product_id'] . ']' : ''); }, $titles);
+        $log = '[' . current_time('mysql') . '] ' . $label . ': ' . implode(' | ', $log_titles) . "\n";
         if (!$page_id || get_post_type($page_id) === false) {
             $this->append_auto_hide_log($log . "No valid YOOtheme page ID. Builder status was not changed.\n");
             return;
@@ -65,6 +69,7 @@ class YO_Checkout_Sold_Items_Service {
 
         $this->ensure_page_backup($page_id, $local_id);
         $this->disabled_match_log = [];
+        $this->disabled_identity_keys = [];
 
         $changed_any = false;
         $post = get_post($page_id);
@@ -109,8 +114,13 @@ class YO_Checkout_Sold_Items_Service {
     }
 
     public function is_yootheme_product_title_available($page_id, $title) {
+        return $this->is_yootheme_product_available($page_id, $title, '');
+    }
+
+    public function is_yootheme_product_available($page_id, $title, $product_id = '') {
         $title = (string)$title;
-        if ($title === '') return false;
+        $product_id = $this->sanitize_product_id($product_id);
+        if ($title === '' && $product_id === '') return false;
 
         $content = (string)get_post_field('post_content', $page_id);
         if ($content !== '') {
@@ -123,19 +133,20 @@ class YO_Checkout_Sold_Items_Service {
                     if ($unslashed !== $json) $decoded = json_decode($unslashed, true);
                 }
                 if (is_array($decoded)) {
-                    $available = $this->yootheme_product_availability_from_node($decoded, $title);
+                    $available = $this->yootheme_product_availability_from_node($decoded, $title, $product_id);
                     if ($available !== null) return (bool)$available;
                 }
             }
 
-            if ($this->title_matches_sold_item($content, [$title]) && stripos($content, '<li') !== false) return true;
+            if ($product_id !== '' && $this->storage_text_contains_product_id($content, $product_id)) return true;
+            if ($title !== '' && $this->title_matches_sold_item($content, [['title' => $title, 'product_id' => $product_id]]) && stripos($content, '<li') !== false) return true;
         }
 
         $meta = get_post_meta($page_id);
         foreach ($meta as $meta_key => $values) {
             if (strpos((string)$meta_key, '_yo_checkout_autohide_backup_') === 0) continue;
             foreach ((array)$values as $value) {
-                $found = $this->yootheme_product_availability_from_storage_value($value, $title);
+                $found = $this->yootheme_product_availability_from_storage_value($value, $title, $product_id);
                 if ($found !== null) return (bool)$found;
             }
         }
@@ -251,7 +262,7 @@ class YO_Checkout_Sold_Items_Service {
     }
 
     private function get_order_data($local_id) {
-        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
+        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
         $out = [];
         foreach ($keys as $k) $out[$k] = get_post_meta($local_id, $k, true);
         return $out;
@@ -272,9 +283,38 @@ class YO_Checkout_Sold_Items_Service {
                 'product_discount_eur' => $d['discount_eur'] ?? 0,
                 'weight_kg' => $d['shipping_weight_kg'] ?? '',
                 'image_url' => $d['image_url'] ?? '',
+                'product_id' => $d['product_id'] ?? '',
+                'feed_id' => $d['product_id'] ?? '',
             ]];
         }
         return array_values(array_filter($items, function($item){ return is_array($item) && !empty($item['title']); }));
+    }
+
+    private function sanitize_product_id($value) {
+        return preg_replace('/[^A-Za-z0-9_-]/', '', sanitize_text_field((string)$value));
+    }
+
+    private function sold_item_title($item) {
+        return is_array($item) ? (string)($item['title'] ?? '') : (string)$item;
+    }
+
+    private function sold_item_product_id($item) {
+        return is_array($item) ? $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? '')) : '';
+    }
+
+    private function unique_sold_items($items) {
+        $out = [];
+        $seen = [];
+        foreach ((array)$items as $item) {
+            $title = trim(wp_strip_all_tags($this->sold_item_title($item)));
+            $product_id = $this->sold_item_product_id($item);
+            if ($title === '') continue;
+            $key = $product_id !== '' ? ('id:' . strtolower($product_id)) : strtolower($this->normalize_match_text($title));
+            if ($key === '' || isset($seen[$key])) continue;
+            $seen[$key] = true;
+            $out[] = ['title' => $title, 'product_id' => $product_id];
+        }
+        return $out;
     }
 
     private function ensure_page_backup($page_id, $local_id) {
@@ -410,7 +450,10 @@ class YO_Checkout_Sold_Items_Service {
         $hay_identity = $this->product_identity_key($text);
         $hay_height = $this->title_height_range($text);
 
-        foreach ($titles as $title) {
+        foreach ($titles as $sold_item) {
+            $product_id = $this->sold_item_product_id($sold_item);
+            if ($product_id !== '' && $this->storage_text_contains_product_id((string)$text, $product_id)) return true;
+            $title = $this->sold_item_title($sold_item);
             $title_identity = $this->product_identity_key($title);
             if ($hay_identity !== '' && $title_identity !== '' && hash_equals($hay_identity, $title_identity)) return true;
 
@@ -442,6 +485,42 @@ class YO_Checkout_Sold_Items_Service {
             }
         }
         return false;
+    }
+
+    private function matched_sold_item_identity_key($text, $titles) {
+        foreach ($titles as $sold_item) {
+            if ($this->title_matches_sold_item($text, [$sold_item])) {
+                $product_id = $this->sold_item_product_id($sold_item);
+                if ($product_id !== '') return 'id:' . strtolower($product_id);
+                $title = $this->sold_item_title($sold_item);
+                $key = $this->product_identity_key($title);
+                return $key !== '' ? $key : $this->normalize_match_text($title);
+            }
+        }
+        return '';
+    }
+
+    private function storage_text_contains_product_id($text, $product_id) {
+        $product_id = $this->sanitize_product_id($product_id);
+        if ($product_id === '') return false;
+        $text = (string)$text;
+        if ($text === '') return false;
+        $quoted = preg_quote($product_id, '/');
+        return (bool)preg_match('/(?:id|feed[-_]?id|product[-_]?id|data-feed-id|data-product-id)["\'\s:=\\\\\/]+'. $quoted . '(?:["\'\s>\\\\\/]|$)/i', $text);
+    }
+
+    private function yootheme_node_product_id_matches($node, $product_id) {
+        $product_id = $this->sanitize_product_id($product_id);
+        if (!is_array($node) || $product_id === '') return false;
+        foreach (['id','feed_id','feedId','product_id','productId','data-feed-id','data-product-id'] as $key) {
+            if (isset($node[$key]) && is_scalar($node[$key]) && strtolower($this->sanitize_product_id($node[$key])) === strtolower($product_id)) return true;
+        }
+        if (isset($node['props']) && is_array($node['props'])) {
+            foreach (['id','feed_id','feedId','product_id','productId','data-feed-id','data-product-id'] as $key) {
+                if (isset($node['props'][$key]) && is_scalar($node['props'][$key]) && strtolower($this->sanitize_product_id($node['props'][$key])) === strtolower($product_id)) return true;
+            }
+        }
+        return $this->storage_text_contains_product_id(wp_json_encode($node), $product_id);
     }
 
     private function disable_titles_in_yootheme_storage_mixed($value, $titles, &$changed = false) {
@@ -653,12 +732,22 @@ class YO_Checkout_Sold_Items_Service {
 
     private function yootheme_node_self_matches_title($node, $titles) {
         if (!is_array($node)) return false;
-        foreach (['title','name','content','text','meta','description','label'] as $key) {
+        foreach ((array)$titles as $sold_item) {
+            $product_id = $this->sold_item_product_id($sold_item);
+            if ($product_id !== '' && $this->yootheme_node_product_id_matches($node, $product_id)) return true;
+        }
+        foreach (['title','name','label'] as $key) {
             if (isset($node[$key]) && is_string($node[$key]) && $this->title_matches_sold_item($node[$key], $titles)) return true;
         }
+        foreach (['content','text','meta','description'] as $key) {
+            if (isset($node[$key]) && is_string($node[$key]) && mb_strlen(wp_strip_all_tags($node[$key])) <= 260 && $this->title_matches_sold_item($node[$key], $titles)) return true;
+        }
         if (isset($node['props']) && is_array($node['props'])) {
-            foreach (['title','name','content','text','meta','description','label'] as $key) {
+            foreach (['title','name','label'] as $key) {
                 if (isset($node['props'][$key]) && is_string($node['props'][$key]) && $this->title_matches_sold_item($node['props'][$key], $titles)) return true;
+            }
+            foreach (['content','text','meta','description'] as $key) {
+                if (isset($node['props'][$key]) && is_string($node['props'][$key]) && mb_strlen(wp_strip_all_tags($node['props'][$key])) <= 260 && $this->title_matches_sold_item($node['props'][$key], $titles)) return true;
             }
         }
         return false;
@@ -680,8 +769,14 @@ class YO_Checkout_Sold_Items_Service {
 
         $matches = $self_match || $child_match;
         if ($matches && $this->is_yootheme_disable_candidate($node, $depth)) {
-            $this->apply_yootheme_disabled_status($node);
             $display_title = $this->yootheme_node_display_title($node);
+            $match_text = $display_title !== '' ? $display_title : wp_json_encode($node);
+            $identity_key = $this->matched_sold_item_identity_key($match_text, $titles);
+            if ($identity_key !== '' && isset($this->disabled_identity_keys[$identity_key])) {
+                return true;
+            }
+            $this->apply_yootheme_disabled_status($node);
+            if ($identity_key !== '') $this->disabled_identity_keys[$identity_key] = true;
             if ($display_title !== '') $this->disabled_match_log[] = $display_title;
             $changed = true;
             return true;
@@ -701,10 +796,10 @@ class YO_Checkout_Sold_Items_Service {
         return in_array($status, ['disabled','disable','0','false','hidden'], true);
     }
 
-    private function yootheme_product_availability_from_node($node, $title) {
+    private function yootheme_product_availability_from_node($node, $title, $product_id = '') {
         if (!is_array($node)) return null;
 
-        $titles = [$title];
+        $titles = [['title' => $title, 'product_id' => $product_id]];
         $type = isset($node['type']) && is_string($node['type']) ? strtolower($node['type']) : '';
         $self_match = $this->yootheme_node_self_matches_title($node, $titles);
 
@@ -714,16 +809,16 @@ class YO_Checkout_Sold_Items_Service {
 
         foreach ($node as $child) {
             if (!is_array($child)) continue;
-            $found = $this->yootheme_product_availability_from_node($child, $title);
+            $found = $this->yootheme_product_availability_from_node($child, $title, $product_id);
             if ($found !== null) return $found;
         }
 
         return null;
     }
 
-    private function yootheme_product_availability_from_storage_value($value, $title) {
+    private function yootheme_product_availability_from_storage_value($value, $title, $product_id = '') {
         if (is_array($value)) {
-            return $this->yootheme_product_availability_from_node($value, $title);
+            return $this->yootheme_product_availability_from_node($value, $title, $product_id);
         }
         if (!is_string($value) || trim($value) === '') return null;
         $raw = trim($value);
@@ -733,13 +828,13 @@ class YO_Checkout_Sold_Items_Service {
             $maybe = maybe_unserialize($raw);
             if (is_array($maybe)) $decoded = $maybe;
         }
-        if (is_array($decoded)) return $this->yootheme_product_availability_from_node($decoded, $title);
+        if (is_array($decoded)) return $this->yootheme_product_availability_from_node($decoded, $title, $product_id);
 
         if (strpos($raw, '"type":"layout"') !== false || strpos($raw, '"grid_item"') !== false || strpos($raw, '"type"') !== false) {
             $segment = $this->find_yootheme_layout_json_segment($raw);
             if ($segment && !empty($segment['json'])) {
                 $decoded = json_decode(trim($segment['json']), true);
-                if (is_array($decoded)) return $this->yootheme_product_availability_from_node($decoded, $title);
+                if (is_array($decoded)) return $this->yootheme_product_availability_from_node($decoded, $title, $product_id);
             }
         }
         return null;

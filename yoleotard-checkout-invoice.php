@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.32. Busts checkout asset cache and tightens sold-item auto-hide matching.
- * Version: 4.0.32
+ * Description: v4.0.33. Confirms working bank invoice flow and improves invoice confirmation UI.
+ * Version: 4.0.33
  * Author: YOleotard / ChatGPT
  */
 
@@ -1079,7 +1079,7 @@ EUR=1',
               </div>
             </div>
             <div id="yo-step-payment" class="yo-hidden"><button id="yo-back-to-method-from-payment" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3 class="uk-modal-title">Card payment</h3><iframe id="yo-payment-frame" title="monopay" src="" allow="payment *"></iframe></div>
-            <div id="yo-step-bank" class="yo-hidden yo-bank-box"><button id="yo-back-to-method-from-bank" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3>Your invoice is ready</h3><p>Please download the invoice and make a bank transfer using the payment details inside.</p><p><a id="yo-bank-invoice-html-link" class="uk-button uk-button-primary" href="#" target="_blank" rel="noopener">View invoice</a> <a id="yo-bank-invoice-link" class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Download PDF copy</a></p><p>A copy of this invoice has also been sent to your email.</p></div>
+            <div id="yo-step-bank" class="yo-hidden yo-bank-box"><button id="yo-back-to-method-from-bank" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3>Your invoice is ready</h3><p>Please download the invoice and make a bank transfer using the payment details inside.</p><p><a id="yo-bank-invoice-html-link" class="uk-button uk-button-primary" href="#" target="_blank" rel="noopener">View invoice</a> <a id="yo-bank-invoice-link" class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Download PDF copy</a></p><p>A copy of this invoice has also been sent to your email.</p><div class="uk-card uk-card-default uk-card-small uk-card-body uk-box-shadow-small yo-bank-confirmation-details"><div class="uk-grid-small uk-child-width-1-1" uk-grid><div class="uk-flex uk-flex-middle uk-flex-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: tag"></span><strong>Order <span id="yo-bank-order-number"></span></strong></div><div class="uk-flex uk-flex-middle uk-flex-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: clock"></span><span><strong>Status:</strong> Waiting for payment</span></div><div class="uk-flex uk-flex-middle uk-flex-center uk-text-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: calendar"></span><span>Bank transfers usually arrive within 1–3 business days.</span></div></div><div class="uk-margin-small-top uk-text-left"><p class="yo-bank-next-title uk-text-bold uk-text-center">Once payment is received:</p><ul class="uk-list uk-list-collapse yo-bank-next-list"><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: check"></span><span>We will confirm your payment</span></li><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: check"></span><span>We will start processing your order</span></li><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: mail"></span><span>You will receive shipment updates by email</span></li></ul></div></div></div>
             <div id="yo-step-success" class="yo-hidden yo-success"><h3>Payment successful!</h3><p>Thank you for your order.<br>Your order number is <strong id="yo-success-order-number"></strong>.</p><div class="yo-summary"><p><strong>Customer:</strong> <span id="yo-success-name"></span></p><p><strong>Email:</strong> <span id="yo-success-email"></span></p><p><strong>Phone:</strong> <span id="yo-success-phone"></span></p><p><strong>Product:</strong> <span id="yo-success-product"></span></p><p><strong>Amount paid:</strong> <span id="yo-success-amount"></span> €</p></div><p><strong>Our manager will contact you via WhatsApp and email.</strong></p></div>
           </div>
         </div>
@@ -1222,9 +1222,11 @@ EUR=1',
         foreach ($decoded as $item) {
             if (!is_array($item)) continue;
             $title = sanitize_text_field($item['title'] ?? '');
+            $product_id = $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''));
             if ($title === '') continue;
             $items[] = [
                 'title' => $title,
+                'product_id' => $product_id,
                 'key' => $this->normalize_match_text($title),
                 'available' => false,
             ];
@@ -1241,13 +1243,14 @@ EUR=1',
         $result = [];
         $removed = [];
         foreach ($items as $item) {
-            $available = $page_id ? $this->is_yootheme_product_title_available($page_id, $item['title']) : false;
+            $available = $page_id ? $this->is_yootheme_product_available($page_id, $item['title'], $item['product_id'] ?? '') : false;
             // Cart validation must not create/extend reservations and must not treat
             // this customer's own active reservation as sold/unavailable. It only
             // checks whether another customer owns an active reservation.
             if ($available && !$this->reservation_allows_title($item['title'], $buyer_id)) $available = false;
             $row = [
                 'title' => $item['title'],
+                'product_id' => $item['product_id'] ?? '',
                 'key' => $item['key'],
                 'available' => (bool)$available,
             ];
@@ -1286,12 +1289,14 @@ EUR=1',
         $browser_buyer_id = sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? ''));
         $buyer_id = $browser_buyer_id;
         $checkout_session_id = sanitize_text_field(wp_unslash($_POST['checkout_session_id'] ?? ''));
-        $posted_keycrm_order_id = preg_replace('/[^0-9]/', '', (string) wp_unslash($_POST['keycrm_order_id'] ?? ''));
-        if ($posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->posted_cart_marker_keycrm_order_id();
-        if ($posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->keycrm_marker_cookie_order_id();
+        $payment_intent = sanitize_text_field(wp_unslash($_POST['payment_intent'] ?? ''));
+        $ignore_stale_keycrm_marker = !empty($_POST['ignore_stale_keycrm_marker']) || $payment_intent === 'bank_invoice';
+        $posted_keycrm_order_id = $ignore_stale_keycrm_marker ? '' : preg_replace('/[^0-9]/', '', (string) wp_unslash($_POST['keycrm_order_id'] ?? ''));
+        if (!$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->posted_cart_marker_keycrm_order_id();
+        if (!$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->keycrm_marker_cookie_order_id();
 
-        $posted_cart_marker_local_id = absint($_POST['cart_marker_local_id'] ?? 0);
-        if (!$posted_cart_marker_local_id) {
+        $posted_cart_marker_local_id = $ignore_stale_keycrm_marker ? 0 : absint($_POST['cart_marker_local_id'] ?? 0);
+        if (!$ignore_stale_keycrm_marker && !$posted_cart_marker_local_id) {
             $raw_marker = (string) wp_unslash($_POST['cart_marker_json'] ?? '');
             if ($raw_marker !== '') {
                 $decoded_marker = json_decode($raw_marker, true);
@@ -1301,22 +1306,22 @@ EUR=1',
             }
         }
 
-        $absolute_marker_reuse_local_id = $this->hard_find_existing_keycrm_checkout_by_marker($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id, 0);
+        $absolute_marker_reuse_local_id = $ignore_stale_keycrm_marker ? 0 : $this->hard_find_existing_keycrm_checkout_by_marker($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id, 0);
 
         // Strong KeyCRM cart marker recovery:
         // If this browser/customer/email already has an unpaid website draft linked to a KeyCRM order,
         // reuse that draft immediately and overwrite its cart below. This prevents duplicate KeyCRM
         // orders when the customer returns from the payment step, adds/removes models, and goes to
         // payment again.
-        $existing_keycrm_checkout_local_id = $absolute_marker_reuse_local_id ?: $this->find_latest_unpaid_keycrm_checkout_for_customer($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id);
+        $existing_keycrm_checkout_local_id = $ignore_stale_keycrm_marker ? 0 : ($absolute_marker_reuse_local_id ?: $this->find_latest_unpaid_keycrm_checkout_for_customer($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id));
         // v3.3.65: hard fallback. If this customer/browser already has an unpaid KeyCRM order,
         // reuse that local draft before any new local/KeyCRM order can be created.
-        $hard_reuse_local_id = $this->find_hard_reusable_keycrm_local_id($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id);
+        $hard_reuse_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_hard_reusable_keycrm_local_id($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id);
         if ($hard_reuse_local_id) $existing_keycrm_checkout_local_id = $hard_reuse_local_id;
         // Last-resort server memory: if Step 3 already created an unpaid KeyCRM order for this
         // same customer in the last 48h, reuse that local draft even when the browser did not send
         // the marker from localStorage. This prevents duplicate KeyCRM orders after cart edits.
-        $contact_reuse_local_id = $this->find_latest_unpaid_keycrm_order_by_contact($data, 0);
+        $contact_reuse_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_latest_unpaid_keycrm_order_by_contact($data, 0);
         if ($contact_reuse_local_id) $existing_keycrm_checkout_local_id = $contact_reuse_local_id;
 
         // Prevent checkout with stale localStorage cart items. If a model was disabled
@@ -1402,14 +1407,14 @@ EUR=1',
         }
         // Server-side persistent marker lookup: if this customer/browser/email already has an unpaid
         // KeyCRM order from this checkout flow, always reuse that local draft and update KeyCRM.
-        $active_marker_local_id = $this->find_local_order_by_active_marker($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id);
+        $active_marker_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_local_order_by_active_marker($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id);
         if ($active_marker_local_id) {
             $incoming_local_id = $active_marker_local_id;
         }
 
         // Extra-safe fallback: for the same customer in the same short checkout window, reuse
         // the latest unpaid website KeyCRM order and overwrite it with the edited cart.
-        $broad_contact_local_id = $this->find_recent_unpaid_keycrm_order_for_customer_broad($data, $incoming_local_id);
+        $broad_contact_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_recent_unpaid_keycrm_order_for_customer_broad($data, $incoming_local_id);
         if ($broad_contact_local_id) {
             $incoming_local_id = $broad_contact_local_id;
         }
@@ -1427,7 +1432,7 @@ EUR=1',
         // local draft even if the frontend accidentally sends a newer local draft without order_id.
         // This is the critical cart marker -> KeyCRM order link: edit the existing KeyCRM order,
         // do not create a duplicate when the customer returns and changes the cart.
-        $reusable_keycrm_local_id = $this->find_reusable_unpaid_keycrm_local_id($data, $checkout_session_id, $browser_buyer_id, $incoming_local_id, $posted_keycrm_order_id);
+        $reusable_keycrm_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_reusable_unpaid_keycrm_local_id($data, $checkout_session_id, $browser_buyer_id, $incoming_local_id, $posted_keycrm_order_id);
         if ($reusable_keycrm_local_id) {
             $incoming_local_id = $reusable_keycrm_local_id;
         }
@@ -1455,11 +1460,16 @@ EUR=1',
         foreach ($data as $k=>$v) update_post_meta($local_id, $k, $v);
         if ($checkout_session_id !== '') update_post_meta($local_id, 'checkout_session_id', $checkout_session_id);
         if ($browser_buyer_id !== '') update_post_meta($local_id, 'browser_buyer_id', $browser_buyer_id);
+        if ($ignore_stale_keycrm_marker) {
+            delete_post_meta($local_id, 'order_id');
+            delete_post_meta($local_id, 'buyer_id');
+            update_post_meta($local_id, 'keycrm_created', '0');
+        }
         if ($posted_keycrm_order_id !== '' && trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
             update_post_meta($local_id, 'order_id', $posted_keycrm_order_id);
             update_post_meta($local_id, 'keycrm_created', '1');
         }
-        $this->remember_keycrm_checkout_marker($local_id);
+        if (!$ignore_stale_keycrm_marker) $this->remember_keycrm_checkout_marker($local_id);
         // Clear payment preview meta that depends on country/price/payment route; it will be recalculated below.
         foreach (['shipping_price','shipping_country','shipping_source','card_fee_percent','card_fee_amount','card_total_amount','bank_total_amount','payment_provider','payment_type','bank_invoice_lock','bank_invoice_cart_hash','bank_invoice_created','bank_invoice_email_sent','bank_invoice_email_sent_hash','bank_invoice_keycrm_payment_added','bank_invoice_keycrm_payment_hash','invoice_pdf_url','invoice_pdf_path','invoice_html_url','bank_invoice_type'] as $meta_key) {
             delete_post_meta($local_id, $meta_key);
@@ -1509,9 +1519,10 @@ EUR=1',
         if (!$page_id) $page_id = absint(get_option('page_on_front'));
         foreach ($items as $item) {
             $title = sanitize_text_field($item['title'] ?? '');
+            $product_id = $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''));
             if ($title === '') continue;
-            if (!$page_id || !$this->is_yootheme_product_title_available($page_id, $title) || !$this->ensure_reservation_for_title($title, $buyer_id)) {
-                return new WP_Error('item_unavailable', 'One or more items in your cart are reserved, sold, or no longer available. Please refresh the cart and choose another model.', ['title'=>$title]);
+            if (!$page_id || !$this->is_yootheme_product_available($page_id, $title, $product_id) || !$this->ensure_reservation_for_title($title, $buyer_id)) {
+                return new WP_Error('item_unavailable', 'One or more items in your cart are reserved, sold, or no longer available. Please refresh the cart and choose another model.', ['title'=>$title, 'product_id'=>$product_id]);
             }
         }
         return true;
@@ -1614,8 +1625,23 @@ EUR=1',
             $this->append_checkout_debug_log($debug_id, 'bank_invoice payable check failed', ['local_id' => $local_id, 'details' => $payable->get_error_data()]);
             wp_send_json_error(['message'=>$payable->get_error_message(), 'details'=>$payable->get_error_data(), 'debugId'=>$debug_id]);
         }
+        $current_cart_hash = $this->bank_invoice_cart_hash($local_id);
+        if (get_post_meta($local_id, 'bank_invoice_created', true) === '1' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_cart_hash', true), $current_cart_hash)) {
+            $existing_response = $this->bank_invoice_existing_response($local_id, false);
+            if ($existing_response) {
+                delete_post_meta($local_id, 'bank_invoice_lock');
+                $this->append_checkout_debug_log($debug_id, 'bank_invoice reused existing invoice before KeyCRM reset', ['local_id' => $local_id, 'cart_hash' => $current_cart_hash]);
+                wp_send_json_success($existing_response);
+            }
+        }
         update_post_meta($local_id, 'payment_type', 'bank');
         update_post_meta($local_id, 'payment_provider', 'bank');
+        if (!empty($_POST['ignore_stale_keycrm_marker'])) {
+            delete_post_meta($local_id, 'order_id');
+            delete_post_meta($local_id, 'buyer_id');
+            update_post_meta($local_id, 'keycrm_created', '0');
+            $this->append_checkout_debug_log($debug_id, 'bank_invoice stale KeyCRM markers ignored', ['local_id' => $local_id]);
+        }
         $this->remove_invalid_promo_from_order($local_id);
 
         // Recalculate and persist Nova Post shipping exactly when the customer selects SEPA/SWIFT invoice.
@@ -2184,6 +2210,7 @@ EUR=1',
             'discount_eur'=>floatval($_POST['discount_eur'] ?? 0),
             'shipping_weight_kg'=>max(0, floatval(str_replace(',', '.', (string)($_POST['shipping_weight_kg'] ?? 0)))),
             'image_url'=>esc_url_raw($_POST['image_url'] ?? ''),
+            'product_id'=>$this->sanitize_product_id($_POST['product_id'] ?? ''),
             'full_name'=>sanitize_text_field($_POST['full_name'] ?? ''),
             'phone'=>sanitize_text_field($_POST['phone'] ?? ''),
             'email'=>sanitize_email($_POST['email'] ?? ''),
@@ -2409,9 +2436,11 @@ EUR=1',
         foreach ($items as $item) {
             if (!is_array($item)) continue;
             $title = $this->clean_product_title_for_display(sanitize_text_field($item['title'] ?? ''));
+            $product_id = $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''));
             $price = round(floatval($item['price_eur'] ?? 0), 2);
             if ($title === '' || $price <= 0) continue;
             $title_key = strtolower(trim(preg_replace('/\s+/', ' ', str_replace(['“','”','«','»','"',"'"], '', $title))));
+            if ($product_id !== '') $title_key = 'id:' . strtolower($product_id);
             if ($title_key !== '' && isset($seen_titles[$title_key])) continue;
             if ($title_key !== '') $seen_titles[$title_key] = true;
             $original = round(floatval($item['original_price_eur'] ?? $price), 2);
@@ -2426,6 +2455,8 @@ EUR=1',
             if ($total_discount < 0) $total_discount = 0;
             if ($total_discount < ($product_discount + $promo_discount)) $total_discount = round($product_discount + $promo_discount, 2);
             $clean[] = [
+                'product_id' => $product_id,
+                'feed_id' => $product_id,
                 'title' => $title,
                 'price_eur' => number_format($price, 2, '.', ''),
                 'original_price_eur' => number_format($original, 2, '.', ''),
@@ -2454,14 +2485,20 @@ EUR=1',
                 'product_discount_eur' => $d['discount_eur'] ?? 0,
                 'weight_kg' => $d['shipping_weight_kg'] ?? '',
                 'image_url' => $d['image_url'] ?? '',
+                'product_id' => $d['product_id'] ?? '',
+                'feed_id' => $d['product_id'] ?? '',
             ]];
         }
         return array_values(array_filter($items, function($item){ return is_array($item) && !empty($item['title']); }));
     }
 
     private function get_order_data($local_id) {
-        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
+        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
         $out=[]; foreach($keys as $k) $out[$k]=get_post_meta($local_id,$k,true); return $out;
+    }
+
+    private function sanitize_product_id($value) {
+        return preg_replace('/[^A-Za-z0-9_-]/', '', sanitize_text_field((string)$value));
     }
 
 
@@ -3689,6 +3726,13 @@ EUR=1',
 
     private function is_yootheme_product_title_available($page_id, $title) {
         return $this->sold_items_service()->is_yootheme_product_title_available($page_id, $title);
+    }
+
+    private function is_yootheme_product_available($page_id, $title, $product_id = '') {
+        if (method_exists($this->sold_items_service(), 'is_yootheme_product_available')) {
+            return $this->sold_items_service()->is_yootheme_product_available($page_id, $title, $product_id);
+        }
+        return $this->is_yootheme_product_title_available($page_id, $title);
     }
 
     private function yootheme_product_availability_from_storage_value($value, $title) {

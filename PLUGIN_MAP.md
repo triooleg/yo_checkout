@@ -4,7 +4,7 @@ Last updated: 2026-06-01
 
 ## Purpose
 
-This file is the navigation map for the YOleotard checkout plugin. Before any new development task, Codex must read `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, `DEVELOPMENT_LOG.md`, and `KNOWN_ISSUES.md`.
+This file is the navigation map for the YOleotard checkout plugin. Before any new development task, Codex must read `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, `DEVELOPMENT_LOG.md`, `KNOWN_ISSUES.md`, and `KNOWN_WORKING_FEATURES.md`.
 
 Rules for future work:
 
@@ -47,7 +47,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.32`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.33`.
 
 - `WESTERN_BID_MIGRATION_MAP.md`
   Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
@@ -60,6 +60,9 @@ Rules for future work:
 
 - `KNOWN_ISSUES.md`
   Known limitations, environment blockers, and risky areas to watch.
+
+- `KNOWN_WORKING_FEATURES.md`
+  Confirmed working plugin areas that should not be changed without necessity.
 
 - `WORK_HISTORY.md`
   Legacy initial mapping/history file kept for continuity. Use `DEVELOPMENT_LOG.md` for new entries.
@@ -191,9 +194,10 @@ High-level behavior:
 9. Shows receipt/shipping choices and lets the customer choose card or bank transfer.
 10. Starts card payment through `yo_checkout_start_card_payment`.
 11. Starts bank invoice by first saving the current cart through `yo_checkout_create_order`, then calling `yo_checkout_create_bank_invoice`.
-12. Polls payment state with `yo_checkout_check_payment_status`.
-13. After payment, waits for final KeyCRM order number using `yo_checkout_final_order_status`, then shows success step.
-14. Clears cart and hides purchased products locally after successful payment/invoice flow.
+12. Bank invoice confirmation shows the invoice links plus a UIkit confirmation card with KeyCRM order number, waiting-for-payment status, expected bank-transfer timing, and next-step processing notes.
+13. Polls payment state with `yo_checkout_check_payment_status`.
+14. After payment, waits for final KeyCRM order number using `yo_checkout_final_order_status`, then shows success step.
+15. Clears cart and hides purchased products locally after successful payment/invoice flow.
 
 Important frontend entry points:
 
@@ -259,6 +263,7 @@ Monobank:
 
 - Settings tab: Monobank token and card fee percent.
 - Card start, invoice status requests, invoice mapping, and webhook handling are delegated to `includes/class-yo-checkout-monobank.php`.
+- Multi-item card payments use a short Monobank payment label such as `custom leotard x5` for `merchantPaymInfo.destination`, `comment`, and `basketOrder.name` so provider length limits are not exceeded.
 - Shared successful-payment finalization remains in the main plugin.
 
 WayForPay:
@@ -275,7 +280,8 @@ KeyCRM:
 - KeyCRM marker lookup/reuse, buyer/order create/update, product sync, comments, payments, and raw API requests are delegated to `includes/class-yo-checkout-keycrm.php`.
 - `yoleotard-checkout-invoice.php` keeps wrapper methods around the service for compatibility with existing checkout, bank invoice, card finalization, and unpaid-order flows.
 - Current behavior: after successful card payment, the frontend waits for the real KeyCRM order ID before showing Step 4.
-- Bank invoice flow now saves the current frontend cart before invoice creation, uses frontend click guarding plus server-side invoice lock/cart hash reuse, and strips invalid/expired promo data from stale local order meta before totals are calculated. Active lock responses return a retryable `preparing` state instead of a customer-facing error.
+- Bank invoice flow now saves the current frontend cart before invoice creation, ignores stale browser/cart KeyCRM markers for the bank invoice intent, uses frontend click guarding plus server-side invoice lock/cart hash reuse, and strips invalid/expired promo data from stale local order meta before totals are calculated. Active lock responses return a retryable `preparing` state instead of a customer-facing error.
+- Product card `id` / `data-feed-id` values are preserved as `product_id` in cart items and sent to KeyCRM as product SKU when available.
 - Bank invoice Step 3 diagnostics write `checkout-debug` lines into the existing admin log shown under the Hiding section and into PHP `error_log`.
 - Existing KeyCRM product rows are matched by row ID/title/image/position before order update so repeated invoice requests update rows instead of appending duplicates.
 
@@ -293,6 +299,8 @@ YOOtheme:
 
 - Product cards are discovered from YOOtheme-generated DOM.
 - After purchase, plugin attempts to hide sold product cards both server-side in YOOtheme content and frontend-side as fallback. Matching is intentionally strict: current-card frontend hiding uses the product identity key, and backend Builder auto-hide logs each disabled matched item.
+- Backend auto-hide avoids long YOOtheme content/text blobs for disabling decisions and limits updates to one Builder item per purchased product identity.
+- When a product card has a stable DOM `id` or `data-feed-id`, auto-hide and availability checks prefer that `product_id` before falling back to title matching.
 - Sold-item logs should display the real KeyCRM order number when `order_id` is available, with local WordPress order ID shown only as a technical reference.
 
 ## Development Notes

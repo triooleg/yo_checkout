@@ -126,6 +126,13 @@
       }catch(e){}
     }
 
+    function renderBankInvoiceConfirmation(orderId){
+      const el = byId('yo-bank-order-number');
+      if(!el) return;
+      const id = String(orderId || current.orderId || getStoredKeycrmOrderId() || '').trim();
+      el.textContent = id ? ('#' + id.replace(/^#/, '')) : '';
+    }
+
     function clearCheckoutDraftSession(){
       try{ localStorage.removeItem(CHECKOUT_DRAFT_KEY); localStorage.removeItem(CHECKOUT_SESSION_KEY); localStorage.removeItem(CHECKOUT_KEYCRM_ORDER_KEY); localStorage.removeItem(CHECKOUT_CART_MARKER_KEY); }catch(e){}
       current.localId = ''; current.orderId = ''; current.invoiceId = '';
@@ -289,6 +296,11 @@
     }
     function titleFromCard(card){
       return (card && card.querySelector('.el-title') ? card.querySelector('.el-title').textContent : '').replace(/\s+/g, ' ').trim();
+    }
+    function productIdFromCard(card){
+      if(!card) return '';
+      const raw = card.getAttribute('data-feed-id') || card.id || card.getAttribute('data-product-id') || '';
+      return String(raw || '').replace(/[^A-Za-z0-9_-]/g, '').trim();
     }
     function clearReservedState(card){
       if(!card) return;
@@ -716,7 +728,7 @@
       if(!cartItems.length) return Promise.resolve({removed:0});
       const beforeCount = cartItems.length;
       const fd = new FormData();
-      fd.append('cart_items_json', JSON.stringify(cartItems.map(function(item){ return {title:item.title}; })));
+      fd.append('cart_items_json', JSON.stringify(cartItems.map(function(item){ return {title:item.title, product_id:item.product_id || item.feed_id || ''}; })));
       fd.append('buyer_id', buyerId());
       return post('yo_checkout_validate_cart_items', fd).then(function(data){
         const availableByKey = {};
@@ -727,6 +739,7 @@
             // based on the visible DOM here: YOOtheme responsive rows, cart pages,
             // and reserved overlays can make a valid product look absent locally.
             if(row.key) availableByKey[row.key] = !!row.available;
+            if(row.product_id) availableByKey['id:' + String(row.product_id).toLowerCase()] = !!row.available;
             if(row.title){
               availableByKey[normalizeCartItemKey({title: row.title})] = !!row.available;
               availableByKey[productIdentityKey(row.title)] = !!row.available;
@@ -822,6 +835,7 @@
       const totals = cartTotals();
       const title = cartItems.length === 1 ? cartItems[0].title : cartItems.map(function(item, i){ return (i + 1) + '. ' + item.title; }).join(' | ');
       selectedProduct = {
+        product_id: cartItems.length === 1 ? (cartItems[0].product_id || cartItems[0].feed_id || '') : '',
         title: title,
         price_eur: money(totals.finalTotal),
         original_price_eur: money(totals.original || totals.finalTotal),
@@ -937,6 +951,8 @@
       renderCartSummary();
     }
     function normalizeCartItemKey(product){
+      const productId = String(product && (product.product_id || product.feed_id) ? (product.product_id || product.feed_id) : '').replace(/[^A-Za-z0-9_-]/g, '').trim();
+      if(productId) return 'id:' + productId.toLowerCase();
       return String(product && product.title ? product.title : '')
         .toLowerCase()
         .replace(/[\u201c\u201d\u00ab\u00bb"']/g, '')
@@ -1250,6 +1266,8 @@
       if(!priceNode || !titleNode) return;
       const prices = findProductPrices(card, btn, priceNode);
       const product = {
+        product_id: productIdFromCard(card),
+        feed_id: productIdFromCard(card),
         title:titleNode.textContent.trim(),
         price_eur:prices.finalPrice,
         original_price_eur:prices.originalPrice,
@@ -1287,14 +1305,14 @@
         if(storedKeycrmOrderId) fd.append('keycrm_order_id', storedKeycrmOrderId);
         if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
         buildSelectedProductFromCart();
-        fd.append('title', selectedProduct.title); fd.append('price_eur', selectedProduct.price_eur); fd.append('original_price_eur', selectedProduct.original_price_eur || selectedProduct.price_eur); fd.append('discount_eur', selectedProduct.discount_eur || '0.00'); fd.append('image_url', selectedProduct.image_url);
+        fd.append('title', selectedProduct.title); fd.append('price_eur', selectedProduct.price_eur); fd.append('original_price_eur', selectedProduct.original_price_eur || selectedProduct.price_eur); fd.append('discount_eur', selectedProduct.discount_eur || '0.00'); fd.append('image_url', selectedProduct.image_url); if(selectedProduct.product_id) fd.append('product_id', selectedProduct.product_id);
         if(selectedProduct.shipping_weight_kg){ fd.append('shipping_weight_kg', String(selectedProduct.shipping_weight_kg)); }
         if(selectedProduct.promo_applied && selectedProduct.promo_code_applied){ fd.append('promo_code_applied', selectedProduct.promo_code_applied); }
         fd.append('cart_items_count', String(cartItems.length));
         fd.append('cart_items_json', JSON.stringify(cartItems.map(function(item){
           const promoDiscount = cartItemPromoDiscount(item);
           const productDiscount = parseFloat(item.product_discount_eur || item.discount_eur || 0) || 0;
-          return {title:item.title, price_eur:item.price_eur, original_price_eur:item.original_price_eur, discount_eur:money(productDiscount + promoDiscount), product_discount_eur:money(productDiscount), promo_discount_eur:money(promoDiscount), image_url:item.image_url, weight_kg:item.weight_kg || item.product_weight_kg || item.weight || ''};
+          return {product_id:item.product_id || item.feed_id || '', feed_id:item.feed_id || item.product_id || '', title:item.title, price_eur:item.price_eur, original_price_eur:item.original_price_eur, discount_eur:money(productDiscount + promoDiscount), product_discount_eur:money(productDiscount), promo_discount_eur:money(promoDiscount), image_url:item.image_url, weight_kg:item.weight_kg || item.product_weight_kg || item.weight || ''};
         })));
         current.customer={name:fd.get('full_name'), email:fd.get('email'), phone:fd.get('phone'), product:selectedProduct.title, amount:selectedProduct.price_eur};
         setStep('loading');
@@ -1393,21 +1411,21 @@
       const cartMarkerForOrder = getCartKeycrmMarker();
       const draftLocalId = current.localId || (cartMarkerForOrder && cartMarkerForOrder.local_id ? cartMarkerForOrder.local_id : '') || getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id');
       if(draftLocalId) orderFd.append('local_id', draftLocalId);
+      orderFd.append('payment_intent', 'bank_invoice');
+      orderFd.append('ignore_stale_keycrm_marker', '1');
       orderFd.append('yo_checkout_debug_id', bankDebugId);
       orderFd.append('checkout_session_id', checkoutSessionId());
       orderFd.append('buyer_id', buyerId());
       const storedKeycrmOrderId = current.orderId || (cartMarkerForOrder && cartMarkerForOrder.keycrm_order_id ? cartMarkerForOrder.keycrm_order_id : '') || getStoredKeycrmOrderId();
-      if(storedKeycrmOrderId) orderFd.append('keycrm_order_id', storedKeycrmOrderId);
-      if(cartMarkerForOrder && cartMarkerForOrder.keycrm_order_id){ orderFd.append('cart_marker_keycrm_order_id', cartMarkerForOrder.keycrm_order_id); if(cartMarkerForOrder.local_id) orderFd.append('cart_marker_local_id', cartMarkerForOrder.local_id); orderFd.append('cart_marker_json', JSON.stringify(cartMarkerForOrder)); }
       buildSelectedProductFromCart();
-      orderFd.append('title', selectedProduct.title); orderFd.append('price_eur', selectedProduct.price_eur); orderFd.append('original_price_eur', selectedProduct.original_price_eur || selectedProduct.price_eur); orderFd.append('discount_eur', selectedProduct.discount_eur || '0.00'); orderFd.append('image_url', selectedProduct.image_url);
+      orderFd.append('title', selectedProduct.title); orderFd.append('price_eur', selectedProduct.price_eur); orderFd.append('original_price_eur', selectedProduct.original_price_eur || selectedProduct.price_eur); orderFd.append('discount_eur', selectedProduct.discount_eur || '0.00'); orderFd.append('image_url', selectedProduct.image_url); if(selectedProduct.product_id) orderFd.append('product_id', selectedProduct.product_id);
       if(selectedProduct.shipping_weight_kg){ orderFd.append('shipping_weight_kg', String(selectedProduct.shipping_weight_kg)); }
       if(selectedProduct.promo_applied && selectedProduct.promo_code_applied){ orderFd.append('promo_code_applied', selectedProduct.promo_code_applied); }
       orderFd.append('cart_items_count', String(cartItems.length));
       orderFd.append('cart_items_json', JSON.stringify(cartItems.map(function(item){
         const promoDiscount = cartItemPromoDiscount(item);
         const productDiscount = parseFloat(item.product_discount_eur || item.discount_eur || 0) || 0;
-        return {title:item.title, price_eur:item.price_eur, original_price_eur:item.original_price_eur, discount_eur:money(productDiscount + promoDiscount), product_discount_eur:money(productDiscount), promo_discount_eur:money(promoDiscount), image_url:item.image_url, weight_kg:item.weight_kg || item.product_weight_kg || item.weight || ''};
+        return {product_id:item.product_id || item.feed_id || '', feed_id:item.feed_id || item.product_id || '', title:item.title, price_eur:item.price_eur, original_price_eur:item.original_price_eur, discount_eur:money(productDiscount + promoDiscount), product_discount_eur:money(productDiscount), promo_discount_eur:money(promoDiscount), image_url:item.image_url, weight_kg:item.weight_kg || item.product_weight_kg || item.weight || ''};
       })));
       setStep('loading');
       post('yo_checkout_create_order', orderFd).then(function(orderData){
@@ -1415,8 +1433,7 @@
         rememberKeycrmFromResponse(orderData);
         current.localId = orderData.data.localId;
         storeDraftLocalId(current.localId);
-        current.orderId = orderData.data.orderId || current.orderId || getStoredKeycrmOrderId();
-        if(current.orderId){ storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); }
+        current.orderId = orderData.data.orderId || '';
         current.cardFee = orderData.data.cardFee || null;
         current.shipping = orderData.data.shipping || null;
         current.shippingOptions = orderData.data.shippingOptions || [];
@@ -1425,11 +1442,17 @@
       }).catch(function(err){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert(checkoutAjaxErrorMessage('yo_checkout_create_order', err, {debugId: bankDebugId, localId: draftLocalId, orderId: storedKeycrmOrderId, cartItems: cartItems.length})); setStep(2); });
       function submitBankInvoice(attempt){
         attempt = attempt || 0;
-        const fd=new FormData(); fd.append('local_id', current.localId); fd.append('yo_checkout_debug_id', bankDebugId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); if(current.orderId || getStoredKeycrmOrderId()) fd.append('keycrm_order_id', current.orderId || getStoredKeycrmOrderId()); const cartMarker = getCartKeycrmMarker(); if(cartMarker && cartMarker.keycrm_order_id){ fd.append('cart_marker_keycrm_order_id', cartMarker.keycrm_order_id); if(cartMarker.local_id) fd.append('cart_marker_local_id', cartMarker.local_id); fd.append('cart_marker_json', JSON.stringify(cartMarker)); }
+        const fd=new FormData(); fd.append('local_id', current.localId); fd.append('yo_checkout_debug_id', bankDebugId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); fd.append('ignore_stale_keycrm_marker', '1');
         setStep('loading');
         post('yo_checkout_create_bank_invoice', fd).then(function(data){
-          if(data.success && data.data && data.data.preparing && attempt < 12){
+          if(data.success && data.data && data.data.preparing && attempt < 60){
             setTimeout(function(){ submitBankInvoice(attempt + 1); }, Math.max(1, parseInt(data.data.retryAfter || 2, 10) || 2) * 1000);
+            return;
+          }
+          if(data.success && data.data && data.data.preparing){
+            bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false;
+            alert('Bank invoice is still being prepared. Please wait a moment and try again.' + (data.data.debugId ? '\nDebug ID: ' + data.data.debugId : ''));
+            setStep(2);
             return;
           }
           if(data.success && (data.data.invoiceUrl || data.data.htmlUrl)){
@@ -1439,6 +1462,7 @@
             byId('yo-bank-invoice-link').href = link;
             byId('yo-bank-invoice-link').textContent = data.data.invoiceUrl ? 'Download PDF invoice' : 'Open invoice';
             if(byId('yo-bank-invoice-html-link')) byId('yo-bank-invoice-html-link').href = data.data.htmlUrl || link;
+            renderBankInvoiceConfirmation(data.data.orderId || current.orderId);
             setStep('bank');
             clearCartAfterInvoiceOrder();
             if(!data.data.invoiceUrl && data.data.pdfMessage){
@@ -1481,8 +1505,10 @@
       });
       candidates.forEach(function(card){
         const cardTitle = titleFromCard(card);
-        for(const title of titles){
-          if(sameProductTitle(cardTitle, title)){
+        for(const item of (items || [])){
+          const title = item && item.title ? String(item.title) : '';
+          const itemProductId = String(item.product_id || item.feed_id || '').replace(/[^A-Za-z0-9_-]/g, '').trim();
+          if((itemProductId && productIdFromCard(card).toLowerCase() === itemProductId.toLowerCase()) || (!itemProductId && sameProductTitle(cardTitle, title))){
             hideProductCard(card);
             break;
           }
@@ -1523,7 +1549,7 @@
       setTextSafe('yo-success-name', cust.name || '');
       setTextSafe('yo-success-email', cust.email || '');
       setTextSafe('yo-success-phone', cust.phone || '');
-      setTextSafe('yo-success-product', cust.product || (cartItems[0] && cartItems[0].title) || '');
+      setTextSafe('yo-success-product', checkoutProductSummaryLabel());
       setTextSafe('yo-success-amount', cust.amount || (current.cardFee && current.cardFee.total ? money(current.cardFee.total) : ''));
       const frame = byId('yo-payment-frame'); if(frame) frame.src='about:blank';
       paymentPollingActive = false;
@@ -1543,6 +1569,11 @@
         }
       }catch(e){ console.warn('YO checkout reviews opt-in skipped', e); }
       clearCartAfterSuccessfulPurchase();
+    }
+    function checkoutProductSummaryLabel(){
+      const count = cartItems && cartItems.length ? cartItems.length : 0;
+      if(count > 1) return 'custom leotard x' + count;
+      return 'custom leotard';
     }
     function waitForFinalOrderThenShowSuccess(reason){
       const localId = current.localId || activePaymentLocalId || getStoredDraftLocalId() || '';

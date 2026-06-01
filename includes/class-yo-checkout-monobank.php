@@ -31,6 +31,24 @@ class YO_Checkout_Monobank_Service {
         return absint(get_option($this->option_key($invoice_id)));
     }
 
+    private function cart_items_count_from_data(array $data) {
+        $count = absint($data['cart_items_count'] ?? 0);
+        if ($count > 0) return $count;
+
+        $raw = isset($data['cart_items_json']) ? (string)$data['cart_items_json'] : '';
+        if ($raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) return max(1, count($decoded));
+        }
+
+        return 1;
+    }
+
+    private function checkout_item_label(array $data) {
+        $count = $this->cart_items_count_from_data($data);
+        return $count > 1 ? ('custom leotard x' . $count) : 'custom leotard';
+    }
+
     public function start_payment($local_id) {
         $local_id = absint($local_id);
         $s = $this->settings();
@@ -47,7 +65,13 @@ class YO_Checkout_Monobank_Service {
         update_post_meta($local_id, 'card_total_amount', $fee['total']);
 
         $checkout_ref = !empty($data['order_id']) ? $data['order_id'] : ('WEB-' . $local_id);
-        $destination = 'Payment for ' . ($data['title'] ?? '') . ' by checkout # ' . $checkout_ref;
+        $item_label = $this->checkout_item_label($data);
+        $destination = 'Payment for ' . $item_label . ' #' . $checkout_ref;
+        if (function_exists('mb_substr')) {
+            $destination = mb_substr($destination, 0, 120);
+        } else {
+            $destination = substr($destination, 0, 120);
+        }
         $payload = [
             'amount' => $amount_cents,
             'ccy' => 978,
@@ -60,7 +84,7 @@ class YO_Checkout_Monobank_Service {
                 'destination' => $destination,
                 'comment' => $destination,
                 'basketOrder' => [[
-                    'name' => $data['title'] ?? '',
+                    'name' => $item_label,
                     'qty' => 1,
                     'sum' => $amount_cents,
                     'total' => $amount_cents,

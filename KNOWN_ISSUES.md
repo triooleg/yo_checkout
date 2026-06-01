@@ -84,7 +84,7 @@ Handling:
 
 ### Bank invoice checkout can hit stale KeyCRM buyer IDs
 
-Status: fixed in current code, monitor next live invoice test.
+Status: fixed and live-tested on 2026-06-01.
 
 Details:
 
@@ -96,11 +96,11 @@ Handling:
 
 - KeyCRM update/create now detects invalid `buyer.id`, clears the stale local `buyer_id`, creates a new KeyCRM buyer from the current checkout data, and retries once.
 - If the retry still fails, the KeyCRM error remains visible so the next issue is not hidden.
-- Test with bank invoice after uploading the next ZIP: expected result is invoice generation, KeyCRM order creation/update, and no browser alert containing `buyer.id is invalid`.
+- Live bank invoice testing with two products confirmed invoice generation, KeyCRM order creation/update, customer email sending, and no browser alert containing `buyer.id is invalid`.
 
 ### Repeated bank invoice requests could duplicate emails and KeyCRM product rows
 
-Status: fixed in v4.0.28-v4.0.30, diagnostics expanded in v4.0.31, cache-bust fixed in v4.0.32; monitor next multi-item invoice test.
+Status: fixed and live-tested for the normal two-item bank invoice path on 2026-06-01; keep monitoring aggressive repeated-click/reload cases.
 
 Details:
 
@@ -116,6 +116,23 @@ Handling:
 - Active lock responses now return a retryable `preparing` state instead of a visible error alert.
 - KeyCRM update now matches existing product rows before update and avoids unsafe zero-quantity row deletion.
 - If Step 3 still shows a connection error, the frontend alert should now include an AJAX action, HTTP status/response excerpt, and a `Debug ID`. The admin Hiding log should include matching `checkout-debug` lines for the same ID.
+- Bank invoice requests now ignore stale browser/cart KeyCRM markers so an old KeyCRM order number cannot be reused for a new invoice cart.
+- Retryable `preparing` responses are allowed to continue longer than the backend lock window; if preparation still does not finish, the user sees a friendly retry message instead of raw JSON.
+- If an invoice already exists for the same local order and cart hash, it is returned before stale KeyCRM markers are cleared. This avoids creating a fresh KeyCRM order for a duplicate invoice retry.
+
+### Monobank multi-item destination can exceed provider length limit
+
+Status: local test fix added on 2026-06-01; monitor next multi-item card payment before committing.
+
+Details:
+
+- Monobank rejects card invoice creation when `merchantPaymInfo.destination` is too long.
+- Multi-item carts previously used the concatenated product title string, which could exceed Monobank limits.
+
+Handling:
+
+- Monobank destination/comment and basket item name now use a compact label like `custom leotard x5`.
+- Step 4 success product text also uses the compact label for multi-item card purchases.
 
 ### Checkout JS cache could keep old Step 3 behavior
 
@@ -133,7 +150,7 @@ Handling:
 
 ### Sold-item auto-hide can overmatch similar Builder items
 
-Status: tightened in v4.0.32, monitor next multi-item card payment.
+Status: tightened in v4.0.32 and further restricted by local test fix on 2026-06-01; monitor next multi-item card payment.
 
 Details:
 
@@ -144,6 +161,8 @@ Handling:
 
 - Frontend immediate hide after card payment now uses exact product identity matching only.
 - Backend YOOtheme auto-hide now requires stricter model/height identity checks and logs each disabled matched item as `Disabled matched item: ...`.
+- Backend YOOtheme auto-hide now ignores long content/text fields for disable decisions and only disables one Builder item per purchased product identity in a single order.
+- Product card `id` / `data-feed-id` is now stored as `product_id`; availability checks and auto-hide prefer exact product ID matching before title matching.
 - Existing already-disabled wrong Builder items are not automatically restored; use the YOOtheme backup/custom fields or manually re-enable them if needed.
 
 ### Expired promo discount could survive in a stored cart/order

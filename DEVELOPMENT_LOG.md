@@ -703,3 +703,229 @@ Documentation updates:
 Repository rollback point:
 
 - Checkout JS cache and auto-hide matching fix commit: `1693d79` (`Bust checkout asset cache and tighten auto-hide`).
+
+## 2026-06-01 - Local Test Fix For Invoice Retry, Monobank Title, And Auto-Hide Scope
+
+User request:
+
+- Do not commit or push to GitHub until live testing confirms the fix works.
+- Analyze Step 3 bank invoice `preparing` JSON, stale KeyCRM order marker, Monobank `destination is too long`, long success product titles, and card auto-hide disabling too many products.
+- Create a test archive after the local fix.
+
+Files changed locally:
+
+- `assets/yo-checkout.js`
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-keycrm.php`
+- `includes/class-yo-checkout-monobank.php`
+- `includes/class-yo-checkout-sold-items.php`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Bank invoice frontend retries `preparing` responses for longer and no longer shows raw success JSON as an error when preparation is still in progress.
+- Bank invoice order save and KeyCRM creation ignore stale browser/cart KeyCRM markers, clear old local `order_id`/`buyer_id`, and create the invoice order from the current cart.
+- Monobank card payment destination and basket item name now use a short `custom leotard xN` label for multi-item carts.
+- Success confirmation product text now uses `custom leotard xN` for multi-item card purchases.
+- YOOtheme auto-hide matching ignores long content/text blobs for disable decisions and limits disabling to one Builder item per purchased product identity.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `php -l includes\class-yo-checkout-monobank.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Documentation updates:
+
+- This development log entry records the uncommitted local test fix.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Finalize Working Bank Invoice Version 4.0.33
+
+User request:
+
+- Style the bank invoice confirmation next-step block using UIkit/YOOtheme-friendly classes and icons.
+- Mark the tested invoice flow as a working GitHub rollback point.
+- Create a final test archive.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.css`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `KNOWN_WORKING_FEATURES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.33`.
+- Bank invoice confirmation uses a UIkit `uk-card` with `uk-grid`, `uk-flex`, `uk-list`, `uk-box-shadow-small`, and `uk-icon` icons for the order/status/timing/next-steps block.
+- `KNOWN_WORKING_FEATURES.md` now records the live-tested two-item bank invoice flow, KeyCRM order creation for bank invoice, bank invoice email sending, and bank invoice confirmation order number.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `php -l includes\class-yo-checkout-monobank.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Documentation updates:
+
+- Version, plugin map, changelog, known issues, known working features, and this log were updated.
+
+Repository rollback point:
+
+- Working bank invoice v4.0.33 rollback commit: `c7d3a81` (`Finalize working bank invoice flow v4.0.33`).
+
+## 2026-06-01 - Improve Bank Invoice Confirmation Screen
+
+User request:
+
+- After a successful bank invoice checkout, make the confirmation window more complete.
+- Show the KeyCRM order number, waiting-for-payment status, expected bank-transfer timing, and what happens after payment is received.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `CHANGELOG.txt`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- The bank invoice confirmation screen now shows `Order #KEYCRM_ID`.
+- The same screen now explains that the status is waiting for payment, bank transfers usually arrive within 1-3 business days, and the customer will receive confirmation/processing/shipment updates after payment.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+
+Documentation updates:
+
+- `CHANGELOG.txt`, `PLUGIN_MAP.md`, and this log were updated.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Add Known Working Features File
+
+User request:
+
+- Create `KNOWN_WORKING_FEATURES.md`.
+- Record confirmed working features:
+  - Monobank payment
+  - KeyCRM order creation
+  - Customer email sending
+  - Step 4 Success
+  - Shipping Calculator
+- Do not touch these areas without necessity.
+
+Files changed:
+
+- Added `KNOWN_WORKING_FEATURES.md`.
+- Updated `PROJECT_CONTEXT.md`.
+- Updated `PLUGIN_MAP.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No runtime plugin behavior changed. Documentation/process only.
+
+Verification performed:
+
+- Documentation-only change; no PHP/JS syntax check required.
+
+Documentation updates:
+
+- Added confirmed working feature guard and included it in the required reading set.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Correct Known Working Features Conservatively
+
+User request:
+
+- Re-check the work history and do not blindly use the example list as confirmed working.
+- Keep only tools/features that are working without known open bugs.
+
+Files changed:
+
+- Updated `KNOWN_WORKING_FEATURES.md`.
+- Updated `DEVELOPMENT_LOG.md`.
+
+Behavior changed:
+
+- No runtime plugin behavior changed. Documentation/process only.
+
+Verification performed:
+
+- Reviewed `DEVELOPMENT_LOG.md` and `KNOWN_ISSUES.md`.
+- Documentation-only change; no PHP/JS syntax check required.
+
+Documentation updates:
+
+- `KNOWN_WORKING_FEATURES.md` now lists only bug-free confirmed items and moves payment/KeyCRM/email/Step 4/invoice/auto-hide/promo areas into a not-yet-stable section until live retesting clears them.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Add Product ID Based KeyCRM And Auto-Hide Logic
+
+User request:
+
+- Improve KeyCRM order creation and sold-item hiding logic.
+- Use the unique product card `id` / `data-feed-id` where available to avoid text-matching bugs.
+
+Files changed:
+
+- `assets/yo-checkout.js`
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-keycrm.php`
+- `includes/class-yo-checkout-sold-items.php`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Frontend product extraction now stores the YOOtheme card `id` / `data-feed-id` as `product_id` and carries it through cart items.
+- Server sanitizes and stores `product_id` in `cart_items_json`.
+- Cart availability checks and payable checks pass `product_id` to the sold-items service.
+- Auto-hide prefers exact product ID matching before title matching and logs product IDs beside titles.
+- KeyCRM product payloads use `product_id` as SKU when available, so future product-row sync can match by SKU.
+- Card payment KeyCRM finalization now attempts to recover/update an existing `order_id` before creating a new KeyCRM order.
+- Bank invoice creation now returns an existing invoice for the same cart hash before clearing stale KeyCRM meta.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md` and `KNOWN_ISSUES.md` updated with the `product_id`-based matching behavior.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.

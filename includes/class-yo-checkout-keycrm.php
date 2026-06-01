@@ -486,9 +486,15 @@ class YO_Checkout_KeyCRM_Service {
         }
 
     public function ensure_keycrm_order($local_id, $mode = 'bank') {
-            $posted_keycrm_order_id = preg_replace('/[^0-9]/', '', (string) wp_unslash($_POST['keycrm_order_id'] ?? ''));
-            if ($posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->posted_cart_marker_keycrm_order_id();
-            if ($posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->keycrm_marker_cookie_order_id();
+            $ignore_stale_keycrm_marker = !empty($_POST['ignore_stale_keycrm_marker']);
+            if ($ignore_stale_keycrm_marker) {
+                delete_post_meta($local_id, 'order_id');
+                delete_post_meta($local_id, 'buyer_id');
+                update_post_meta($local_id, 'keycrm_created', '0');
+            }
+            $posted_keycrm_order_id = $ignore_stale_keycrm_marker ? '' : preg_replace('/[^0-9]/', '', (string) wp_unslash($_POST['keycrm_order_id'] ?? ''));
+            if (!$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->posted_cart_marker_keycrm_order_id();
+            if (!$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->keycrm_marker_cookie_order_id();
             if ($posted_keycrm_order_id !== '' && trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
                 $existing_by_keycrm_order = $this->find_local_order_by_keycrm_order_id($posted_keycrm_order_id);
                 if ($existing_by_keycrm_order && get_post_meta($existing_by_keycrm_order, 'paid', true) !== '1') {
@@ -501,7 +507,7 @@ class YO_Checkout_KeyCRM_Service {
             // If this local draft has no order_id yet, restore it from the persistent cart/browser marker.
             // This is the main protection against duplicate KeyCRM orders after the customer returns,
             // edits the cart and goes to payment again.
-            if (trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
+            if (!$ignore_stale_keycrm_marker && trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
                 $d_for_marker = $this->get_order_data($local_id);
                 $marker_order_id = '';
                 if (!empty($d_for_marker['checkout_session_id'])) {
@@ -521,7 +527,7 @@ class YO_Checkout_KeyCRM_Service {
                 }
             }
     
-            if (trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
+            if (!$ignore_stale_keycrm_marker && trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
                 $d_active = $this->get_order_data($local_id);
                 $active_local = $this->find_local_order_by_active_marker($d_active, $d_active['checkout_session_id'] ?? '', $d_active['browser_buyer_id'] ?? '', $posted_keycrm_order_id);
                 if ($active_local && $active_local !== $local_id) {
@@ -546,7 +552,7 @@ class YO_Checkout_KeyCRM_Service {
             }
     
             // Restore KeyCRM order ID from browser/cart marker before deciding to create a new one.
-            if (trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
+            if (!$ignore_stale_keycrm_marker && trim((string)get_post_meta($local_id, 'order_id', true)) === '') {
                 $d_for_marker = $this->get_order_data($local_id);
                 $marker_order_id = $posted_keycrm_order_id;
                 if ($marker_order_id === '' && !empty($d_for_marker['checkout_session_id'])) {
@@ -576,7 +582,7 @@ class YO_Checkout_KeyCRM_Service {
             // the payment screen. Before creating a new KeyCRM order, search for an existing unpaid
             // KeyCRM order linked to the same checkout_session_id / browser_buyer_id / email / phone.
             $current_data = $this->get_order_data($local_id);
-            $reuse_local_id = $this->find_reusable_unpaid_keycrm_local_id($current_data, $current_data['checkout_session_id'] ?? '', $current_data['browser_buyer_id'] ?? '', $local_id);
+            $reuse_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_reusable_unpaid_keycrm_local_id($current_data, $current_data['checkout_session_id'] ?? '', $current_data['browser_buyer_id'] ?? '', $local_id);
             if ($reuse_local_id) {
                 $reuse_order_id = get_post_meta($reuse_local_id, 'order_id', true);
                 $reuse_buyer_id = get_post_meta($reuse_local_id, 'buyer_id', true);
@@ -588,7 +594,7 @@ class YO_Checkout_KeyCRM_Service {
             }
     
             $data = $this->get_order_data($local_id);
-            $hard_reuse_id = $this->find_hard_reusable_keycrm_local_id($data, $data['checkout_session_id'] ?? '', $data['browser_buyer_id'] ?? '', $posted_keycrm_order_id);
+            $hard_reuse_id = $ignore_stale_keycrm_marker ? 0 : $this->find_hard_reusable_keycrm_local_id($data, $data['checkout_session_id'] ?? '', $data['browser_buyer_id'] ?? '', $posted_keycrm_order_id);
             if ($hard_reuse_id && $hard_reuse_id !== $local_id) {
                 $reuse_order_id = get_post_meta($hard_reuse_id, 'order_id', true);
                 $reuse_buyer_id = get_post_meta($hard_reuse_id, 'buyer_id', true);
@@ -599,7 +605,7 @@ class YO_Checkout_KeyCRM_Service {
                 return $this->keycrm_update_existing_order($local_id, $mode);
             }
     
-            $contact_reuse_id = $this->find_latest_unpaid_keycrm_order_by_contact($data, $local_id);
+            $contact_reuse_id = $ignore_stale_keycrm_marker ? 0 : $this->find_latest_unpaid_keycrm_order_by_contact($data, $local_id);
             if ($contact_reuse_id && $contact_reuse_id !== $local_id) {
                 $reuse_order_id = get_post_meta($contact_reuse_id, 'order_id', true);
                 $reuse_buyer_id = get_post_meta($contact_reuse_id, 'buyer_id', true);
@@ -610,7 +616,7 @@ class YO_Checkout_KeyCRM_Service {
                 return $this->keycrm_update_existing_order($local_id, $mode);
             }
     
-            $broad_contact_reuse_id = $this->find_recent_unpaid_keycrm_order_for_customer_broad($data, $local_id);
+            $broad_contact_reuse_id = $ignore_stale_keycrm_marker ? 0 : $this->find_recent_unpaid_keycrm_order_for_customer_broad($data, $local_id);
             if ($broad_contact_reuse_id && $broad_contact_reuse_id !== $local_id) {
                 $reuse_order_id = get_post_meta($broad_contact_reuse_id, 'order_id', true);
                 $reuse_buyer_id = get_post_meta($broad_contact_reuse_id, 'buyer_id', true);
@@ -665,6 +671,8 @@ class YO_Checkout_KeyCRM_Service {
                 if ($item_discount > 0) {
                     $product['discount_amount'] = $item_discount;
                 }
+                $product_id = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($item['product_id'] ?? ($item['feed_id'] ?? '')));
+                if ($product_id !== '') $product['sku'] = $product_id;
                 $products[] = $product;
             }
             if (!$products) $products[] = ['name'=>$this->clean_product_title_for_display($d['title']),'price'=>floatval($d['original_price_eur'] ?: $d['price_eur']),'quantity'=>1,'picture'=>$d['image_url']];
@@ -738,6 +746,17 @@ class YO_Checkout_KeyCRM_Service {
             return '';
         }
 
+    public function keycrm_order_product_sku($row) {
+            if (!is_array($row)) return '';
+            foreach (['sku','article','code','product_sku','productSku'] as $key) {
+                if (!empty($row[$key]) && is_scalar($row[$key])) return preg_replace('/[^A-Za-z0-9_-]/', '', (string)$row[$key]);
+            }
+            if (!empty($row['product']) && is_array($row['product'])) {
+                foreach (['sku','article','code'] as $key) if (!empty($row['product'][$key]) && is_scalar($row['product'][$key])) return preg_replace('/[^A-Za-z0-9_-]/', '', (string)$row['product'][$key]);
+            }
+            return '';
+        }
+
     public function keycrm_product_sync_key($name, $price = null) {
             $name = $this->clean_product_title_for_display((string)$name);
             $name = mb_strtolower($name);
@@ -763,10 +782,12 @@ class YO_Checkout_KeyCRM_Service {
                 $row_id = $this->keycrm_order_product_row_id($row);
                 $row_name = $this->keycrm_order_product_name($row);
                 if ($row_id === '' || $row_name === '') continue;
+                $row_sku = $this->keycrm_order_product_sku($row);
                 $row_price = $row['price'] ?? ($row['price_sold'] ?? ($row['amount'] ?? null));
                 $row_picture = $row['picture'] ?? ($row['image'] ?? ($row['image_url'] ?? ''));
-                $row_data = ['id'=>$row_id, 'name'=>$row_name, 'price'=>$row_price, 'picture'=>$row_picture, 'raw'=>$row];
+                $row_data = ['id'=>$row_id, 'name'=>$row_name, 'sku'=>$row_sku, 'price'=>$row_price, 'picture'=>$row_picture, 'raw'=>$row];
                 $rows[] = $row_data;
+                if ($row_sku !== '') $map['sku|' . strtolower($row_sku)] = $row_data;
                 $map[$this->keycrm_product_sync_key($row_name, $row_price)] = $row_data;
                 $map[$this->keycrm_product_sync_key($row_name, null)] = $row_data;
                 if ($row_picture) $map['img|' . md5((string)$row_picture)] = $row_data;
@@ -777,8 +798,9 @@ class YO_Checkout_KeyCRM_Service {
                 if (!is_array($product)) continue;
                 $key_price = $this->keycrm_product_sync_key($product['name'] ?? '', $product['price'] ?? null);
                 $key_name = $this->keycrm_product_sync_key($product['name'] ?? '', null);
+                $sku_key = !empty($product['sku']) ? ('sku|' . strtolower(preg_replace('/[^A-Za-z0-9_-]/', '', (string)$product['sku']))) : '';
                 $img_key = !empty($product['picture']) ? ('img|' . md5((string)$product['picture'])) : '';
-                $matched = $map[$key_price] ?? ($map[$key_name] ?? ($img_key && isset($map[$img_key]) ? $map[$img_key] : null));
+                $matched = ($sku_key && isset($map[$sku_key])) ? $map[$sku_key] : ($map[$key_price] ?? ($map[$key_name] ?? ($img_key && isset($map[$img_key]) ? $map[$img_key] : null)));
     
                 // Fallback: if the product names are slightly different because of quote/unicode cleanup,
                 // compare only the normalized name without price.
@@ -991,6 +1013,8 @@ class YO_Checkout_KeyCRM_Service {
                     // KeyCRM product-level discount: visible in the product row as "Скидка на товар".
                     $product['discount_amount'] = $item_discount;
                 }
+                $product_id = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($item['product_id'] ?? ($item['feed_id'] ?? '')));
+                if ($product_id !== '') $product['sku'] = $product_id;
                 $products[] = $product;
             }
             if (!$products) $products[] = ['name'=>$this->clean_product_title_for_display($d['title']),'price'=>floatval($d['original_price_eur'] ?: $d['price_eur']),'quantity'=>1,'picture'=>$d['image_url']];
@@ -1099,6 +1123,17 @@ class YO_Checkout_KeyCRM_Service {
             $existing_order_id = absint(get_post_meta($local_id, 'order_id', true));
             if ($existing_order_id && get_post_meta($local_id, 'keycrm_after_payment_done', true) === '1') {
                 return $existing_order_id;
+            }
+            if ($existing_order_id) {
+                $updated = $this->keycrm_update_existing_order($local_id, 'card');
+                if (is_wp_error($updated)) return $updated;
+                $current_order_id = absint(get_post_meta($local_id, 'order_id', true));
+                if ($current_order_id) {
+                    update_post_meta($local_id, 'keycrm_created', '1');
+                    update_post_meta($local_id, 'keycrm_after_payment_done', '1');
+                    $this->remember_keycrm_checkout_marker($local_id);
+                    return $current_order_id;
+                }
             }
     
             $s = $this->settings();

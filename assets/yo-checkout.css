@@ -196,8 +196,36 @@
 }
 .yo-back-btn:hover{color:#0f6ecd;text-decoration:underline;}
 #yo-step-bank .yo-back-btn{margin-bottom:18px;}
+.yo-bank-confirmation-details{
+  max-width:520px;
+  margin:18px auto 0;
+  border:1px solid rgba(30,135,240,.18);
+  border-radius:12px;
+  background:#fff;
+  color:#07194b;
+  line-height:1.45;
+}
+.yo-bank-next-title{
+  margin:12px 0 8px!important;
+}
+.yo-bank-next-list{
+  max-width:390px;
+  margin:0 auto!important;
+}
+.yo-bank-next-list li{
+  margin:7px 0;
+}
+.yo-bank-detail-icon,
+.yo-bank-check-icon{
+  color:#1e87f0;
+  flex:0 0 auto;
+}
 @media(max-width:640px){
   .yo-back-btn{font-size:15px;margin-bottom:10px;}
+  .yo-bank-confirmation-details{
+    font-size:14px;
+  }
+  .yo-bank-next-list{max-width:100%;}
 }
 
 /* v3.3.0 promo code discount */

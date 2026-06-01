@@ -230,3 +230,8 @@ YOleotard Checkout v4.0.32
 - Tightens backend YOOtheme sold-item matching with model/height identity checks.
 - Adds auto-hide log lines for each matched Builder item that was disabled.
 
+YOleotard Checkout v4.0.33
+- Confirms the live-tested bank invoice flow as the current working rollback point.
+- Expands the bank invoice confirmation screen with the KeyCRM order number, waiting-for-payment status, bank-transfer timing, and next-step payment processing notes.
+- Uses UIkit card, grid, flex, list, shadow, and icon styles for the bank invoice next-steps block.
+

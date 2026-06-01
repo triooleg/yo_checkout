@@ -10,6 +10,7 @@ Codex must read these files before making any code change:
 - `PLUGIN_MAP.md`
 - `DEVELOPMENT_LOG.md`
 - `KNOWN_ISSUES.md`
+- `KNOWN_WORKING_FEATURES.md`
 
 If a task changes plugin structure, data flow, hooks, AJAX actions, REST routes, settings, assets, integrations, or known risks, update the relevant documentation in the same task.
 
@@ -23,7 +24,7 @@ Plugin name:
 
 Current plugin version in the main PHP header:
 
-- `4.0.32`
+- `4.0.33`
 
 Main business goal:
 
@@ -50,6 +51,7 @@ Preferred direction:
 ## Development Rules
 
 - Preserve existing working behavior unless the task explicitly asks for a behavior change.
+- Check `KNOWN_WORKING_FEATURES.md` before touching confirmed working areas.
 - Before changing code, read the required documentation files listed above.
 - Before editing an existing function, understand the related flow in `PLUGIN_MAP.md`.
 - Do not rewrite large working areas just for style.
