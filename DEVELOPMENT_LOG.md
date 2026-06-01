@@ -862,7 +862,7 @@ Documentation updates:
 
 Repository rollback point:
 
-- Pending commit/push after this documentation update.
+- Working card payment v4.0.34 rollback commit: `81789d7` (`Confirm working card payment flow v4.0.34`).
 
 ## 2026-06-01 - Improve Bank Invoice Confirmation Screen
 
