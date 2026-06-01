@@ -11,12 +11,12 @@ Items listed here are protected: do not change them unless the current task dire
 - Shipping Calculator
 - Bank invoice checkout for two-item orders
 - KeyCRM order creation for bank invoice checkout
-- Customer email sending for bank invoice checkout
+- Customer email sending for bank invoice checkout after the v4.0.35 email-service extraction
 - Bank invoice confirmation screen with KeyCRM order number
 - Monobank card payment flow
 - KeyCRM order creation for card checkout
-- Customer email sending for card checkout
-- Step 4 card payment success screen after KeyCRM/email completion
+- Customer email sending for card checkout after the v4.0.35 email-service extraction
+- Step 4 card payment success screen after the v4.0.35 email-service extraction
 - Host-safe test ZIP packaging for this hosting flow
 - Local PHP syntax check workflow
 - Local JS syntax check workflow

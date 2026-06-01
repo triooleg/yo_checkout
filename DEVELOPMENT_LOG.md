@@ -1005,3 +1005,113 @@ Documentation updates:
 Repository rollback point:
 
 - Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Extract Customer Email Service v4.0.35
+
+User request:
+
+- First move customer email sending into a separate file.
+- Second, apply the previously recommended improvement so bank invoice email sent markers are written only after a successful customer email send.
+- Create a plugin archive for site testing.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-email.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `KNOWN_WORKING_FEATURES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.35`.
+- Customer bank-invoice and paid-card email rendering/sending now live in `YO_Checkout_Email_Service`.
+- The main plugin keeps `send_bank_invoice_email()` and `send_paid_email()` wrappers, so existing checkout/payment call sites continue to use the same method names.
+- Bank invoice email sent markers are now updated only when the customer email send succeeds.
+- Failed bank invoice customer email sends now write `bank_invoice_email_error` and remain retryable because the cart-hash sent marker is not advanced.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-email.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed after cleanup.
+- Host-safe archive verification passed for `yoleotard-checkout-invoice.zip`: forward-slash paths only and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- Project context, plugin map, changelog, known issues, known working features, and this log were updated for v4.0.35.
+
+Repository rollback point:
+
+- Not created yet. This email extraction should be live-tested before marking it as a working rollback point.
+
+## 2026-06-01 - Move Plugin Archives Out Of Git
+
+User request:
+
+- Store plugin archives in a separate folder.
+- Add the corresponding git rule so the archive folder is not added to the repository.
+
+Files changed:
+
+- `.gitignore`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No plugin runtime behavior changed.
+- Local ZIP archives are now stored under `plugin-archives/`.
+- `.gitignore` excludes `plugin-archives/` so generated test archives do not appear as repository files.
+- Future test ZIP path is `plugin-archives/yoleotard-checkout-invoice.zip`; the upload filename and internal folder rules stay the same.
+
+Verification performed:
+
+- Existing root ZIP files were moved into `plugin-archives/`.
+- `git status -sb` no longer lists ZIP archives from the root after the move.
+
+Documentation updates:
+
+- Project context and plugin map now document the archive folder and git-ignore rule.
+
+Repository rollback point:
+
+- Not created yet. This is a process/documentation change and should be included with the current uncommitted v4.0.35 test work if/when it is confirmed.
+
+## 2026-06-01 - Confirm Email Service Extraction v4.0.35
+
+User request:
+
+- User live-tested both payment variants after the email extraction.
+- Mark the email extraction as successful and commit this stable email version.
+- Analyze the sold-item hiding mismatch report without changing hiding code yet.
+
+Files changed:
+
+- `KNOWN_WORKING_FEATURES.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime plugin behavior changed in this entry.
+- Documentation now records customer email sending for bank invoice and card checkout as live-tested working after the v4.0.35 email-service extraction.
+- Documentation also records Step 4 card success after the v4.0.35 email-service extraction as live-tested working.
+
+Verification performed:
+
+- User live-tested bank invoice and card payment flows; both worked and customer email notifications arrived.
+- Code review identified a likely sold-item hiding mismatch cause: backend title fallback can treat a shared height range as the one matching "important" token, allowing a same-height but different model to be disabled when product ID matching is unavailable or not found in YOOtheme Builder JSON.
+
+Documentation updates:
+
+- `KNOWN_WORKING_FEATURES.md`, `KNOWN_ISSUES.md`, and this log were updated.
+
+Repository rollback point:
+
+- Pending in this task: commit and push stable v4.0.35 email extraction.

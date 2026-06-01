@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.34. Hardens card payment finalization before showing confirmation.
- * Version: 4.0.34
+ * Description: v4.0.35. Extracts customer email sending into a dedicated service.
+ * Version: 4.0.35
  * Author: YOleotard / ChatGPT
  */
 
@@ -40,6 +40,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-promo.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-google-reviews.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-monobank.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-keycrm.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-email.php';
 
 
 class YO_Checkout_Invoice_Plugin {
@@ -51,6 +52,7 @@ class YO_Checkout_Invoice_Plugin {
     private $google_reviews_service = null;
     private $monobank_service = null;
     private $keycrm_service = null;
+    private $email_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -153,6 +155,22 @@ class YO_Checkout_Invoice_Plugin {
             ], self::CPT);
         }
         return $this->keycrm_service;
+    }
+
+    private function email_service() {
+        if (!$this->email_service instanceof YO_Checkout_Email_Service) {
+            $this->email_service = new YO_Checkout_Email_Service([
+                'settings' => function() { return self::settings(); },
+                'get_order_data' => function($local_id) { return $this->get_order_data($local_id); },
+                'cart_items_from_order_data' => function($data) { return $this->cart_items_from_order_data($data); },
+                'clean_product_title_for_display' => function($title) { return $this->clean_product_title_for_display($title); },
+                'invoice_number' => function($order_id) { return $this->invoice_number($order_id); },
+                'bank_details_for_country' => function($country) { return $this->bank_details_for_country($country); },
+                'invoice_logo_src' => function($for_pdf = false) { return $this->invoice_logo_src($for_pdf); },
+                'file_path_to_url' => function($path) { return $this->file_path_to_url($path); },
+            ]);
+        }
+        return $this->email_service;
     }
 
     public static function default_shipping_rates_eur() {
@@ -1699,9 +1717,16 @@ EUR=1',
         }
         if (!hash_equals((string)get_post_meta($local_id, 'bank_invoice_email_sent_hash', true), $cart_hash)) {
             $this->append_checkout_debug_log($debug_id, 'bank_invoice email sending started', ['local_id' => $local_id, 'cart_hash' => $cart_hash]);
-            $this->send_bank_invoice_email($local_id, !empty($files['pdf_path']) ? $files['pdf_path'] : $files['html_path']);
-            update_post_meta($local_id, 'bank_invoice_email_sent', '1');
-            update_post_meta($local_id, 'bank_invoice_email_sent_hash', $cart_hash);
+            $bank_email_sent = $this->send_bank_invoice_email($local_id, !empty($files['pdf_path']) ? $files['pdf_path'] : $files['html_path']);
+            if ($bank_email_sent) {
+                update_post_meta($local_id, 'bank_invoice_email_sent', '1');
+                update_post_meta($local_id, 'bank_invoice_email_sent_hash', $cart_hash);
+                delete_post_meta($local_id, 'bank_invoice_email_error');
+            } else {
+                delete_post_meta($local_id, 'bank_invoice_email_sent');
+                update_post_meta($local_id, 'bank_invoice_email_error', 'Customer bank invoice email was not sent by wp_mail.');
+                $this->append_checkout_debug_log($debug_id, 'bank_invoice customer email failed', ['local_id' => $local_id, 'cart_hash' => $cart_hash]);
+            }
         }
         delete_post_meta($local_id, 'bank_invoice_lock');
         $this->append_checkout_debug_log($debug_id, 'bank_invoice success', ['local_id' => $local_id, 'order_id' => get_post_meta($local_id,'order_id',true), 'invoice_url' => $files['pdf_url'] ?? '', 'html_url' => $files['html_url'] ?? '']);
@@ -4250,13 +4275,6 @@ EUR=1',
         }
     }
 
-    private function mail_headers($s) {
-        return [
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . sanitize_text_field($s['from_name']) . ' <' . sanitize_email($s['from_email']) . '>'
-        ];
-    }
-
     private function file_path_to_url($path) {
         $uploads = wp_upload_dir();
         $path = wp_normalize_path((string)$path);
@@ -4267,195 +4285,12 @@ EUR=1',
         return '';
     }
 
-    private function email_logo_html() {
-        $logo = $this->invoice_logo_src(false);
-        if (!$logo) return '';
-        return '<div style="text-align:center;margin:0 0 18px 0;">'
-            . '<img src="' . esc_url($logo) . '" alt="YOleotard" style="max-width:150px;max-height:64px;width:auto;height:auto;display:inline-block;">'
-            . '</div>';
-    }
-
-    private function money_html($amount) {
-        return '€' . number_format((float)$amount, 2, '.', '');
-    }
-
-    private function email_address_html($d) {
-        $parts = [];
-        foreach (['address','additional_address','city','zip_code','country'] as $key) {
-            if (!empty($d[$key])) $parts[] = esc_html($d[$key]);
-        }
-        return implode('<br>', $parts);
-    }
-
-    private function email_products_html($d) {
-        $items = $this->cart_items_from_order_data($d);
-        if (!$items) return '<strong>' . esc_html($d['title']) . '</strong>';
-
-        $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">';
-        foreach ($items as $idx => $item) {
-            $title = $this->clean_product_title_for_display($item['title'] ?? 'Selected leotard');
-            $image = esc_url($item['image_url'] ?? '');
-            $border = $idx > 0 ? 'border-top:1px solid #e5e7eb;' : '';
-            $html .= '<tr>';
-            if ($image) {
-                $html .= '<td width="72" valign="top" style="padding:' . ($idx > 0 ? '10px' : '0') . ' 12px 10px 0;' . $border . '">';
-                $html .= '<img src="' . $image . '" alt="' . esc_attr($title) . '" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;display:block;">';
-                $html .= '</td>';
-            }
-            $html .= '<td valign="middle" style="padding:' . ($idx > 0 ? '10px' : '0') . ' 0 10px 0;' . $border . 'text-align:left;"><strong>' . esc_html($title) . '</strong></td>';
-            $html .= '</tr>';
-        }
-        $html .= '</table>';
-        return $html;
-    }
-
-    private function email_order_table_html($d, $show_status = true) {
-        $original = (float)($d['original_price_eur'] ?: $d['price_eur']);
-        $discount = (float)($d['discount_eur'] ?: 0);
-        $shipping = (float)($d['shipping_cost_eur'] ?: 0);
-        $service_fee = (float)($d['card_fee_amount'] ?: 0);
-        $is_card = in_array(($d['payment_type'] ?? ''), ['card'], true);
-        $total = (float)$d['price_eur'] + $shipping + ($is_card ? $service_fee : 0);
-        $rows = '';
-        $rows .= '<tr><td style="padding:10px 0;color:#64748b;vertical-align:top;">Product</td><td style="padding:10px 0;text-align:left;">' . $this->email_products_html($d) . '</td></tr>';
-        $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Items total</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;">' . $this->money_html($original) . '</td></tr>';
-        if ($discount > 0) {
-            $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Discount</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;">- ' . $this->money_html($discount) . '</td></tr>';
-        }
-        if ($shipping > 0) {
-            $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Shipping</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;">' . $this->money_html($shipping) . '</td></tr>';
-        }
-        if ($is_card && $service_fee > 0) {
-            $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Card payment service fee</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;">' . $this->money_html($service_fee) . '</td></tr>';
-        } elseif (!$is_card) {
-            $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Card payment service fee</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;">€0.00</td></tr>';
-        }
-        $rows .= '<tr><td style="padding:12px 0;color:#111827;border-top:2px solid #111827;font-size:16px;"><strong>Total</strong></td><td style="padding:12px 0;text-align:right;border-top:2px solid #111827;font-size:18px;"><strong>' . $this->money_html($total) . '</strong></td></tr>';
-        if ($show_status) {
-            $rows .= '<tr><td style="padding:10px 0;color:#64748b;border-top:1px solid #e5e7eb;">Payment status</td><td style="padding:10px 0;text-align:right;border-top:1px solid #e5e7eb;"><strong>Awaiting bank transfer</strong></td></tr>';
-        }
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">' . $rows . '</table>';
-    }
-
-    private function build_bank_invoice_email_html($local_id, $invoice_url) {
-        $s = self::settings();
-        $d = $this->get_order_data($local_id);
-        $invoice = $this->invoice_number($d['order_id']);
-        $bank_type = get_post_meta($local_id, 'bank_invoice_type', true) ?: $this->bank_details_for_country($d['country'])['type'];
-        $logo = $this->email_logo_html();
-        $button = $invoice_url ? '<p style="margin:22px 0 4px 0;text-align:center;"><a href="' . esc_url($invoice_url) . '" style="background:#111827;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:8px;display:inline-block;font-weight:700;">Download invoice</a></p>' : '';
-        $address = $this->email_address_html($d);
-
-        return '<!doctype html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">'
-            . '<div style="max-width:680px;margin:0 auto;padding:28px 14px;">'
-            . '<div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:28px;box-shadow:0 6px 18px rgba(15,23,42,.06);">'
-            . $logo
-            . '<h1 style="margin:0 0 10px 0;font-size:26px;line-height:1.25;color:#111827;">Your YOleotard order has been created</h1>'
-            . '<p style="margin:0 0 18px 0;color:#475569;font-size:15px;line-height:1.6;">Thank you for your order. Your invoice has been prepared and attached to this email. The invoice total includes Nova Post delivery. Card payment service fee is not added for SEPA/SWIFT invoice payments.</p>'
-            . '<div style="background:#eef6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 18px;margin:18px 0;">'
-            . '<p style="margin:0 0 6px 0;font-size:15px;">Order number: <strong>№ ' . esc_html($d['order_id']) . '</strong></p>'
-            . '<p style="margin:0 0 6px 0;font-size:15px;">Invoice number: <strong>#' . esc_html($invoice) . '</strong></p>'
-            . '<p style="margin:0;font-size:15px;">Payment method: <strong>Bank transfer / ' . esc_html($bank_type) . '</strong></p>'
-            . '</div>'
-            . '<h2 style="font-size:18px;margin:24px 0 10px 0;">Payment instructions</h2>'
-            . '<p style="font-size:15px;line-height:1.6;margin:0 0 12px 0;">To complete your purchase, please make the payment using the bank details provided in the attached invoice.</p>'
-            . '<p style="font-size:15px;line-height:1.6;margin:0 0 12px 0;"><strong>Please include the invoice number in the payment description:</strong><br>Payment for custom leotard by invoice #' . esc_html($invoice) . '</p>'
-            . $button
-            . '<h2 style="font-size:18px;margin:26px 0 10px 0;">Order details</h2>'
-            . '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 18px;background:#ffffff;">' . $this->email_order_table_html($d, true) . '</div>'
-            . '<h2 style="font-size:18px;margin:26px 0 10px 0;">Customer and delivery details</h2>'
-            . '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;background:#fafafa;font-size:14px;line-height:1.6;">'
-            . '<p style="margin:0 0 8px 0;"><strong>Name:</strong> ' . esc_html($d['full_name']) . '</p>'
-            . '<p style="margin:0 0 8px 0;"><strong>Email:</strong> ' . esc_html($d['email']) . '</p>'
-            . '<p style="margin:0 0 8px 0;"><strong>Phone:</strong> ' . esc_html($d['phone']) . '</p>'
-            . '<p style="margin:0;"><strong>Delivery address:</strong><br>' . $address . '</p>'
-            . '</div>'
-            . '<div style="background:#f8fafc;border-left:4px solid #111827;margin:24px 0 0 0;padding:16px 18px;border-radius:8px;">'
-            . '<p style="margin:0;font-size:15px;line-height:1.6;">As soon as the payment is received to the specified bank account, we will process and ship your order to the delivery address provided during checkout. After shipment, we will send you the tracking number and tracking link for your parcel.</p>'
-            . '</div>'
-            . '<p style="margin:24px 0 0 0;font-size:15px;line-height:1.6;">If you have any questions regarding payment or delivery, please reply to this email.</p>'
-            . '<p style="margin:20px 0 0 0;font-size:15px;line-height:1.6;">Best regards,<br><strong>YOleotard Atelier</strong><br>Made in Ukraine</p>'
-            . '</div>'
-            . '<p style="text-align:center;color:#94a3b8;font-size:12px;margin:16px 0 0 0;">YOleotard · https://yoleotard.com</p>'
-            . '</div></body></html>';
-    }
-
-    private function send_html_mail($to, $subject, $message, $attachments = []) {
-        $s = self::settings();
-        $headers = $this->mail_headers($s);
-        $force_html = function() { return 'text/html'; };
-        add_filter('wp_mail_content_type', $force_html, 999);
-        $sent = wp_mail($to, $subject, $message, $headers, $attachments);
-        remove_filter('wp_mail_content_type', $force_html, 999);
-        return $sent;
-    }
-
     private function send_bank_invoice_email($local_id, $attachment_path) {
-        $s = self::settings();
-        $d = $this->get_order_data($local_id);
-        $subject = str_replace('{order_id}', $d['order_id'], $s['email_bank_subject']);
-        $invoice_url = get_post_meta($local_id, 'invoice_pdf_url', true) ?: get_post_meta($local_id, 'invoice_html_url', true);
-        if (!$invoice_url) $invoice_url = $this->file_path_to_url($attachment_path);
-        $msg = $this->build_bank_invoice_email_html($local_id, $invoice_url);
-        $attachments = [];
-        if ($attachment_path && file_exists($attachment_path)) $attachments[] = $attachment_path;
-
-        // Main customer email: rich HTML invoice instructions, not the old short text template.
-        $this->send_html_mail($d['email'], $subject, $msg, $attachments);
-
-        if (!empty($s['admin_email'])) {
-            $admin_msg = '<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;"><strong>Admin copy.</strong> The customer received the invoice-payment email below.</p>' . $msg;
-            $this->send_html_mail($s['admin_email'], 'Copy: ' . $subject, $admin_msg, $attachments);
-        }
-    }
-
-    private function build_paid_email_html($local_id) {
-        $d = $this->get_order_data($local_id);
-        $logo = $this->email_logo_html();
-        $address = $this->email_address_html($d);
-        return '<!doctype html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">'
-            . '<div style="max-width:680px;margin:0 auto;padding:28px 14px;">'
-            . '<div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:28px;box-shadow:0 6px 18px rgba(15,23,42,.06);">'
-            . $logo
-            . '<h1 style="margin:0 0 10px 0;font-size:26px;line-height:1.25;color:#111827;">Payment successful</h1>'
-            . '<p style="margin:0 0 18px 0;color:#475569;font-size:15px;line-height:1.6;">Thank you for your order. We have received your payment. The total below includes delivery and, for card payments, the payment service fee.</p>'
-            . '<div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:16px 18px;margin:18px 0;">'
-            . '<p style="margin:0 0 6px 0;font-size:15px;">Order number: <strong>№ ' . esc_html($d['order_id']) . '</strong></p>'
-            . '<p style="margin:0;font-size:15px;">Payment status: <strong>Paid</strong></p>'
-            . '</div>'
-            . '<h2 style="font-size:18px;margin:24px 0 10px 0;">Order details</h2>'
-            . '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 18px;background:#ffffff;">' . $this->email_order_table_html($d, false) . '</div>'
-            . '<h2 style="font-size:18px;margin:26px 0 10px 0;">Customer and delivery details</h2>'
-            . '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;background:#fafafa;font-size:14px;line-height:1.6;">'
-            . '<p style="margin:0 0 8px 0;"><strong>Name:</strong> ' . esc_html($d['full_name']) . '</p>'
-            . '<p style="margin:0 0 8px 0;"><strong>Email:</strong> ' . esc_html($d['email']) . '</p>'
-            . '<p style="margin:0 0 8px 0;"><strong>Phone:</strong> ' . esc_html($d['phone']) . '</p>'
-            . '<p style="margin:0;"><strong>Delivery address:</strong><br>' . $address . '</p>'
-            . '</div>'
-            . '<div style="background:#f8fafc;border-left:4px solid #111827;margin:24px 0 0 0;padding:16px 18px;border-radius:8px;">'
-            . '<p style="margin:0;font-size:15px;line-height:1.6;">Our manager will contact you via WhatsApp and email. After shipment, we will send you the tracking number and tracking link for your parcel.</p>'
-            . '</div>'
-            . '<p style="margin:20px 0 0 0;font-size:15px;line-height:1.6;">Best regards,<br><strong>YOleotard Atelier</strong><br>Made in Ukraine</p>'
-            . '</div>'
-            . '<p style="text-align:center;color:#94a3b8;font-size:12px;margin:16px 0 0 0;">YOleotard · https://yoleotard.com</p>'
-            . '</div></body></html>';
+        return $this->email_service()->send_bank_invoice_email($local_id, $attachment_path);
     }
 
     private function send_paid_email($local_id) {
-        if (get_post_meta($local_id, 'paid_email_sent', true) === '1') return;
-        $s = self::settings();
-        $d = $this->get_order_data($local_id);
-        $subject = str_replace('{order_id}', $d['order_id'], $s['email_paid_subject']);
-        $msg = $this->build_paid_email_html($local_id);
-        $sent = $this->send_html_mail($d['email'], $subject, $msg);
-        if (!$sent) {
-            update_post_meta($local_id, 'paid_email_error', 'Customer paid email was not sent by wp_mail.');
-            return;
-        }
-        if (!empty($s['admin_email'])) $this->send_html_mail($s['admin_email'], 'Copy: ' . $subject, $msg);
-        delete_post_meta($local_id, 'paid_email_error');
-        update_post_meta($local_id, 'paid_email_sent', '1');
+        return $this->email_service()->send_paid_email($local_id);
     }
-
 }
 new YO_Checkout_Invoice_Plugin();

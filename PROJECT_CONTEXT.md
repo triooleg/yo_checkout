@@ -24,7 +24,7 @@ Plugin name:
 
 Current plugin version in the main PHP header:
 
-- `4.0.34`
+- `4.0.35`
 
 Main business goal:
 
@@ -36,6 +36,7 @@ Main business goal:
 The plugin is currently concentrated in:
 
 - `yoleotard-checkout-invoice.php`
+- `includes/*.php`
 - `assets/yo-checkout.js`
 - `assets/yo-checkout.css`
 
@@ -58,7 +59,7 @@ Preferred direction:
 - Prefer small, reversible changes.
 - When a completed task changes runtime behavior, bump the plugin header version at the maintainer's discretion and append a short entry to the single `CHANGELOG.txt` file.
 - Test ZIP archives must be created only when the user explicitly asks for a test archive.
-- For this hosting/WordPress upload flow, the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip` and the ZIP contents must have one top-level folder named exactly `yoleotard-checkout-invoice/`. All internal ZIP paths must use forward slashes (`/`), for example `yoleotard-checkout-invoice/assets/yo-checkout.js`. Do not use PowerShell `Compress-Archive` directly for the installable plugin ZIP because this host may unpack Windows backslashes (`\`) as literal filename characters.
+- Test ZIP archives must be stored under local folder `plugin-archives/`, which is excluded from git. For this hosting/WordPress upload flow, the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip` and the ZIP contents must have one top-level folder named exactly `yoleotard-checkout-invoice/`. All internal ZIP paths must use forward slashes (`/`), for example `yoleotard-checkout-invoice/assets/yo-checkout.js`. Do not use PowerShell `Compress-Archive` directly for the installable plugin ZIP because this host may unpack Windows backslashes (`\`) as literal filename characters.
 - After creating the ZIP, verify with Python `zipfile` or another ZIP listing that there are zero entries containing `\`, and verify a local extraction creates real `assets/` and `includes/` directories.
 - Record the test version in the plugin header and `CHANGELOG.txt`; do not rely on the ZIP filename for the version.
 - Keep a repository rollback point after each completed task.

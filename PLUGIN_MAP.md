@@ -14,7 +14,7 @@ Rules for future work:
 - If an existing function must be worked on, first consider moving the related block into a separate included file, then make the change there.
 - Runtime behavior changes should update the plugin header version and append a concise entry to the single `CHANGELOG.txt` file.
 - Do not create test ZIP archives unless the user explicitly requests one.
-- Test archive packaging rule for this host: the installable ZIP file must be named exactly `yoleotard-checkout-invoice.zip`, and inside it the only top-level plugin folder must be `yoleotard-checkout-invoice/`. Internal ZIP paths must use forward slashes (`/`), not Windows backslashes (`\`). This host may create a duplicate plugin folder if the ZIP filename includes a test/version suffix, and may create flat files with `\` in their names if the ZIP is built incorrectly.
+- Test archive packaging rule for this host: store local ZIPs in `plugin-archives/` and keep that folder excluded from git. The installable ZIP file itself must be named exactly `yoleotard-checkout-invoice.zip`, and inside it the only top-level plugin folder must be `yoleotard-checkout-invoice/`. Internal ZIP paths must use forward slashes (`/`), not Windows backslashes (`\`). This host may create a duplicate plugin folder if the ZIP filename includes a test/version suffix, and may create flat files with `\` in their names if the ZIP is built incorrectly.
 - After each task, update `DEVELOPMENT_LOG.md`.
 - If code structure, hooks, files, settings, AJAX actions, REST routes, or frontend behavior changed, update this map.
 - After each task, check syntax and basic runtime logic as much as possible in the local environment.
@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, KeyCRM integration, shipping logic, payment finalization, wrappers for YOOtheme sold-item hiding, invoice generation, and email sending.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services.
 
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
@@ -40,6 +40,9 @@ Rules for future work:
 - `includes/class-yo-checkout-keycrm.php`
   KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names.
 
+- `includes/class-yo-checkout-email.php`
+  Customer email service. Owns shared HTML email rendering, product thumbnail blocks, bank invoice email sending, paid-card email sending, email headers, and email-specific sent/error meta updates. The main plugin keeps thin wrapper methods so existing invoice/card flows continue to call the same method names.
+
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
 
@@ -47,7 +50,10 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.34`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.35`.
+
+- `plugin-archives/`
+  Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
 
 - `WESTERN_BID_MIGRATION_MAP.md`
   Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
@@ -169,7 +175,7 @@ Line numbers are approximate and should be refreshed after larger edits.
 - Frontend fallback sold-item hider script: delegated to `includes/class-yo-checkout-sold-items.php`; legacy inline copy remains below the delegating `return` for transition safety.
 - Unpaid-order cancellation: lines 4715-4719.
 - Bank details and invoice generation: lines 4721-5061.
-- Email helpers and outgoing bank/paid emails: lines 5063-5240.
+- Customer email rendering and outgoing bank/paid emails: delegated to `includes/class-yo-checkout-email.php` through wrapper methods near the end of the main file.
 
 ## Frontend JS Flow
 
@@ -287,6 +293,13 @@ KeyCRM:
 - Bank invoice Step 3 diagnostics write `checkout-debug` lines into the existing admin log shown under the Hiding section and into PHP `error_log`.
 - Existing KeyCRM product rows are matched by row ID/title/image/position before order update so repeated invoice requests update rows instead of appending duplicates.
 
+Email:
+
+- Customer email rendering and sending are delegated to `includes/class-yo-checkout-email.php`.
+- The main plugin still decides when a bank invoice or paid-card email should be sent.
+- Paid-card emails still set `paid_email_sent=1` only after the customer email succeeds.
+- Bank invoice emails now return a customer-send success flag; `bank_invoice_email_sent` and `bank_invoice_email_sent_hash` are updated only when the customer email succeeds. Failed customer sends write `bank_invoice_email_error` and can be retried because the cart-hash sent marker is not advanced.
+
 Dompdf:
 
 - Used for PDF invoice generation.
@@ -309,8 +322,8 @@ YOOtheme:
 
 - The main PHP file is large. Prefer extracting new areas into `includes/*.php` and loading them from the main file.
 - For frontend additions, prefer new files under `assets/` and enqueue/localize them from PHP.
-- When building a test ZIP, create `yoleotard-checkout-invoice.zip` with explicit forward-slash arc names such as `yoleotard-checkout-invoice/includes/file.php`. Prefer Python `zipfile` or another ZIP tool that lets arc names be normalized. Do not use PowerShell `Compress-Archive` directly for the installable ZIP. Exclude `.git`, old ZIP archives, temporary package folders, and unrelated local files. Keep the version in the plugin header and `CHANGELOG.txt`, not in the installable ZIP filename.
-- After building a test ZIP, verify: filename is `yoleotard-checkout-invoice.zip`; first entry is `yoleotard-checkout-invoice/`; no ZIP entry contains `\`; local extraction creates real `assets/` and `includes/` directories.
+- When building a test ZIP, create `plugin-archives/yoleotard-checkout-invoice.zip` with explicit forward-slash arc names such as `yoleotard-checkout-invoice/includes/file.php`. Prefer Python `zipfile` or another ZIP tool that lets arc names be normalized. Do not use PowerShell `Compress-Archive` directly for the installable ZIP. Exclude `.git`, old ZIP archives, temporary package folders, `plugin-archives/`, and unrelated local files. Keep the version in the plugin header and `CHANGELOG.txt`, not in the installable ZIP filename.
+- After building a test ZIP, verify: path is `plugin-archives/yoleotard-checkout-invoice.zip`; first entry is `yoleotard-checkout-invoice/`; no ZIP entry contains `\`; local extraction creates real `assets/` and `includes/` directories.
 - If touching payment, KeyCRM, or sold-item hiding, preserve idempotency. Many methods use post meta flags/locks to avoid duplicate payments, emails, and status updates.
 - If touching AJAX, always verify nonce handling and guest-user behavior.
 - If touching checkout pricing, check product price, promo discount, shipping, card fee, bank total, and KeyCRM payment amount together.

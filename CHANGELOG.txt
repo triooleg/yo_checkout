@@ -241,3 +241,8 @@ YOleotard Checkout v4.0.34
 - Prevents stale card polling callbacks from a previous cart from opening Step 4 in a later checkout session.
 - Clears stale KeyCRM markers before starting card payment while leaving the working bank invoice flow unchanged.
 
+YOleotard Checkout v4.0.35
+- Moves customer bank-invoice and paid-card email rendering/sending into `includes/class-yo-checkout-email.php`.
+- Keeps the existing main-plugin email method names as thin wrappers so the working checkout flows continue to call the same internal API.
+- Bank invoice email sent markers are now written only when the customer email send succeeds; failed sends store `bank_invoice_email_error` and remain retryable.
+
