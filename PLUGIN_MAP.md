@@ -28,6 +28,9 @@ Rules for future work:
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
 
+- `includes/class-yo-checkout-product-identity.php`
+  Checkout-owned product identity service. Sanitizes provided DOM/feed product IDs and generates stable fallback product IDs from card titles when a YOOtheme card has no `id`, `data-feed-id`, or `data-product-id`. Fallback IDs follow the feed-style title slug and remove trailing `for height ...` text before slugging. Frontend checkout also mirrors `data-feed-id` into the card `id` when `id` is missing. Used by order sanitization, cart item storage, product-ID-aware reservation checks, availability checks, and sold-item matching.
+
 - `includes/class-yo-checkout-promo.php`
   Promo code service. Owns promo configuration checks, expiration checks, discount calculation, AJAX promo application, recalculating local checkout totals after promo changes, and applying promo data during order creation.
 
@@ -50,7 +53,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.35`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.43`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
@@ -193,7 +196,7 @@ High-level behavior:
    - `yo_checkout_cart_v1`
 3. Adds checkout/cart buttons to product cards found in YOOtheme markup.
 4. Reads product data from card DOM: title, image, price, sale price, weight.
-5. Manages cart UI, duplicate prevention, item removal, local cart persistence, cart cleanup if unavailable.
+5. Manages cart UI, duplicate prevention, item removal, local cart persistence, cart cleanup if unavailable. If a product card has `data-feed-id` but no DOM `id`, checkout copies that feed ID into `id` and uses the same value as `data-product-id`; only cards without any DOM/feed ID receive a deterministic fallback generated from the title using feed-style slug rules without the trailing height suffix. Cart items, reservations, reservation release, and Step 3 payment checks use `product_id` as the primary identity key; title matching is only a compatibility fallback.
 6. Applies and displays promo code discounts.
 7. Reserves products after add-to-cart and refreshes reservation badges from server.
 8. Submits customer/order details through `yo_checkout_create_order`.
@@ -314,8 +317,8 @@ YOOtheme:
 
 - Product cards are discovered from YOOtheme-generated DOM.
 - After purchase, plugin attempts to hide sold product cards both server-side in YOOtheme content and frontend-side as fallback. Matching is intentionally strict: current-card frontend hiding uses the product identity key, and backend Builder auto-hide logs each disabled matched item.
-- Backend auto-hide avoids long YOOtheme content/text blobs for disabling decisions and limits updates to one Builder item per purchased product identity.
-- When a product card has a stable DOM `id` or `data-feed-id`, auto-hide and availability checks prefer that `product_id` before falling back to title matching.
+- Backend auto-hide avoids long YOOtheme content/text blobs for disabling decisions and limits updates to one Builder item per purchased product identity. Multi-item orders are processed one purchased product identity at a time so one matched Builder item cannot prevent the remaining purchased items from being disabled. Because YOOtheme/Builder storage may not contain checkout product IDs, the Builder search must continue to match by product title/model/height; `product_id` is used for cart/order/reservation identity and deduplication.
+- When a product card has a stable DOM `id` or `data-feed-id`, auto-hide, reservation ownership, reservation release, and availability/payment checks prefer that `product_id` before falling back to title matching.
 - Sold-item logs should display the real KeyCRM order number when `order_id` is available, with local WordPress order ID shown only as a technical reference.
 
 ## Development Notes

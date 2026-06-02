@@ -1,4 +1,4 @@
-(function(){
+﻿(function(){
   document.addEventListener('DOMContentLoaded', function () {
     let selectedProduct = {};
     let cartItems = [];
@@ -249,9 +249,9 @@
       const links = Array.from(card.querySelectorAll('a.el-link.uk-button, a.uk-button, button.uk-button'));
       return links.some(function(btn){
         const txt = (btn.textContent || '').replace(/\s+/g, ' ').trim();
-        if(/-\s*\d+(?:[.,]\d+)?\s*(€|EUR|%)/i.test(txt)) return true;
+        if(/-\s*\d+(?:[.,]\d+)?\s*(\u20ac|EUR|%)/i.test(txt)) return true;
         const cls = String(btn.className || '');
-        return /(^|\s)(uk-button-danger|uk-button-red|sale|discount)(\s|$)/i.test(cls) && /buy|€|eur|-\s*\d/i.test(txt);
+        return /(^|\s)(uk-button-danger|uk-button-red|sale|discount)(\s|$)/i.test(cls) && /buy|\u20ac|eur|-\s*\d/i.test(txt);
       });
     }
     function removePromoBadge(card){
@@ -307,8 +307,41 @@
     }
     function productIdFromCard(card){
       if(!card) return '';
-      const raw = card.getAttribute('data-feed-id') || card.id || card.getAttribute('data-product-id') || '';
-      return String(raw || '').replace(/[^A-Za-z0-9_-]/g, '').trim();
+      const feedId = sanitizeProductId(card.getAttribute('data-feed-id') || '');
+      let domId = sanitizeProductId(card.id || '');
+      const dataProductId = sanitizeProductId(card.getAttribute('data-product-id') || '');
+
+      if(!domId && feedId){
+        card.id = feedId;
+        domId = feedId;
+      }
+
+      let productId = domId || feedId || dataProductId;
+      if(!productId){
+        productId = productIdFromTitle(titleFromCard(card));
+      }
+      if(productId) card.setAttribute('data-product-id', productId);
+      return productId;
+    }
+    function sanitizeProductId(value){
+      return String(value || '').replace(/[^A-Za-z0-9_-]/g, '').trim();
+    }
+    function productIdFromTitle(title){
+      const slug = normalizeProductIdentityTitle(title)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/gi, '_')
+        .replace(/^_+|_+$/g, '')
+        .replace(/_+/g, '_');
+      return sanitizeProductId(slug);
+    }
+    function normalizeProductIdentityTitle(title){
+      return String(title || '')
+        .replace(/&quot;|&#034;|&#039;|&apos;|&amp;|&nbsp;/g, ' ')
+        .replace(/[\u201c\u201d\u201e\u00ab\u00bb"'`\u00b4]/g, ' ')
+        .replace(/[\u2013\u2014\u2212]/g, '-')
+        .replace(/\s+(?:for\s+)?height\s+\d{2,3}\s*[-\u2013\u2014\u2212]\s*\d{2,3}\s*$/iu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
     function clearReservedState(card){
       if(!card) return;
@@ -376,9 +409,11 @@
         const active = data.data.items.filter(function(row){ return row && row.title && row.expires && row.expires > serverNow; });
         productCardsOnPage().forEach(function(card){
           const cardTitle = titleFromCard(card);
+          const cardProductId = sanitizeProductId(productIdFromCard(card)).toLowerCase();
           let reserved = null;
           for(const row of active){
-            if(sameProductTitle(cardTitle, row.title)){ reserved = row; break; }
+            const rowProductId = sanitizeProductId(row.product_id || row.feed_id || '').toLowerCase();
+            if((cardProductId && rowProductId && cardProductId === rowProductId) || (!cardProductId && sameProductTitle(cardTitle, row.title))){ reserved = row; break; }
           }
           if(reserved) applyReservedState(card, data.data.badgeText || window.YOCheckout?.reservationBadgeText || 'Reserved', reserved.expires);
           else clearReservedState(card);
@@ -389,11 +424,13 @@
     function reserveProduct(product){
       const fd = new FormData();
       fd.append('title', product.title || '');
+      fd.append('product_id', product.product_id || product.feed_id || '');
       fd.append('buyer_id', buyerId());
       return post('yo_checkout_reserve_item', fd);
     }
-    function clearReservedStateForTitle(title){
-      if(!title) return;
+    function clearReservedStateForTitle(title, productId){
+      productId = sanitizeProductId(productId || '').toLowerCase();
+      if(!title && !productId) return;
       const seen = new Set();
       const candidates = [];
       // Use the normal product-card list first, then add a broader fallback.
@@ -408,23 +445,25 @@
       });
       candidates.forEach(function(card){
         const cardTitle = titleFromCard(card);
-        if(sameProductTitle(cardTitle, title) || textMatchesTitle(cardTitle, title) || textMatchesTitle(title, cardTitle)){
+        const cardProductId = sanitizeProductId(productIdFromCard(card)).toLowerCase();
+        if((productId && cardProductId === productId) || (!productId && (sameProductTitle(cardTitle, title) || textMatchesTitle(cardTitle, title) || textMatchesTitle(title, cardTitle)))){
           clearReservedState(card);
         }
       });
       updateReservedCountdowns();
     }
-    function releaseReservationForTitle(title){
+    function releaseReservationForTitle(title, productId){
       if(!title) return;
       // Clear the visual reserved state immediately. This is important for sale/discount
       // cards because their YOOtheme button markup can differ from regular cards, so
       // waiting for the async refresh can leave a grey overlay until page reload.
-      clearReservedStateForTitle(title);
+      clearReservedStateForTitle(title, productId);
       const fd = new FormData();
       fd.append('title', title);
+      fd.append('product_id', productId || '');
       fd.append('buyer_id', buyerId());
       post('yo_checkout_release_reservation', fd).then(function(){
-        clearReservedStateForTitle(title);
+        clearReservedStateForTitle(title, productId);
         setTimeout(refreshReservedCards, 120);
       }).catch(function(){
         setTimeout(refreshReservedCards, 250);
@@ -457,7 +496,7 @@
           const priceNode = regularButton.querySelector('.yo-price[data-eur]');
           if(!priceNode) { removePromoBadge(card); return; }
           if(!regularButton.dataset.yoTextReady){
-            regularButton.innerHTML='<span class="yo-cart-icon"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="7.3" cy="17.3" r="1.4"></circle><circle cx="13.3" cy="17.3" r="1.4"></circle><polyline fill="none" stroke="currentColor" stroke-width="1.1" points="0 2 3.2 4 5.3 12.5 16 12.5 18 6.5 8 6.5"></polyline></svg></span> Buy now • <span class="yo-price" data-eur="'+priceNode.getAttribute('data-eur')+'">'+priceNode.textContent+'</span>';
+            regularButton.innerHTML='<span class="yo-cart-icon"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="7.3" cy="17.3" r="1.4"></circle><circle cx="13.3" cy="17.3" r="1.4"></circle><polyline fill="none" stroke="currentColor" stroke-width="1.1" points="0 2 3.2 4 5.3 12.5 16 12.5 18 6.5 8 6.5"></polyline></svg></span> Buy now &bull; <span class="yo-price" data-eur="'+priceNode.getAttribute('data-eur')+'">'+priceNode.textContent+'</span>';
             regularButton.dataset.yoTextReady='1';
           }
           // Show promo badge only for regular products without the red sale button.
@@ -538,14 +577,14 @@
     function yoGoogleReviewCountryCode(country){
       const raw = String(country || '').trim();
       if(/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
-      const key = raw.toLowerCase().replace(/[^a-zа-яіїєґ ]+/gi, ' ').replace(/\s+/g, ' ').trim();
+      const key = raw.toLowerCase().replace(/[^a-zР°-СЏС–С—С”Т‘ ]+/gi, ' ').replace(/\s+/g, ' ').trim();
       const map = {
         'malaysia':'MY','united kingdom':'GB','uk':'GB','great britain':'GB','england':'GB',
         'united states':'US','usa':'US','us':'US','america':'US','canada':'CA','australia':'AU',
-        'italy':'IT','italia':'IT','france':'FR','germany':'DE','deutschland':'DE','spain':'ES','espana':'ES','españa':'ES',
+        'italy':'IT','italia':'IT','france':'FR','germany':'DE','deutschland':'DE','spain':'ES','espana':'ES','espaГ±a':'ES',
         'poland':'PL','polska':'PL','norway':'NO','norge':'NO','sweden':'SE','denmark':'DK','finland':'FI',
         'netherlands':'NL','belgium':'BE','austria':'AT','switzerland':'CH','ireland':'IE','portugal':'PT',
-        'ukraine':'UA','украина':'UA','україна':'UA','czech republic':'CZ','czechia':'CZ','slovakia':'SK',
+        'ukraine':'UA','СѓРєСЂР°РёРЅР°':'UA','СѓРєСЂР°С—РЅР°':'UA','czech republic':'CZ','czechia':'CZ','slovakia':'SK',
         'romania':'RO','bulgaria':'BG','greece':'GR','croatia':'HR','slovenia':'SI','hungary':'HU',
         'estonia':'EE','latvia':'LV','lithuania':'LT','colombia':'CO','mexico':'MX','japan':'JP','singapore':'SG'
       };
@@ -625,22 +664,28 @@
       div.innerHTML = text;
       text = div.textContent || div.innerText || text;
       text = decodeLooseUnicodeSequences(text);
-      text = text.replace(/[’‘`´]/g, "'").replace(/[“”«»]/g, '"').replace(/[–—−]/g, '-').replace(/\u00a0/g, ' ');
+      text = text.replace(/[вЂ™вЂ`Вґ]/g, "'").replace(/[вЂњвЂќВ«В»]/g, '"').replace(/[вЂ“вЂ”в€’]/g, '-').replace(/\u00a0/g, ' ');
+      text = text.replace(/[\u2019\u2018\u201a\u201b]/g, "'").replace(/[\u201c\u201d\u201e\u00ab\u00bb]/g, '"').replace(/[\u2013\u2014\u2212]/g, '-');
       text = text.replace(/[^\p{L}\p{N}'" \-]+/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
       return text;
     }
     function importantTitleWords(text){
       const generic = {new:1,author:1,authors:1,designer:1,leotard:1,leotards:1,duo:1,dress:1,for:1,height:1,cm:1,size:1,model:1,the:1,and:1,with:1,per:1,pair:1};
-      return normalizeMatchText(text).split(/\s+/).filter(function(w){ return w && !generic[w] && !/^\d{2,3}$/.test(w) && w.length >= 3; });
+      return normalizeMatchText(text).split(/\s+/).filter(function(w){ return w && !generic[w] && !/^\d{2,3}$/.test(w) && !/^\d{2,3}-\d{2,3}$/.test(w) && w.length >= 3; });
     }
     function titleAliasesForMatching(title){
       const raw = decodeLooseUnicodeSequences(title);
       const aliases = [];
       const full = normalizeMatchText(raw);
       if(full) aliases.push(full);
-      const re = /["«“]([^"»”]{3,})["»”]/g;
+      const re = /["В«вЂњ]([^"В»вЂќ]{3,})["В»вЂќ]/g;
       let m;
       while((m = re.exec(raw))){
+        const q = normalizeMatchText(m[1]);
+        if(q) aliases.push(q);
+      }
+      const unicodeQuoteRe = /["\u201c\u201d\u00ab\u00bb]([^"\u201c\u201d\u00ab\u00bb]{3,})["\u201c\u201d\u00ab\u00bb]/g;
+      while((m = unicodeQuoteRe.exec(raw))){
         const q = normalizeMatchText(m[1]);
         if(q) aliases.push(q);
       }
@@ -654,17 +699,28 @@
 
     function productIdentityKey(title){
       const raw = decodeLooseUnicodeSequences(title || '');
+      const height = titleHeightRange(raw);
       const quoted = [];
-      const re = /["«“]([^"»”]{3,})["»”]/g;
+      const re = /["В«вЂњ]([^"В»вЂќ]{3,})["В»вЂќ]/g;
       let m;
       while((m = re.exec(raw))){
         const q = normalizeMatchText(m[1]);
         if(q) quoted.push(q);
       }
-      if(quoted.length) return quoted[0];
+      const unicodeQuoteRe = /["\u201c\u201d\u00ab\u00bb]([^"\u201c\u201d\u00ab\u00bb]{3,})["\u201c\u201d\u00ab\u00bb]/g;
+      while((m = unicodeQuoteRe.exec(raw))){
+        const q = normalizeMatchText(m[1]);
+        if(q) quoted.push(q);
+      }
+      if(quoted.length) return quoted[0] + '|' + height;
       const words = importantTitleWords(raw);
-      if(words.length >= 2) return words.slice(0, Math.min(4, words.length)).join(' ');
-      return normalizeMatchText(raw);
+      if(words.length >= 2) return words.slice(0, Math.min(4, words.length)).join(' ') + '|' + height;
+      return normalizeMatchText(raw) + '|' + height;
+    }
+    function titleHeightRange(title){
+      const norm = normalizeMatchText(title || '');
+      const m = norm.match(/\b(\d{2,3})\s*-\s*(\d{2,3})\b/);
+      return m ? (m[1] + '-' + m[2]) : '';
     }
     function cardProductIdentityKey(card){
       return productIdentityKey(titleFromCard(card));
@@ -712,9 +768,11 @@
       const unavailable = {};
       cartItems.forEach(function(item){
         const key = normalizeCartItemKey(item);
+        const itemProductId = sanitizeProductId(item.product_id || item.feed_id || '').toLowerCase();
         let found = false;
         for(const card of cards){
-          if(sameProductTitle(titleFromCard(card), item.title)){ found = true; break; }
+          const cardProductId = productIdFromCard(card).toLowerCase();
+          if((itemProductId && cardProductId === itemProductId) || (!itemProductId && sameProductTitle(titleFromCard(card), item.title))){ found = true; break; }
         }
         if(!found) unavailable[key] = true;
       });
@@ -754,7 +812,7 @@
             }
           });
         }
-        const removedTitles = [];
+        const removedItems = [];
         cartItems = cartItems.filter(function(item){
           const fullKey = normalizeCartItemKey(item);
           const identityKey = productIdentityKey(item && item.title ? item.title : '');
@@ -765,13 +823,13 @@
           // If the server did not return a row for this item, keep it rather than
           // deleting a customer's cart item by mistake. The final payment step has
           // a stricter server-side availability check.
-          if(!keep && item && item.title) removedTitles.push(item.title);
+          if(!keep && item && item.title) removedItems.push(item);
           return keep;
         });
         // If a cart item is removed as unavailable, release this visitor's active
         // reservation too. Otherwise the public countdown can keep running after
         // the item disappeared from the cart.
-        removedTitles.forEach(function(title){ releaseReservationForTitle(title); });
+        removedItems.forEach(function(item){ releaseReservationForTitle(item.title, item.product_id || item.feed_id || ''); });
         const removed = beforeCount - cartItems.length;
         if(removed > 0){
           appliedCartPromo = null;
@@ -914,43 +972,45 @@
         const promoDiscount = cartItemPromoDiscount(item);
         const totalItemDiscount = +(productDiscount + promoDiscount).toFixed(2);
         const finalItem = Math.max(0, (parseFloat(item.price_eur || 0) || 0) - promoDiscount);
-        let discountText = '—';
+        let discountText = '&mdash;';
         if(totalItemDiscount > 0){
           const parts = [];
-          if(productDiscount > 0) parts.push('Product -€'+money(productDiscount));
-          if(promoDiscount > 0) parts.push('Promo -€'+money(promoDiscount));
+          if(productDiscount > 0) parts.push('Product -&euro;'+money(productDiscount));
+          if(promoDiscount > 0) parts.push('Promo -&euro;'+money(promoDiscount));
           discountText = parts.join('<br>');
         }
         return '<div class="yo-cart-item yo-cart-item-grid" data-cart-index="'+i+'">' +
           '<div class="yo-cart-item-title">'+escHtml(i + 1 + '. ' + item.title)+'</div>' +
-          '<div class="yo-cart-item-price">€'+money(item.original_price_eur || item.price_eur)+'</div>' +
+          '<div class="yo-cart-item-price">&euro;'+money(item.original_price_eur || item.price_eur)+'</div>' +
           '<div class="yo-cart-item-discount '+(totalItemDiscount > 0 ? 'has-discount' : '')+'">'+discountText+'</div>' +
-          '<div class="yo-cart-item-final">€'+money(finalItem)+'</div>' +
+          '<div class="yo-cart-item-final">&euro;'+money(finalItem)+'</div>' +
           '<button type="button" class="yo-cart-remove uk-icon-button" data-cart-remove="'+i+'" aria-label="Remove item" uk-icon="icon: trash; ratio: .85"></button>' +
         '</div>';
       }).join('');
       box.innerHTML = '<div class="yo-cart-summary-head"><strong>Cart</strong><span>'+cartItems.length+' order'+(cartItems.length === 1 ? '' : 's')+'</span></div>' +
         '<div class="yo-cart-table-head"><span>Model</span><span>Price</span><span>Discount</span><span>Total</span><span></span></div>' +
         rows +
-        (totals.productDiscount > 0 ? '<div class="yo-cart-row"><span>Product discounts</span><strong>-€'+money(totals.productDiscount)+'</strong></div>' : '') +
-        (totals.promoDiscount > 0 ? '<div class="yo-cart-row"><span>Promo code discount</span><strong>-€'+money(totals.promoDiscount)+'</strong></div>' : '') +
-        '<div class="yo-cart-total"><span>Total</span><strong>€'+money(totals.finalTotal)+'</strong></div>';
+        (totals.productDiscount > 0 ? '<div class="yo-cart-row"><span>Product discounts</span><strong>-&euro;'+money(totals.productDiscount)+'</strong></div>' : '') +
+        (totals.promoDiscount > 0 ? '<div class="yo-cart-row"><span>Promo code discount</span><strong>-&euro;'+money(totals.promoDiscount)+'</strong></div>' : '') +
+        '<div class="yo-cart-total"><span>Total</span><strong>&euro;'+money(totals.finalTotal)+'</strong></div>';
       const titleEl = byId('yo-modal-title');
       const priceEl = byId('yo-modal-price');
       const imgEl = byId('yo-modal-img');
       const productHead = byId('yo-modal-product-head');
       if(productHead) productHead.classList.toggle('yo-cart-preview-many', cartItems.length > 2);
       if(titleEl) titleEl.textContent = cartItems.length === 1 ? cartItems[0].title : cartItems.length + ' selected leotards';
-      if(priceEl) priceEl.textContent = money(totals.finalTotal) + ' €';
+      if(priceEl) priceEl.textContent = money(totals.finalTotal) + ' \u20ac';
       renderModalProductImages();
       renderPromoBox();
       if(window.UIkit && window.UIkit.update) window.UIkit.update(box);
     }
     function removeCartItem(index){
       if(index < 0 || index >= cartItems.length) return;
-      const removedTitle = cartItems[index] && cartItems[index].title ? cartItems[index].title : '';
+      const removedItem = cartItems[index] || null;
+      const removedTitle = removedItem && removedItem.title ? removedItem.title : '';
+      const removedProductId = removedItem ? (removedItem.product_id || removedItem.feed_id || '') : '';
       cartItems.splice(index, 1);
-      if(removedTitle) releaseReservationForTitle(removedTitle);
+      if(removedTitle) releaseReservationForTitle(removedTitle, removedProductId);
       syncAppliedCartPromo();
       if(!appliedCartPromo && byId('yo-promo-code')) byId('yo-promo-code').value='';
       if(byId('yo-promo-message')) byId('yo-promo-message').textContent='';
@@ -1000,7 +1060,7 @@
       if(window.YOCheckout && window.YOCheckout.cartAddedNotificationEnabled === false) return;
       const plainMessage = window.YOCheckout?.cartAddedNotificationTitle || 'Added to cart';
       const title = product && product.title ? String(product.title) : '';
-      const htmlMessage = '<div class="yo-cart-added-notice" style="'+cartNoticeStyleVars()+'"><span class="yo-cart-added-icon">✓</span><span><strong>'+escHtml(plainMessage)+'</strong>' + (title ? '<small>'+escHtml(title)+'</small>' : '') + '</span></div>';
+      const htmlMessage = '<div class="yo-cart-added-notice" style="'+cartNoticeStyleVars()+'"><span class="yo-cart-added-icon">&check;</span><span><strong>'+escHtml(plainMessage)+'</strong>' + (title ? '<small>'+escHtml(title)+'</small>' : '') + '</span></div>';
       if(window.UIkit && typeof window.UIkit.notification === 'function'){
         window.UIkit.notification({
           message: htmlMessage,
@@ -1118,23 +1178,23 @@
       const discountLabel = selectedProduct.promo_applied ? 'Promo code discount' : 'Discount';
       let rows = '<div class=\"yo-receipt-title\"><strong>Order summary</strong></div>' +
         '<div class=\"yo-receipt-product\">'+escHtml(selectedProduct.title || current.customer.product || 'Selected leotard')+'</div>' +
-        '<div class=\"yo-receipt-row\"><span>Regular leotard price</span><strong>€'+money(original || finalPrice)+'</strong></div>';
+        '<div class=\"yo-receipt-row\"><span>Regular leotard price</span><strong>&euro;'+money(original || finalPrice)+'</strong></div>';
       if(discount > 0){
-        rows += '<div class=\"yo-receipt-row yo-discount-row\"><span>'+escHtml(discountLabel)+'</span><strong>-€'+money(discount)+'</strong></div>' +
-          '<div class=\"yo-receipt-row\"><span>Leotard price after discount</span><strong>€'+money(finalPrice)+'</strong></div>';
+        rows += '<div class=\"yo-receipt-row yo-discount-row\"><span>'+escHtml(discountLabel)+'</span><strong>-&euro;'+money(discount)+'</strong></div>' +
+          '<div class=\"yo-receipt-row\"><span>Leotard price after discount</span><strong>&euro;'+money(finalPrice)+'</strong></div>';
       }
       if(current.shippingOptions && current.shippingOptions.length > 1){
         rows += '<div class=\"yo-shipping-options\"><div class=\"yo-shipping-title\"><strong>Choose delivery option</strong></div>';
         current.shippingOptions.forEach(function(opt){
           const checked = current.shipping && current.shipping.selected_key && String(current.shipping.selected_key) === String(opt.key) ? ' checked' : '';
-          rows += '<label class=\"yo-shipping-option\"><input type=\"radio\" name=\"yo_shipping_option\" value=\"'+escHtml(opt.key || '')+'\"'+checked+'> <span>'+escHtml(opt.label || 'Delivery')+'</span><strong>€'+money(opt.amount || opt.amount_eur || 0)+'</strong></label>';
+          rows += '<label class=\"yo-shipping-option\"><input type=\"radio\" name=\"yo_shipping_option\" value=\"'+escHtml(opt.key || '')+'\"'+checked+'> <span>'+escHtml(opt.label || 'Delivery')+'</span><strong>&euro;'+money(opt.amount || opt.amount_eur || 0)+'</strong></label>';
         });
         rows += '</div>';
       }
-      rows += '<div class=\"yo-receipt-row\"><span>Delivery to '+escHtml(current.shipping?.country || 'your country')+(current.shipping?.selected_label ? ' · '+escHtml(current.shipping.selected_label) : '')+'</span><strong>€'+money(f.shipping || 0)+'</strong></div>' +
-        '<div class=\"yo-receipt-row\"><span>Card payment service fee '+money(f.percent)+'%</span><strong>€'+money(f.fee)+'</strong></div>' +
-        '<div class=\"yo-receipt-total\"><span>Total card payment</span><strong>€'+money(f.total)+'</strong></div>' +
-        '<p class=\"yo-receipt-note\">Card payments are processed by a third-party provider. If you choose SEPA/SWIFT invoice, the card payment service fee is not added. Bank invoice total: €'+money(b.total)+'.</p>';
+      rows += '<div class=\"yo-receipt-row\"><span>Delivery to '+escHtml(current.shipping?.country || 'your country')+(current.shipping?.selected_label ? ' &middot; '+escHtml(current.shipping.selected_label) : '')+'</span><strong>&euro;'+money(f.shipping || 0)+'</strong></div>' +
+        '<div class=\"yo-receipt-row\"><span>Card payment service fee '+money(f.percent)+'%</span><strong>&euro;'+money(f.fee)+'</strong></div>' +
+        '<div class=\"yo-receipt-total\"><span>Total card payment</span><strong>&euro;'+money(f.total)+'</strong></div>' +
+        '<p class=\"yo-receipt-note\">Card payments are processed by a third-party provider. If you choose SEPA/SWIFT invoice, the card payment service fee is not added. Bank invoice total: &euro;'+money(b.total)+'.</p>';
       box.innerHTML = rows;
       box.querySelectorAll('input[name="yo_shipping_option"]').forEach(function(input){
         input.addEventListener('change', function(){ updateShippingOption(this.value); });
@@ -1492,7 +1552,7 @@
       (items || []).forEach(function(item){
         const title = item && item.title ? String(item.title) : '';
         const key = title.toLowerCase().trim();
-        if(title && !seen.has(key)){ seen.add(key); releaseReservationForTitle(title); }
+        if(title && !seen.has(key)){ seen.add(key); releaseReservationForTitle(title, item.product_id || item.feed_id || ''); }
       });
     }
     function hideProductCard(card){

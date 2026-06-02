@@ -75,7 +75,16 @@ class YO_Checkout_Sold_Items_Service {
         $post = get_post($page_id);
         if ($post) {
             $content = (string)$post->post_content;
-            $new_content = $this->disable_titles_in_yootheme_storage_string($content, $titles, $changed_content);
+            $new_content = $content;
+            $changed_content = false;
+            foreach ($titles as $sold_item) {
+                $item_changed = false;
+                $candidate_content = $this->disable_titles_in_yootheme_storage_string($new_content, [$sold_item], $item_changed);
+                if ($item_changed && $candidate_content !== $new_content) {
+                    $new_content = $candidate_content;
+                    $changed_content = true;
+                }
+            }
             if ($changed_content && $new_content !== $content) {
                 wp_update_post(wp_slash(['ID' => $page_id, 'post_content' => $new_content]));
                 $changed_any = true;
@@ -89,7 +98,15 @@ class YO_Checkout_Sold_Items_Service {
             if (strpos($meta_key, '_yo_checkout_autohide_backup_') === 0) continue;
             foreach ((array)$values as $value) {
                 $changed_meta = false;
-                $new_value = $this->disable_titles_in_yootheme_storage_mixed($value, $titles, $changed_meta);
+                $new_value = $value;
+                foreach ($titles as $sold_item) {
+                    $item_changed = false;
+                    $candidate_value = $this->disable_titles_in_yootheme_storage_mixed($new_value, [$sold_item], $item_changed);
+                    if ($item_changed && $candidate_value !== $new_value) {
+                        $new_value = $candidate_value;
+                        $changed_meta = true;
+                    }
+                }
                 if ($changed_meta && $new_value !== $value) {
                     update_post_meta($page_id, $meta_key, $new_value);
                     $changed_any = true;
@@ -291,6 +308,9 @@ class YO_Checkout_Sold_Items_Service {
     }
 
     private function sanitize_product_id($value) {
+        if (class_exists('YO_Checkout_Product_Identity_Service')) {
+            return YO_Checkout_Product_Identity_Service::sanitize_product_id($value);
+        }
         return preg_replace('/[^A-Za-z0-9_-]/', '', sanitize_text_field((string)$value));
     }
 
@@ -346,6 +366,9 @@ class YO_Checkout_Sold_Items_Service {
         $text = preg_replace_callback('/(^|[^A-Za-z0-9_])u([0-9a-fA-F]{4})/', function($m){
             return $m[1] . mb_convert_encoding(pack('H*', $m[2]), 'UTF-8', 'UTF-16BE');
         }, $text);
+        $text = preg_replace_callback('/u(00a0|00ab|00bb|2018|2019|201a|201b|201c|201d|201e|2013|2014|2212)/i', function($m){
+            return mb_convert_encoding(pack('H*', $m[1]), 'UTF-8', 'UTF-16BE');
+        }, $text);
         return $text;
     }
 
@@ -358,6 +381,7 @@ class YO_Checkout_Sold_Items_Service {
             ['"','"','"','"',"'", "'", "'", "'", '-', '-', '-', ' '],
             $text
         );
+        $text = str_replace(['’','‘','‚','‛','“','”','„','«','»','–','—','−',"\xc2\xa0"], ["'","'","'","'",'"','"','"','"','"','-','-','-',' '], $text);
         $text = wp_strip_all_tags($text);
         $text = preg_replace('/\s+/u', ' ', $text);
         return trim($text);
@@ -369,6 +393,7 @@ class YO_Checkout_Sold_Items_Service {
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = $this->decode_loose_unicode_sequences($text);
         $text = str_replace(['вЂ™','вЂ','`','Вґ','вЂњ','вЂќ','В«','В»','вЂ“','вЂ”','в€’','&nbsp;'], ["'","'","'","'",'"','"','"','"','-','-','-',' '], $text);
+        $text = str_replace(['’','‘','‚','‛','“','”','„','«','»','–','—','−',"\xc2\xa0"], ["'","'","'","'",'"','"','"','"','"','-','-','-',' '], $text);
         $text = preg_replace('/[^\p{L}\p{N}\'" -]+/u', ' ', $text);
         $text = preg_replace('/\s+/u', ' ', $text);
         return mb_strtolower(trim($text));
@@ -385,6 +410,7 @@ class YO_Checkout_Sold_Items_Service {
         $words = [];
         foreach ($parts as $w) {
             if (isset($generic[$w])) continue;
+            if (preg_match('/^\d{2,3}-\d{2,3}$/', $w)) continue;
             if (preg_match('/^\d{2,3}$/', $w)) continue;
             if (mb_strlen($w) < 3) continue;
             $words[$w] = true;
@@ -403,6 +429,12 @@ class YO_Checkout_Sold_Items_Service {
         $raw = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $models = [];
         if (preg_match_all('/["Р’В«РІР‚Сљ]([^"Р’В»РІР‚Сњ]{3,})["Р’В»РІР‚Сњ]/u', $raw, $qm)) {
+            foreach ($qm[1] as $q) {
+                $q_norm = $this->normalize_match_text($q);
+                if ($q_norm !== '') $models[] = $q_norm;
+            }
+        }
+        if (preg_match_all('/["“”«»]([^"“”«»]{3,})["“”«»]/u', $raw, $qm)) {
             foreach ($qm[1] as $q) {
                 $q_norm = $this->normalize_match_text($q);
                 if ($q_norm !== '') $models[] = $q_norm;
@@ -427,6 +459,13 @@ class YO_Checkout_Sold_Items_Service {
         if ($norm !== '') $aliases[] = $norm;
 
         if (preg_match_all('/["В«вЂњ]([^"В»вЂќ]{3,})["В»вЂќ]/u', $raw, $qm)) {
+            foreach ($qm[1] as $q) {
+                $q_norm = $this->normalize_match_text($q);
+                if ($q_norm !== '') $aliases[] = $q_norm;
+            }
+        }
+
+        if (preg_match_all('/["“”«»]([^"“”«»]{3,})["“”«»]/u', $raw, $qm)) {
             foreach ($qm[1] as $q) {
                 $q_norm = $this->normalize_match_text($q);
                 if ($q_norm !== '') $aliases[] = $q_norm;
@@ -473,10 +512,12 @@ class YO_Checkout_Sold_Items_Service {
             foreach ($words as $w) {
                 if (strpos($hay, $w) !== false) $hits++;
             }
+            if ($hits < 2) continue;
             if ($hits >= 2) {
                 if ($title_height === '') return true;
                 if ($hay_height !== '' && hash_equals($title_height, $hay_height)) return true;
                 if (strpos($hay, $title_height) !== false) return true;
+                continue;
             }
 
             if ($hits >= 1 && preg_match('/\b(\d{2,3})\s*[-вЂ“вЂ”]\s*(\d{2,3})\b/u', (string)$title, $hm)) {

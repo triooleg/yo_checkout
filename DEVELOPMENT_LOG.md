@@ -1,4 +1,4 @@
-# YOleotard Checkout Development Log
+﻿# YOleotard Checkout Development Log
 
 Codex must read this file before making any code change.
 
@@ -745,7 +745,6 @@ Documentation updates:
 Repository rollback point:
 
 - Not created yet by user request. Commit/push only after the user confirms the test archive works.
-
 ## 2026-06-01 - Finalize Working Bank Invoice Version 4.0.33
 
 User request:
@@ -1115,3 +1114,349 @@ Documentation updates:
 Repository rollback point:
 
 - Pending in this task: commit and push stable v4.0.35 email extraction.
+
+## 2026-06-01 - Checkout-Owned Product Identity v4.0.36
+
+User request:
+
+- Design and implement a correct product-card ID system as an architect/developer.
+- Add it as a separate file and connect it to the checkout plugin.
+- Create a test archive after completion.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-product-identity.php`
+- `includes/class-yo-checkout-sold-items.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.36`.
+- Checkout now owns product identity through `YO_Checkout_Product_Identity_Service`.
+- Frontend checkout now generates and stores a deterministic `data-product-id` from the product card title when a YOOtheme card has no `id`, `data-feed-id`, or `data-product-id`.
+- Backend order/cart sanitization now generates a fallback `product_id` from the title if the browser did not provide one.
+- Reservation and cart availability checks now pass product IDs into YOOtheme availability checks where available.
+- Sold-item title fallback no longer allows one matched word plus the same height range to disable a different model.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.36.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, and real `assets/` / `includes/` directories after extraction.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Step 3 Product Identity Fallback v4.0.37
+
+User request:
+
+- Fix a Step 3 error that appeared for both card and bank invoice payments after v4.0.36.
+- The browser alert reported a valid cart item as unavailable with a short `product_id` such as `new_leotard_velvet_flowers`.
+- Create a new archive for testing.
+
+Root cause:
+
+- Product Card Enhancer / Google Feed matching can assign a short frontend `data-feed-id` without the height suffix.
+- Existing YOOtheme Builder storage does not persist those frontend-only IDs on every product card.
+- v4.0.36 made Step 3 availability checks pass that product ID into the YOOtheme availability service, which could block valid products when the ID was not found in Builder data.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.37`.
+- Frontend checkout now prefers its generated product ID with height when another DOM/feed ID is shorter and does not include the height suffix.
+- Step 3 payable checks now try product ID first but fall back to the existing title-based availability check when Builder data has no saved product ID.
+- Product IDs remain stored in cart/order data for KeyCRM/email/auto-hide; this change only prevents the payment gate from rejecting valid products because Builder storage lacks the frontend-only ID.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.37.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, and real `assets/` / `includes/` directories after extraction.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Mirror Feed ID Into Card ID v4.0.38
+
+User request:
+
+- Adjust the product identity implementation so product card `id` is set exactly from the existing feed ID.
+- If a card has no `id`, take the value from `data-feed-id` and add it as the card `id`.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.38`.
+- Frontend checkout now mirrors `data-feed-id` into the card `id` when the card has no `id`.
+- Checkout uses the same value for DOM `id`, feed ID, and `data-product-id` when a feed ID exists.
+- Cards without any DOM/feed ID still receive a generated fallback `data-product-id` from the title.
+- The Step 3 payable fallback from v4.0.37 remains in place so existing Builder data without saved product IDs does not block valid carts.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Product-ID-Aware Step 3 Reservations v4.0.39
+
+User request:
+
+- Fix the bank invoice Step 3 failure where `create_order` succeeded but `bank_invoice payable check failed`.
+- Add enough diagnostics to understand whether the failure is availability or reservation related.
+- Create an archive for testing.
+
+Root cause:
+
+- The Step 3 payable gate mixed availability and reservation checks in a single condition, so logs only showed title/product ID.
+- Reservations were keyed only by normalized title. Title encoding differences such as `u201c` text versus real curly quotes could make the payable gate re-check a different reservation key than the one created when adding to cart.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.39`.
+- Reservations now use `product_id` as the primary reservation key when it is available, while still checking the legacy title key for compatibility with existing reservations.
+- Step 3 payable checks now return detailed diagnostics: reason, page ID, availability by ID, availability by title fallback, reservation allowed/ensured, current buyer ID, and reservation owner.
+- Cart/invoice cleanup now sends `product_id` when releasing reservations.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.39.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, and real `assets/` / `includes/` directories after extraction.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Product-ID Primary Reservation Gate v4.0.40
+
+User request:
+
+- Fix the Step 3 card/bank invoice failure after product ID work.
+- Make checkout remember and validate cart products by product ID instead of product title so quotes/encoding do not confuse the payment flow.
+- Create an archive for testing.
+
+Root cause:
+
+- Cart items already stored `product_id`, and reservations were product-ID-aware, but some later checks still fell back to title-first behavior.
+- `ajax_create_order()` still confirmed reservations by title only in one pre-payment check.
+- Step 3 payable checks retried availability by YOOtheme title matching even when the same buyer already owned an active reservation for the exact `product_id`.
+- Removing an item from the cart released reservation state by title only, so an ID-based reservation/countdown could remain active.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `includes/class-yo-checkout-sold-items.php`
+- `includes/class-yo-checkout-product-identity.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.40`.
+- Cart validation, order save, card Step 3, and bank invoice Step 3 now treat the customer's own active `product_id` reservation as a valid payable product identity.
+- Reservation cleanup on cart remove/unavailable cleanup now sends `product_id`, not only title.
+- Reservation badges on product cards prefer `product_id` matching.
+- Unicode quote/dash normalization was strengthened as a compatibility fallback, but the main flow now relies on product ID.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.40.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, and real `assets/` / `includes/` directories after extraction.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Multi-Item Auto-Hide Per Product v4.0.41
+
+User request:
+
+- Card payment for four products created the KeyCRM order correctly, but backend auto-hide disabled only one purchased model.
+- Fix the sold-item hiding logic and create an archive for testing.
+- Clarification: YOOtheme/Builder storage may not contain checkout product IDs, so the backend search for the Builder item must work by product title.
+
+Root cause:
+
+- Auto-hide passed the full purchased item list into one recursive YOOtheme matcher.
+- That shared pass could let one matched Builder item consume the match/logging path while the remaining purchased product identities in the same order were not disabled.
+- The auto-hide log also showed loose unicode fragments like `u201d` because title cleanup decoded only some broken unicode forms.
+
+Files changed:
+
+- `includes/class-yo-checkout-sold-items.php`
+- `yoleotard-checkout-invoice.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.41`.
+- Backend YOOtheme auto-hide now processes post content and meta one purchased product identity at a time.
+- The Builder/database match still works by product title when Builder storage does not have product IDs.
+- `product_id` remains useful for cart/reservation/order identity and deduplication, but it is not required for finding the Builder item to hide.
+- Multi-item card orders should now disable every purchased product card that can be matched by title/product identity, instead of only one item.
+- Sold-item auto-hide log cleanup now decodes common loose unicode quote/dash fragments such as `u201d`.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.41.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, and real `assets/` / `includes/` directories after extraction.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-01 - Feed-Style Fallback Product IDs v4.0.42
+
+User request:
+
+- After confirming that checkout and auto-hide work, adjust fallback IDs for product cards without `feed_id`.
+- New checkout-generated IDs should follow the same style as feed IDs and should not include the trailing height part.
+- Create an archive for testing.
+
+Root cause:
+
+- `includes/class-yo-checkout-product-identity.php` and the matching frontend JS fallback generated IDs from the full card title.
+- For titles like `New author's leotard "Magic Flower" for height 145-150`, the fallback became `new_author_s_leotard_magic_flower_for_height_145_150`.
+- Existing feed IDs use the model/title slug without the height suffix, for example `new_author_s_leotard_magic_flower`.
+
+Files changed:
+
+- `includes/class-yo-checkout-product-identity.php`
+- `assets/yo-checkout.js`
+- `yoleotard-checkout-invoice.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `KNOWN_WORKING_FEATURES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.42`.
+- Fallback product IDs now remove trailing `for height NNN-NNN` / `height NNN-NNN` before slug generation.
+- Existing `data-feed-id`, DOM `id`, and `data-product-id` values are still preserved and not regenerated.
+- Confirmed working multi-item card auto-hide was moved into `KNOWN_WORKING_FEATURES.md` based on user testing.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.42.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, and real `assets/` / `includes/` directories after extraction.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-02 - Frontend Currency Symbol Encoding v4.0.43
+
+User request:
+
+- Checkout works, but visible UI symbols are broken in the buy button, cart totals, order summary, delivery, service fee, and total payment rows.
+- Create an archive for checking the fix.
+
+Root cause:
+
+- Some frontend strings in `assets/yo-checkout.js` contained mojibake forms of symbols such as euro, bullet, middle dot, check mark, and dash.
+- These strings are injected with `innerHTML` / `textContent`, so the broken bytes were shown directly to the customer.
+
+Files changed:
+
+- `assets/yo-checkout.js`
+- `yoleotard-checkout-invoice.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.43`.
+- Checkout UI now uses safe HTML entities such as `&euro;`, `&bull;`, `&middot;`, `&mdash;`, `&check;` and `\u20ac` for textContent output.
+- Payment, KeyCRM, email, reservation, and sold-item auto-hide logic were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-product-identity.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.43.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, and real `assets/` / `includes/` directories after extraction.
+
+Repository rollback point:
+
+- Not created yet by user request. Commit/push only after the user confirms the test archive works.

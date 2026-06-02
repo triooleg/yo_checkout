@@ -246,3 +246,46 @@ YOleotard Checkout v4.0.35
 - Keeps the existing main-plugin email method names as thin wrappers so the working checkout flows continue to call the same internal API.
 - Bank invoice email sent markers are now written only when the customer email send succeeds; failed sends store `bank_invoice_email_error` and remain retryable.
 
+YOleotard Checkout v4.0.36
+- Adds checkout-owned product identity service in `includes/class-yo-checkout-product-identity.php`.
+- Generates stable fallback product IDs from product card titles when YOOtheme cards do not have `id`, `data-feed-id`, or `data-product-id`.
+- Uses product IDs during reservation, order save, cart availability checks, and sold-item matching so checkout no longer depends on Google Feed/Product Card Enhancer timing.
+- Tightens sold-item title fallback so a same-height but different model is not hidden by a weak one-word match.
+
+YOleotard Checkout v4.0.37
+- Fixes Step 3 payment blocking when another frontend plugin provides a short feed ID that is not saved in YOOtheme Builder data.
+- Frontend checkout now prefers its generated product ID with height when an existing DOM/feed ID is shorter and less specific.
+- Backend payable checks now try product ID first and safely fall back to the existing title availability check when Builder data has no saved product ID.
+
+YOleotard Checkout v4.0.38
+- Changes frontend product identity behavior to mirror `data-feed-id` into the product card `id` when `id` is missing.
+- Checkout now uses the same value for DOM `id`, feed ID, and `data-product-id` when a feed ID is present.
+- Keeps the safe Step 3 payable fallback from v4.0.37 so existing Builder data without saved product IDs does not block valid carts.
+
+YOleotard Checkout v4.0.39
+- Makes product reservations use `product_id` when available, with title-based compatibility fallback for older reservations.
+- Adds detailed Step 3 payable diagnostics: availability by ID, availability by title, reservation status, buyer ID, and reservation owner.
+- Uses the same product-ID-aware reservation release when clearing cart items after card or bank invoice completion.
+
+YOleotard Checkout v4.0.40
+- Keeps cart validation, order save, bank invoice Step 3, and card payment Step 3 aligned around the same `product_id` reservation key.
+- Allows a customer's own active `product_id` reservation to satisfy the Step 3 payable gate instead of re-guessing the product by title/quotes.
+- Releases reservations by `product_id` when a cart item is removed or cleaned up, so countdown overlays do not remain after deleting an item.
+- Adds stronger Unicode quote/dash normalization as a fallback for older title-based reservations and product IDs.
+
+YOleotard Checkout v4.0.41
+- Fixes multi-item sold-item auto-hide after successful card payment by processing each purchased product identity separately.
+- Prevents one matched YOOtheme Builder item from blocking the remaining purchased items in the same order from being disabled.
+- Keeps Builder/database matching compatible with storage that has no product IDs by matching purchased products by title/model/height.
+- Cleans loose unicode quote fragments such as `u201d` in sold-item auto-hide logs.
+
+YOleotard Checkout v4.0.42
+- Changes fallback product ID generation for cards without `feed_id` to match feed-style slugs.
+- Removes trailing `for height ...` text before generating fallback IDs, e.g. `new_author_s_leotard_magic_flower`.
+- Keeps existing `data-feed-id` / DOM `id` values unchanged when they are already present.
+
+YOleotard Checkout v4.0.43
+- Fixes visible mojibake in checkout UI currency/separator symbols.
+- Uses safe HTML entities/unicode escapes for euro signs, bullet separators, middle dots, and cart notification check marks.
+- Keeps payment, KeyCRM, email, reservation, and auto-hide logic unchanged.
+

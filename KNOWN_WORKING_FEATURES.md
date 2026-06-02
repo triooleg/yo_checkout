@@ -17,6 +17,7 @@ Items listed here are protected: do not change them unless the current task dire
 - KeyCRM order creation for card checkout
 - Customer email sending for card checkout after the v4.0.35 email-service extraction
 - Step 4 card payment success screen after the v4.0.35 email-service extraction
+- Sold-item auto-hide for multi-item card checkout after v4.0.41
 - Host-safe test ZIP packaging for this hosting flow
 - Local PHP syntax check workflow
 - Local JS syntax check workflow
@@ -25,7 +26,6 @@ Items listed here are protected: do not change them unless the current task dire
 
 These areas have worked in some tests, but they are not listed as bug-free because they currently have open monitoring notes, local uncommitted fixes, or recent reported regressions:
 
-- Sold-item auto-hide
 - Promo-code state and expiration handling
 
 ## Handling Rule

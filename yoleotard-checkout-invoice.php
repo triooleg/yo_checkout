@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.35. Extracts customer email sending into a dedicated service.
- * Version: 4.0.35
+ * Description: v4.0.43. Fixes frontend currency and separator character rendering in checkout UI.
+ * Version: 4.0.43
  * Author: YOleotard / ChatGPT
  */
 
@@ -35,6 +35,7 @@ if (!function_exists('mb_convert_encoding')) {
     }
 }
 
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-product-identity.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-sold-items.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-promo.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-google-reviews.php';
@@ -1139,9 +1140,10 @@ EUR=1',
             if (!is_array($row)) continue;
             $expires = absint($row['expires'] ?? 0);
             $title = sanitize_text_field($row['title'] ?? '');
+            $product_id = $this->sanitize_product_id($row['product_id'] ?? '');
             $buyer = sanitize_text_field($row['buyer_id'] ?? '');
             if (!$key || !$title || !$buyer || $expires <= $now) continue;
-            $clean[$key] = ['title'=>$title, 'buyer_id'=>$buyer, 'expires'=>$expires];
+            $clean[$key] = ['title'=>$title, 'product_id'=>$product_id, 'buyer_id'=>$buyer, 'expires'=>$expires];
         }
         update_option($this->reservation_option_key(), $clean, false);
         return $clean;
@@ -1151,30 +1153,80 @@ EUR=1',
         return md5($this->normalize_match_text((string)$title));
     }
 
-    private function reservation_allows_title($title, $buyer_id = '') {
+    private function reservation_key_for_item($title, $product_id = '') {
+        $product_id = $this->sanitize_product_id($product_id);
+        if ($product_id !== '') return 'id:' . strtolower($product_id);
+        return $this->reservation_key_for_title($title);
+    }
+
+    private function reservation_keys_for_item($title, $product_id = '') {
+        $keys = [];
+        $product_key = $this->reservation_key_for_item($title, $product_id);
+        if ($product_key !== '') $keys[] = $product_key;
+        $title_key = $this->reservation_key_for_title($title);
+        if ($title_key !== '' && !in_array($title_key, $keys, true)) $keys[] = $title_key;
+        return $keys;
+    }
+
+    private function reservation_owner_for_item($title, $product_id = '') {
+        $reservations = $this->clean_reservations();
+        foreach ($this->reservation_keys_for_item($title, $product_id) as $key) {
+            if (!empty($reservations[$key]['buyer_id'])) return (string)$reservations[$key]['buyer_id'];
+        }
+        return '';
+    }
+
+    private function item_has_own_reservation($title, $product_id = '', $buyer_id = '') {
+        $buyer_id = sanitize_text_field((string)$buyer_id);
+        if ($buyer_id === '') return false;
+        $owner = $this->reservation_owner_for_item($title, $product_id);
+        return $owner !== '' && hash_equals($owner, $buyer_id);
+    }
+
+    private function reservation_allows_item($title, $product_id = '', $buyer_id = '') {
         $title = sanitize_text_field((string)$title);
         if ($title === '') return false;
         $reservations = $this->clean_reservations();
-        $key = $this->reservation_key_for_title($title);
-        if (empty($reservations[$key])) return true;
         $buyer_id = sanitize_text_field((string)$buyer_id);
-        return $buyer_id !== '' && hash_equals((string)$reservations[$key]['buyer_id'], $buyer_id);
+        foreach ($this->reservation_keys_for_item($title, $product_id) as $key) {
+            if (empty($reservations[$key])) continue;
+            return $buyer_id !== '' && hash_equals((string)$reservations[$key]['buyer_id'], $buyer_id);
+        }
+        return true;
     }
 
-    private function ensure_reservation_for_title($title, $buyer_id) {
+    private function reservation_allows_title($title, $buyer_id = '') {
+        return $this->reservation_allows_item($title, '', $buyer_id);
+    }
+
+    private function ensure_reservation_for_item($title, $product_id, $buyer_id) {
         $title = sanitize_text_field((string)$title);
+        $product_id = $this->sanitize_product_id($product_id);
         $buyer_id = sanitize_text_field((string)$buyer_id);
         if ($title === '' || $buyer_id === '') return false;
         $reservations = $this->clean_reservations();
-        $key = $this->reservation_key_for_title($title);
-        if (!empty($reservations[$key]) && !hash_equals((string)$reservations[$key]['buyer_id'], $buyer_id)) return false;
+        $keys = $this->reservation_keys_for_item($title, $product_id);
+        foreach ($keys as $existing_key) {
+            if (!empty($reservations[$existing_key]) && !hash_equals((string)$reservations[$existing_key]['buyer_id'], $buyer_id)) return false;
+        }
+        $key = $this->reservation_key_for_item($title, $product_id);
+        foreach ($keys as $old_key) {
+            if ($old_key !== $key && isset($reservations[$old_key]) && hash_equals((string)$reservations[$old_key]['buyer_id'], $buyer_id)) {
+                unset($reservations[$old_key]);
+            }
+        }
         $reservations[$key] = [
             'title' => $title,
+            'product_id' => $product_id,
             'buyer_id' => $buyer_id,
             'expires' => time() + ($this->reservation_minutes() * MINUTE_IN_SECONDS),
         ];
         update_option($this->reservation_option_key(), $reservations, false);
         return true;
+    }
+
+    private function ensure_reservation_for_title($title, $buyer_id) {
+        return $this->ensure_reservation_for_item($title, '', $buyer_id);
     }
 
     public function ajax_get_reservations() {
@@ -1186,6 +1238,7 @@ EUR=1',
             $items[] = [
                 'key' => $key,
                 'title' => $row['title'],
+                'product_id' => $row['product_id'] ?? '',
                 'mine' => ($buyer_id !== '' && hash_equals((string)$row['buyer_id'], $buyer_id)),
                 'expires' => absint($row['expires']),
             ];
@@ -1196,18 +1249,19 @@ EUR=1',
     public function ajax_reserve_item() {
         $this->verify_nonce();
         $title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
+        $product_id = $this->sanitize_product_id($_POST['product_id'] ?? ($_POST['feed_id'] ?? ''));
         $buyer_id = sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? ''));
         if ($title === '' || $buyer_id === '') wp_send_json_error(['message'=>'Reservation data is missing.']);
 
         $s = self::settings();
         $page_id = absint($s['auto_hide_sold_page_id'] ?? 0);
         if (!$page_id) $page_id = absint(get_option('page_on_front'));
-        if (!$page_id || !$this->is_yootheme_product_title_available($page_id, $title)) {
+        if (!$page_id || !$this->is_yootheme_product_payable($page_id, $title, $product_id)) {
             wp_send_json_error(['message'=>'This item is no longer available. Please choose another model.']);
         }
 
-        $key = $this->reservation_key_for_title($title);
-        if (!$this->ensure_reservation_for_title($title, $buyer_id)) {
+        $key = $this->reservation_key_for_item($title, $product_id);
+        if (!$this->ensure_reservation_for_item($title, $product_id, $buyer_id)) {
             wp_send_json_error(['message'=>'This item is currently reserved by another customer. Please choose another model.']);
         }
         $reservations = $this->clean_reservations();
@@ -1218,16 +1272,21 @@ EUR=1',
     public function ajax_release_reservation() {
         $this->verify_nonce();
         $title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
+        $product_id = $this->sanitize_product_id($_POST['product_id'] ?? ($_POST['feed_id'] ?? ''));
         $buyer_id = sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? ''));
         if ($title === '' || $buyer_id === '') wp_send_json_success(['released'=>false]);
         $reservations = $this->clean_reservations();
-        $key = $this->reservation_key_for_title($title);
-        if (!empty($reservations[$key]) && hash_equals((string)$reservations[$key]['buyer_id'], $buyer_id)) {
-            unset($reservations[$key]);
-            update_option($this->reservation_option_key(), $reservations, false);
-            wp_send_json_success(['released'=>true, 'key'=>$key]);
+        $released = false;
+        $released_key = '';
+        foreach ($this->reservation_keys_for_item($title, $product_id) as $key) {
+            if (!empty($reservations[$key]) && hash_equals((string)$reservations[$key]['buyer_id'], $buyer_id)) {
+                unset($reservations[$key]);
+                $released = true;
+                $released_key = $key;
+            }
         }
-        wp_send_json_success(['released'=>false, 'key'=>$key]);
+        if ($released) update_option($this->reservation_option_key(), $reservations, false);
+        wp_send_json_success(['released'=>$released, 'key'=>$released_key ?: $this->reservation_key_for_item($title, $product_id)]);
     }
 
     public function ajax_validate_cart_items() {
@@ -1262,11 +1321,12 @@ EUR=1',
         $result = [];
         $removed = [];
         foreach ($items as $item) {
-            $available = $page_id ? $this->is_yootheme_product_available($page_id, $item['title'], $item['product_id'] ?? '') : false;
+            $has_own_reservation = $this->item_has_own_reservation($item['title'], $item['product_id'] ?? '', $buyer_id);
+            $available = $has_own_reservation || ($page_id ? $this->is_yootheme_product_payable($page_id, $item['title'], $item['product_id'] ?? '') : false);
             // Cart validation must not create/extend reservations and must not treat
             // this customer's own active reservation as sold/unavailable. It only
             // checks whether another customer owns an active reservation.
-            if ($available && !$this->reservation_allows_title($item['title'], $buyer_id)) $available = false;
+            if (!$has_own_reservation && $available && !$this->reservation_allows_item($item['title'], $item['product_id'] ?? '', $buyer_id)) $available = false;
             $row = [
                 'title' => $item['title'],
                 'product_id' => $item['product_id'] ?? '',
@@ -1358,11 +1418,15 @@ EUR=1',
             if (!$page_id_for_check) $page_id_for_check = absint(get_option('page_on_front'));
             foreach ($cart_items_to_check as $check_item) {
                 $check_title = is_array($check_item) ? sanitize_text_field($check_item['title'] ?? '') : '';
-                if ($check_title && $page_id_for_check && (!$this->is_yootheme_product_title_available($page_id_for_check, $check_title) || !$this->ensure_reservation_for_title($check_title, $buyer_id))) {
+                $check_product_id = is_array($check_item) ? $this->sanitize_product_id($check_item['product_id'] ?? ($check_item['feed_id'] ?? '')) : '';
+                $check_has_own_reservation = $this->item_has_own_reservation($check_title, $check_product_id, $buyer_id);
+                $check_available = $check_has_own_reservation || ($page_id_for_check ? $this->is_yootheme_product_payable($page_id_for_check, $check_title, $check_product_id) : false);
+                if ($check_title && $page_id_for_check && (!$check_available || !$this->ensure_reservation_for_item($check_title, $check_product_id, $buyer_id))) {
                     $this->append_checkout_debug_log($debug_id, 'create_order item unavailable', ['title' => $check_title, 'page_id' => $page_id_for_check]);
                     wp_send_json_error([
                         'message' => 'One or more items in your cart are no longer available. Please refresh the cart and choose another model.',
                         'unavailable_title' => $check_title,
+                        'unavailable_product_id' => $check_product_id,
                         'debugId' => $debug_id,
                     ]);
                 }
@@ -1540,8 +1604,27 @@ EUR=1',
             $title = sanitize_text_field($item['title'] ?? '');
             $product_id = $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''));
             if ($title === '') continue;
-            if (!$page_id || !$this->is_yootheme_product_available($page_id, $title, $product_id) || !$this->ensure_reservation_for_title($title, $buyer_id)) {
-                return new WP_Error('item_unavailable', 'One or more items in your cart are reserved, sold, or no longer available. Please refresh the cart and choose another model.', ['title'=>$title, 'product_id'=>$product_id]);
+            $available_by_id = ($page_id && $product_id !== '') ? $this->is_yootheme_product_available($page_id, $title, $product_id) : false;
+            $available_by_title = $page_id ? $this->is_yootheme_product_available($page_id, $title, '') : false;
+            $available_by_own_reservation = $this->item_has_own_reservation($title, $product_id, $buyer_id);
+            $available = ($page_id && ($available_by_id || $available_by_title)) || $available_by_own_reservation;
+            $reservation_allowed = $this->reservation_allows_item($title, $product_id, $buyer_id);
+            $reservation_ensured = $available && $reservation_allowed ? $this->ensure_reservation_for_item($title, $product_id, $buyer_id) : false;
+            if (!$available || !$reservation_ensured) {
+                $reason = !$page_id ? 'missing_page' : (!$available ? 'not_available' : (!$reservation_allowed ? 'reserved_by_other_buyer' : 'reservation_failed'));
+                return new WP_Error('item_unavailable', 'One or more items in your cart are reserved, sold, or no longer available. Please refresh the cart and choose another model.', [
+                    'title'=>$title,
+                    'product_id'=>$product_id,
+                    'reason'=>$reason,
+                    'page_id'=>$page_id,
+                    'available_by_id'=>$available_by_id,
+                    'available_by_title'=>$available_by_title,
+                    'available_by_own_reservation'=>$available_by_own_reservation,
+                    'reservation_allowed'=>$reservation_allowed,
+                    'reservation_ensured'=>$reservation_ensured,
+                    'buyer_id'=>$buyer_id,
+                    'reservation_owner'=>$this->reservation_owner_for_item($title, $product_id),
+                ]);
             }
         }
         return true;
@@ -2271,7 +2354,7 @@ EUR=1',
             'discount_eur'=>floatval($_POST['discount_eur'] ?? 0),
             'shipping_weight_kg'=>max(0, floatval(str_replace(',', '.', (string)($_POST['shipping_weight_kg'] ?? 0)))),
             'image_url'=>esc_url_raw($_POST['image_url'] ?? ''),
-            'product_id'=>$this->sanitize_product_id($_POST['product_id'] ?? ''),
+            'product_id'=>$this->canonical_product_id($_POST['product_id'] ?? '', sanitize_text_field($_POST['title'] ?? '')),
             'full_name'=>sanitize_text_field($_POST['full_name'] ?? ''),
             'phone'=>sanitize_text_field($_POST['phone'] ?? ''),
             'email'=>sanitize_email($_POST['email'] ?? ''),
@@ -2497,7 +2580,7 @@ EUR=1',
         foreach ($items as $item) {
             if (!is_array($item)) continue;
             $title = $this->clean_product_title_for_display(sanitize_text_field($item['title'] ?? ''));
-            $product_id = $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''));
+            $product_id = $this->canonical_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''), $title);
             $price = round(floatval($item['price_eur'] ?? 0), 2);
             if ($title === '' || $price <= 0) continue;
             $title_key = strtolower(trim(preg_replace('/\s+/', ' ', str_replace(['“','”','«','»','"',"'"], '', $title))));
@@ -2559,7 +2642,11 @@ EUR=1',
     }
 
     private function sanitize_product_id($value) {
-        return preg_replace('/[^A-Za-z0-9_-]/', '', sanitize_text_field((string)$value));
+        return YO_Checkout_Product_Identity_Service::sanitize_product_id($value);
+    }
+
+    private function canonical_product_id($value, $title = '') {
+        return YO_Checkout_Product_Identity_Service::canonical_product_id($value, $title);
     }
 
 
@@ -3371,6 +3458,7 @@ EUR=1',
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = $this->decode_loose_unicode_sequences($text);
         $text = str_replace(['’','‘','`','´','“','”','«','»','–','—','−','&nbsp;'], ["'","'","'","'",'"','"','"','"','-','-','-',' '], $text);
+        $text = str_replace(['’','‘','‚','‛','“','”','„','«','»','–','—','−',"\xc2\xa0"], ["'","'","'","'",'"','"','"','"','"','-','-','-',' '], $text);
         $text = preg_replace('/[^\p{L}\p{N}\'" -]+/u', ' ', $text);
         $text = preg_replace('/\s+/u', ' ', $text);
         return mb_strtolower(trim($text));
@@ -3794,6 +3882,13 @@ EUR=1',
             return $this->sold_items_service()->is_yootheme_product_available($page_id, $title, $product_id);
         }
         return $this->is_yootheme_product_title_available($page_id, $title);
+    }
+
+    private function is_yootheme_product_payable($page_id, $title, $product_id = '') {
+        $product_id = $this->sanitize_product_id($product_id);
+        if ($this->is_yootheme_product_available($page_id, $title, $product_id)) return true;
+        if ($product_id !== '') return $this->is_yootheme_product_available($page_id, $title, '');
+        return false;
     }
 
     private function yootheme_product_availability_from_storage_value($value, $title) {

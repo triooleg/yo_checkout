@@ -171,7 +171,7 @@ Handling:
 
 ### Sold-item auto-hide can overmatch similar Builder items
 
-Status: tightened in v4.0.32 and further restricted by local test fix on 2026-06-01; monitor next multi-item card payment.
+Status: tightened and live-tested for multi-item card checkout by v4.0.41; keep as watch area for future product-title/Builder markup changes.
 
 Details:
 
@@ -184,6 +184,14 @@ Handling:
 - Backend YOOtheme auto-hide now requires stricter model/height identity checks and logs each disabled matched item as `Disabled matched item: ...`.
 - Backend YOOtheme auto-hide now ignores long content/text fields for disable decisions and only disables one Builder item per purchased product identity in a single order.
 - Product card `id` / `data-feed-id` is now stored as `product_id`; availability checks and auto-hide prefer exact product ID matching before title matching.
+- Checkout v4.0.36 now generates a stable fallback product ID from the card title when the card has no DOM/feed ID, so cart/order data no longer depends on the Google Feed or Product Card Enhancer plugins assigning IDs before checkout reads the card.
+- Checkout v4.0.37 keeps Step 3 payable checks compatible with existing YOOtheme Builder data that does not store product IDs: the payment gate tries product ID first, then falls back to the title-based availability check instead of blocking valid carts.
+- Checkout v4.0.38 aligns frontend DOM identity with the feed system: if a card has `data-feed-id` and no `id`, checkout sets `id` to the same feed ID and stores that value as `data-product-id`.
+- Checkout v4.0.39 makes reservations product-ID-aware and logs separate Step 3 payable diagnostics for availability and reservation failures.
+- Checkout v4.0.40 keeps Step 3 aligned to the active `product_id` reservation: if the same buyer owns the reservation by ID, the payment gate no longer depends on title quote/encoding matching to proceed. Cart-item removal also releases by `product_id`.
+- Checkout v4.0.41 processes backend auto-hide one purchased product identity at a time, so a multi-item card order should disable every purchased Builder item instead of only the first/last matched item.
+- Live testing after v4.0.41 confirmed that all products in the cart were hidden after card payment.
+- Title fallback no longer treats one title word plus the same height range as enough to disable an item; this reduces the risk of hiding a different model with the same height.
 - Existing already-disabled wrong Builder items are not automatically restored; use the YOOtheme backup/custom fields or manually re-enable them if needed.
 
 ### Expired promo discount could survive in a stored cart/order
