@@ -278,7 +278,7 @@ Documentation updates:
 
 Repository rollback point:
 
-- Local git commit: `a4351d1` (`Add Western Bid payment integration checkpoint`).
+- Local git checkpoint commit: `418254a` (`Add Western Bid payment integration checkpoint`).
 
 ## 2026-05-31 - Repository Documentation Baseline
 
