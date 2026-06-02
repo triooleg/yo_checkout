@@ -6,6 +6,51 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Western Bid card payment needs live provider testing
+
+Status: Western Bid payment handoff is implemented and live provider payment can complete, but checkout Step 4 confirmation is still not completed from Western Bid notify/polling.
+
+Details:
+
+- v4.0.44 adds Western Bid as the visible replacement card provider for the old WayForPay branch.
+- The integration verifies notify hash, `wb_result`, `payment_status`, paid amount, and currency before marking a local order paid.
+- Western Bid documentation describes notify POST but not a status-check API, so checkout polling waits on local webhook/meta state.
+- Live testing showed PayPal login fails inside Step 3 iframe even with a correct password, and Stripe explicitly reports that Stripe Checkout cannot run in an iframe.
+- v4.0.45 opens Western Bid PayPal/Stripe in a separate payment window and keeps the original checkout polling for webhook/final status.
+- PayPal login issue was traced to the specific Western Bid PayPal test account credentials required by the sandbox instructions; with the issued login/password, PayPal payment passed.
+- Western Bid merchant was switched to real working Stripe/PayPal mode.
+- Live Stripe/PayPal payment windows can close after payment, but the main checkout remains on Step 3. That means the original checkout did not see a verified Western Bid webhook/local paid marker yet.
+- Stripe also asked for the full delivery address again even though checkout Step 1 already had it. v4.0.48 sends ISO-2 country code and extra address aliases, and avoids sending delivery as a second provider shipping charge.
+
+Handling:
+
+- Test with a Western Bid-routed country or forced Western Bid provider in plugin Test mode.
+- Confirm the payment form redirects to Western Bid.
+- Confirm the payment opens in a separate window/tab, not inside the Step 3 iframe.
+- Confirm `POST /wp-json/yoleotard/v1/western-bid-webhook` reaches the site.
+- If the provider payment succeeds but checkout remains on Step 3, prioritize the backend confirmation path: notify field names, invoice mapping, hash formula, amount/currency comparison, and finalizer queue.
+- After a Stripe test, search the admin Hiding log for `checkout-debug wb-...` lines:
+  - `western_bid form fields prepared`
+  - `western_bid webhook received`
+  - `western_bid webhook verification failed` or `western_bid webhook completed`
+- Confirm Step 4 opens only after KeyCRM order creation and paid email completion.
+- Do not mark Western Bid as a known working feature until a live test confirms payment, KeyCRM, email, and auto-hide.
+
+### Monobank external payment window return
+
+Status: fixed and live-tested on 2026-06-02.
+
+Details:
+
+- v4.0.46 opened Monobank in an external payment window to avoid provider/country iframe restrictions.
+- The first return bridge pointed to the missing `/confirm?order_id=` page and showed a WordPress 404 in the payment window.
+- v4.0.47 changed the return URL to the site homepage with `yo_checkout_return=card`.
+
+Handling:
+
+- User live-tested Monobank after v4.0.47: the payment window closed and the original checkout continued to Step 4.
+- Keep Monobank backend/webhook/finalizer logic unchanged unless a direct Monobank task requires it.
+
 ### Main PHP file is very large
 
 Status: known technical debt.

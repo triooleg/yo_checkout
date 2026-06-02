@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: YOleotard Checkout + Monobank + WayForPay + IBAN Invoice
- * Description: v4.0.43. Fixes frontend currency and separator character rendering in checkout UI.
- * Version: 4.0.43
+ * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
+ * Description: v4.0.48. Improves Western Bid Stripe address handoff and webhook diagnostics.
+ * Version: 4.0.48
  * Author: YOleotard / ChatGPT
  */
 
@@ -42,6 +42,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-google-revi
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-monobank.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-keycrm.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-email.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-western-bid.php';
 
 
 class YO_Checkout_Invoice_Plugin {
@@ -54,6 +55,7 @@ class YO_Checkout_Invoice_Plugin {
     private $monobank_service = null;
     private $keycrm_service = null;
     private $email_service = null;
+    private $western_bid_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -98,6 +100,10 @@ class YO_Checkout_Invoice_Plugin {
         add_action('wp_ajax_nopriv_yo_checkout_wayforpay_form', [$this, 'ajax_wayforpay_form']);
         add_action('wp_ajax_yo_checkout_wayforpay_return', [$this, 'ajax_wayforpay_return']);
         add_action('wp_ajax_nopriv_yo_checkout_wayforpay_return', [$this, 'ajax_wayforpay_return']);
+        add_action('wp_ajax_yo_checkout_western_bid_form', [$this, 'ajax_western_bid_form']);
+        add_action('wp_ajax_nopriv_yo_checkout_western_bid_form', [$this, 'ajax_western_bid_form']);
+        add_action('wp_ajax_yo_checkout_western_bid_return', [$this, 'ajax_western_bid_return']);
+        add_action('wp_ajax_nopriv_yo_checkout_western_bid_return', [$this, 'ajax_western_bid_return']);
 
         add_action('rest_api_init', [$this, 'rest_routes']);
         add_action('yo_checkout_check_unpaid_order', [$this, 'check_unpaid_order']);
@@ -144,6 +150,24 @@ class YO_Checkout_Invoice_Plugin {
             ], self::NS, self::CPT);
         }
         return $this->monobank_service;
+    }
+
+    private function western_bid_service() {
+        if (!$this->western_bid_service instanceof YO_Checkout_Western_Bid_Service) {
+            $this->western_bid_service = new YO_Checkout_Western_Bid_Service([
+                'settings' => function() { return self::settings(); },
+                'cpt' => function() { return self::CPT; },
+                'rest_namespace' => function() { return self::NS; },
+                'get_order_data' => function($local_id) { return $this->get_order_data($local_id); },
+                'card_fee_data' => function($local_id, $provider) { return $this->card_fee_data($local_id, $provider); },
+                'cart_items_from_order_data' => function($d) { return $this->cart_items_from_order_data($d); },
+                'clean_product_title_for_display' => function($title) { return $this->clean_product_title_for_display($title); },
+                'country_to_iso2' => function($country) { return $this->country_to_iso2($country); },
+                'queue_deferred_payment_finalizer' => function($local_id, $invoice_id, $source) { return $this->queue_deferred_payment_finalizer($local_id, $invoice_id, $source); },
+                'append_checkout_debug_log' => function($debug_id, $message, $context = []) { return $this->append_checkout_debug_log($debug_id, $message, $context); },
+            ]);
+        }
+        return $this->western_bid_service;
     }
 
     private function keycrm_service() {
@@ -252,6 +276,12 @@ EUR=1',
             'wayforpay_test_result_mode' => 'simulate_success',
             'wayforpay_card_fee_percent' => '2',
             'wayforpay_countries' => 'United States,USA,US,United Kingdom,UK,Great Britain,England,Scotland,Wales,Northern Ireland,Malaysia,Singapore,Thailand,Indonesia,Philippines,Vietnam,India,China,Japan,South Korea,Hong Kong,Taiwan,United Arab Emirates,UAE,Saudi Arabia,Qatar,Kuwait,Bahrain,Oman',
+            'western_bid_login' => '',
+            'western_bid_secret_key' => '',
+            'western_bid_currency' => 'EUR',
+            'western_bid_gate' => 'paypal',
+            'western_bid_card_fee_percent' => '2',
+            'western_bid_countries' => 'United States,USA,US,United Kingdom,UK,Great Britain,England,Scotland,Wales,Northern Ireland,Malaysia,Singapore,Thailand,Indonesia,Philippines,Vietnam,India,China,Japan,South Korea,Hong Kong,Taiwan,United Arab Emirates,UAE,Saudi Arabia,Qatar,Kuwait,Bahrain,Oman',
             'test_mode' => '0',
             'test_card_provider' => 'auto',
             'keycrm_token' => '',
@@ -263,6 +293,7 @@ EUR=1',
             'keycrm_status_cancelled' => '13',
             'keycrm_payment_method_card' => '7',
             'keycrm_payment_method_wayforpay' => '8',
+            'keycrm_payment_method_western_bid' => '8',
             'keycrm_payment_method_bank' => '',
             'cart_added_notification_enabled' => '1',
             'cart_added_notification_position' => 'top-center',
@@ -697,7 +728,7 @@ EUR=1',
             'invoice' => 'Инвойс',
             'keycrm' => 'KeyCRM',
             'monobank' => 'Monobank',
-            'wayforpay' => 'WayForPay',
+            'wayforpay' => 'Western Bid',
             'promo' => 'Промокод',
             'sold_items' => 'Скрытие / резерв',
             'google_reviews' => 'Google отзывы',
@@ -796,7 +827,7 @@ EUR=1',
                         <?php $this->field('keycrm_status_paid', 'Status: paid'); ?>
                         <?php $this->field('keycrm_status_cancelled', 'Status: cancelled if unpaid'); ?>
                         <?php $this->field('keycrm_payment_method_card', 'Payment method ID: Monobank card payment'); ?>
-                        <?php $this->field('keycrm_payment_method_wayforpay', 'Payment method ID: WayForPay card payment'); ?>
+                        <?php $this->field('keycrm_payment_method_western_bid', 'Payment method ID: Western Bid card payment'); ?>
                         <?php $this->field('keycrm_payment_method_bank', 'Payment method ID: SEPA/SWIFT bank transfer'); ?>
                     </table>
                 <?php elseif ($tab === 'monobank'): ?>
@@ -867,20 +898,20 @@ EUR=1',
                     <h3>Last auto-hide log</h3>
                     <textarea readonly rows="8" class="large-text code"><?php echo esc_textarea($s['auto_hide_sold_log'] ?? ''); ?></textarea>
                 <?php elseif ($tab === 'wayforpay'): ?>
-                    <h2>WayForPay</h2>
+                    <h2>Western Bid</h2>
                     <table class="form-table">
-                        <?php $this->field('wayforpay_merchant_login', 'Merchant login'); ?>
-                        <?php $this->field('wayforpay_secret_key', 'Merchant secret key', 'password'); ?>
-                        <?php $this->field('wayforpay_currency', 'Currency'); ?>
-                        <?php $this->field('wayforpay_card_fee_percent', 'WayForPay card service fee, %'); ?>
-                        <?php $this->select('wayforpay_test_credentials_mode', 'WayForPay test credentials', ['official'=>'Use official WayForPay test merchant', 'merchant'=>'Use my merchant login and secret']); ?>
-                        <?php $this->select('wayforpay_test_result_mode', 'WayForPay test result handling', ['simulate_success'=>'Simulate successful payment in plugin test mode', 'real_status'=>'Use real WayForPay status']); ?>
-                        <?php $this->textarea('wayforpay_countries', 'Countries routed to WayForPay'); ?>
+                        <?php $this->field('western_bid_login', 'Western Bid login / account'); ?>
+                        <?php $this->field('western_bid_secret_key', 'Western Bid secret key', 'password'); ?>
+                        <?php $this->field('western_bid_currency', 'Currency'); ?>
+                        <?php $this->select('western_bid_gate', 'Payment gate', ['paypal'=>'PayPal', 'stripe.com'=>'Stripe']); ?>
+                        <?php $this->field('western_bid_card_fee_percent', 'Western Bid card service fee, %'); ?>
+                        <?php $this->textarea('western_bid_countries', 'Countries routed to Western Bid'); ?>
                         <?php $this->select('test_mode', 'Test mode', ['0'=>'Off', '1'=>'On']); ?>
-                        <?php $this->select('test_card_provider', 'Test card provider', ['auto'=>'Auto by country', 'monobank'=>'Force Monobank', 'wayforpay'=>'Force WayForPay']); ?>
+                        <?php $this->select('test_card_provider', 'Test card provider', ['auto'=>'Auto by country', 'monobank'=>'Force Monobank', 'western_bid'=>'Force Western Bid']); ?>
                     </table>
-                    <p><strong>WayForPay service URL:</strong> <code><?php echo esc_html(rest_url(self::NS . '/wayforpay-webhook')); ?></code></p>
-                    <p class="description">When test mode is enabled, card payments can be manually forced through Monobank or WayForPay. The simulation option only works when Test mode is On and official WayForPay test credentials are selected. SEPA/SWIFT invoice remains available for every country.</p>
+                    <p><strong>Western Bid notify URL:</strong> <code><?php echo esc_html(rest_url(self::NS . '/western-bid-webhook')); ?></code></p>
+                    <p><strong>Western Bid return URL:</strong> <code><?php echo esc_html(admin_url('admin-ajax.php?action=yo_checkout_western_bid_return')); ?></code></p>
+                    <p class="description">When test mode is enabled, card payments can be manually forced through Monobank or Western Bid. SEPA/SWIFT invoice remains available for every country. The secret key is stored only in WordPress settings and is not printed in payment forms or logs.</p>
                 <?php endif; ?>
 
                 <?php submit_button(); ?>
@@ -1097,7 +1128,7 @@ EUR=1',
                 <button id="yo-pay-bank" class="uk-button uk-button-default yo-method-btn" type="button" disabled>Pay by bank transfer / SEPA / SWIFT invoice</button>
               </div>
             </div>
-            <div id="yo-step-payment" class="yo-hidden"><button id="yo-back-to-method-from-payment" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3 class="uk-modal-title">Card payment</h3><iframe id="yo-payment-frame" title="monopay" src="" allow="payment *"></iframe></div>
+            <div id="yo-step-payment" class="yo-hidden"><button id="yo-back-to-method-from-payment" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3 class="uk-modal-title">Card payment</h3><div id="yo-external-payment-info" class="yo-hidden"></div><iframe id="yo-payment-frame" title="card payment" src="" allow="payment *"></iframe></div>
             <div id="yo-step-finalizing" class="yo-hidden yo-loading"><div uk-spinner="ratio: 2"></div><h4>Payment received</h4><p>Preparing your order confirmation...</p></div>
             <div id="yo-step-bank" class="yo-hidden yo-bank-box"><button id="yo-back-to-method-from-bank" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3>Your invoice is ready</h3><p>Please download the invoice and make a bank transfer using the payment details inside.</p><p><a id="yo-bank-invoice-html-link" class="uk-button uk-button-primary" href="#" target="_blank" rel="noopener">View invoice</a> <a id="yo-bank-invoice-link" class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Download PDF copy</a></p><p>A copy of this invoice has also been sent to your email.</p><div class="uk-card uk-card-default uk-card-small uk-card-body uk-box-shadow-small yo-bank-confirmation-details"><div class="uk-grid-small uk-child-width-1-1" uk-grid><div class="uk-flex uk-flex-middle uk-flex-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: tag"></span><strong>Order <span id="yo-bank-order-number"></span></strong></div><div class="uk-flex uk-flex-middle uk-flex-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: clock"></span><span><strong>Status:</strong> Waiting for payment</span></div><div class="uk-flex uk-flex-middle uk-flex-center uk-text-center"><span class="yo-bank-detail-icon uk-margin-small-right" uk-icon="icon: calendar"></span><span>Bank transfers usually arrive within 1–3 business days.</span></div></div><div class="uk-margin-small-top uk-text-left"><p class="yo-bank-next-title uk-text-bold uk-text-center">Once payment is received:</p><ul class="uk-list uk-list-collapse yo-bank-next-list"><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: check"></span><span>We will confirm your payment</span></li><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: check"></span><span>We will start processing your order</span></li><li class="uk-flex uk-flex-middle"><span class="yo-bank-check-icon uk-margin-small-right" uk-icon="icon: mail"></span><span>You will receive shipment updates by email</span></li></ul></div></div></div>
             <div id="yo-step-success" class="yo-hidden yo-success"><h3>Payment successful!</h3><p>Thank you for your order.<br>Your order number is <strong id="yo-success-order-number"></strong>.</p><div class="yo-summary"><p><strong>Customer:</strong> <span id="yo-success-name"></span></p><p><strong>Email:</strong> <span id="yo-success-email"></span></p><p><strong>Phone:</strong> <span id="yo-success-phone"></span></p><p><strong>Product:</strong> <span id="yo-success-product"></span></p><p><strong>Amount paid:</strong> <span id="yo-success-amount"></span> €</p></div><p><strong>Our manager will contact you via WhatsApp and email.</strong></p></div>
@@ -1655,8 +1686,12 @@ EUR=1',
         update_post_meta($local_id, 'card_fee_amount', $fee['fee']);
         update_post_meta($local_id, 'card_total_amount', $fee['total']);
         // Card payments must not create a KeyCRM order before the payment is actually successful.
-        // A local checkout draft is enough for Monobank/WayForPay. The real KeyCRM buyer/order
+        // A local checkout draft is enough for Monobank/Western Bid. The real KeyCRM buyer/order
         // is created later in process_successful_card_payment().
+        if ($provider === 'western_bid') {
+            $this->start_western_bid_payment($local_id);
+            return;
+        }
         if ($provider === 'wayforpay') {
             $this->start_wayforpay_payment($local_id);
             return;
@@ -1666,6 +1701,17 @@ EUR=1',
 
     private function start_monobank_payment($local_id) {
         $result = $this->monobank_service()->start_payment($local_id);
+        if (is_wp_error($result)) {
+            wp_send_json_error([
+                'message' => $result->get_error_message(),
+                'details' => $result->get_error_data(),
+            ]);
+        }
+        wp_send_json_success($result);
+    }
+
+    private function start_western_bid_payment($local_id) {
+        $result = $this->western_bid_service()->start_payment($local_id);
         if (is_wp_error($result)) {
             wp_send_json_error([
                 'message' => $result->get_error_message(),
@@ -1918,12 +1964,13 @@ EUR=1',
         if (!$local_id && $invoice_id !== '') {
             $local_id = absint(get_option('yo_mono_invoice_' . $invoice_id));
             if (!$local_id) $local_id = absint(get_option('yo_wayforpay_order_' . $invoice_id));
+            if (!$local_id) $local_id = absint(get_option('yo_western_bid_order_' . $invoice_id));
         }
         if (!$local_id || get_post_type($local_id) !== self::CPT) {
             wp_send_json_error(['message'=>'Local order not found','localId'=>$local_id,'invoiceId'=>$invoice_id]);
         }
         if ($invoice_id !== '') {
-            $stored_invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
+            $stored_invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'western_bid_invoice', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
             if ($stored_invoice_id !== '' && !hash_equals((string)$stored_invoice_id, (string)$invoice_id)) {
                 wp_send_json_success([
                     'localId' => $local_id,
@@ -1977,7 +2024,12 @@ EUR=1',
                 $provider = 'monobank';
             } else {
                 $local_id = absint(get_option('yo_wayforpay_order_' . $invoice_id));
-                if ($local_id) $provider = 'wayforpay';
+                if ($local_id) {
+                    $provider = 'wayforpay';
+                } else {
+                    $local_id = absint(get_option('yo_western_bid_order_' . $invoice_id));
+                    if ($local_id) $provider = 'western_bid';
+                }
             }
             if (!$local_id) {
                 $q = get_posts([
@@ -1989,13 +2041,15 @@ EUR=1',
                         'relation' => 'OR',
                         ['key' => 'mono_invoice_id', 'value' => $invoice_id],
                         ['key' => 'wayforpay_order_reference', 'value' => $invoice_id],
+                        ['key' => 'western_bid_invoice', 'value' => $invoice_id],
                     ],
                 ]);
                 if (!empty($q[0])) {
                     $local_id = absint($q[0]);
-                    $provider = get_post_meta($local_id, 'payment_provider', true) ?: (get_post_meta($local_id, 'wayforpay_order_reference', true) === $invoice_id ? 'wayforpay' : 'monobank');
+                    $provider = get_post_meta($local_id, 'payment_provider', true) ?: (get_post_meta($local_id, 'western_bid_invoice', true) === $invoice_id ? 'western_bid' : (get_post_meta($local_id, 'wayforpay_order_reference', true) === $invoice_id ? 'wayforpay' : 'monobank'));
                     if ($provider === 'monobank') update_option('yo_mono_invoice_' . $invoice_id, $local_id, false);
                     if ($provider === 'wayforpay') update_option('yo_wayforpay_order_' . $invoice_id, $local_id, false);
+                    if ($provider === 'western_bid') update_option('yo_western_bid_order_' . $invoice_id, $local_id, false);
                 }
             }
         }
@@ -2009,10 +2063,10 @@ EUR=1',
 
         $provider = get_post_meta($local_id, 'payment_provider', true) ?: $provider;
         if ($invoice_id === '') {
-            $invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
+            $invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'western_bid_invoice', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
         }
         if ($invoice_id !== '') {
-            $stored_invoice_id = $provider === 'wayforpay' ? get_post_meta($local_id, 'wayforpay_order_reference', true) : get_post_meta($local_id, 'mono_invoice_id', true);
+            $stored_invoice_id = $provider === 'western_bid' ? get_post_meta($local_id, 'western_bid_invoice', true) : ($provider === 'wayforpay' ? get_post_meta($local_id, 'wayforpay_order_reference', true) : get_post_meta($local_id, 'mono_invoice_id', true));
             if ($stored_invoice_id !== '' && !hash_equals((string)$stored_invoice_id, (string)$invoice_id)) {
                 wp_send_json_success([
                     'paid' => false,
@@ -2063,6 +2117,17 @@ EUR=1',
             wp_send_json_success(['paid'=>false,'status'=>'waiting','provider'=>'wayforpay','localId'=>$local_id]);
         }
 
+        if ($provider === 'western_bid') {
+            wp_send_json_success([
+                'paid' => false,
+                'status' => get_post_meta($local_id, 'western_bid_payment_status', true) ?: 'waiting',
+                'provider' => 'western_bid',
+                'localId' => $local_id,
+                'invoiceId' => $invoice_id,
+                'notifyError' => get_post_meta($local_id, 'western_bid_notify_error', true),
+            ]);
+        }
+
         if ($invoice_id === '') {
             wp_send_json_success(['paid'=>false,'status'=>'waiting_local_only','provider'=>$provider,'localId'=>$local_id]);
         }
@@ -2091,9 +2156,22 @@ EUR=1',
         register_rest_route(self::NS, '/mono-webhook', ['methods'=>'POST','callback'=>[$this,'mono_webhook'],'permission_callback'=>'__return_true']);
         register_rest_route(self::NS, '/wayforpay-form', ['methods'=>'GET','callback'=>[$this,'wayforpay_form'],'permission_callback'=>'__return_true']);
         register_rest_route(self::NS, '/wayforpay-webhook', ['methods'=>'POST','callback'=>[$this,'wayforpay_webhook'],'permission_callback'=>'__return_true']);
+        register_rest_route(self::NS, '/western-bid-webhook', ['methods'=>'POST','callback'=>[$this,'western_bid_webhook'],'permission_callback'=>'__return_true']);
     }
     public function mono_webhook(WP_REST_Request $req) {
         return $this->monobank_service()->handle_webhook($req);
+    }
+
+    public function western_bid_webhook(WP_REST_Request $req) {
+        return $this->western_bid_service()->handle_webhook($req);
+    }
+
+    public function ajax_western_bid_form() {
+        return $this->western_bid_service()->ajax_form();
+    }
+
+    public function ajax_western_bid_return() {
+        return $this->western_bid_service()->ajax_return();
     }
 
 
@@ -2333,9 +2411,18 @@ EUR=1',
     private function card_provider_for_order($local_id) {
         $s = self::settings();
         $forced = ($s['test_mode'] === '1') ? strtolower(trim($s['test_card_provider'])) : 'auto';
-        if (in_array($forced, ['monobank','wayforpay'], true)) return $forced;
+        if ($forced === 'wayforpay') $forced = 'western_bid';
+        if (in_array($forced, ['monobank','western_bid'], true)) return $forced;
         $d = $this->get_order_data($local_id);
-        return $this->is_wayforpay_country($d['country']) ? 'wayforpay' : 'monobank';
+        return $this->is_western_bid_country($d['country']) ? 'western_bid' : 'monobank';
+    }
+
+    private function is_western_bid_country($country) {
+        $s = self::settings();
+        $needle = trim(wp_strip_all_tags((string)$country));
+        $list = array_filter(array_map('trim', explode(',', wp_strip_all_tags($s['western_bid_countries'] ?? ''))));
+        foreach ($list as $c) if (strcasecmp($c, $needle) === 0) return true;
+        return false;
     }
 
     private function is_wayforpay_country($country) {
@@ -2637,7 +2724,7 @@ EUR=1',
     }
 
     private function get_order_data($local_id) {
-        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
+        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','western_bid_invoice','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
         $out=[]; foreach($keys as $k) $out[$k]=get_post_meta($local_id,$k,true); return $out;
     }
 
@@ -3243,7 +3330,7 @@ EUR=1',
 
     private function card_fee_percent_for_provider($provider) {
         $s = self::settings();
-        $key = ($provider === 'wayforpay') ? 'wayforpay_card_fee_percent' : 'monobank_card_fee_percent';
+        $key = ($provider === 'western_bid') ? 'western_bid_card_fee_percent' : (($provider === 'wayforpay') ? 'wayforpay_card_fee_percent' : 'monobank_card_fee_percent');
         $percent = floatval(str_replace(',', '.', (string)($s[$key] ?? 0)));
         if ($percent < 0) $percent = 0;
         if ($percent > 20) $percent = 20;
@@ -3330,7 +3417,7 @@ EUR=1',
             // when paid=1. Run every side effect independently with its own idempotent marker.
             $s = self::settings();
             $provider = get_post_meta($local_id, 'payment_provider', true) ?: 'monobank';
-            $label = $provider === 'wayforpay' ? 'WayForPay' : 'Monobank';
+            $label = $provider === 'western_bid' ? 'Western Bid' : ($provider === 'wayforpay' ? 'WayForPay' : 'Monobank');
 
             if (get_post_meta($local_id, 'paid', true) !== '1') {
                 update_post_meta($local_id, 'paid', '1');

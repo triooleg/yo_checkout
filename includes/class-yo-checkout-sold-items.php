@@ -279,7 +279,7 @@ class YO_Checkout_Sold_Items_Service {
     }
 
     private function get_order_data($local_id) {
-        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
+        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','western_bid_invoice','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
         $out = [];
         foreach ($keys as $k) $out[$k] = get_post_meta($local_id, $k, true);
         return $out;

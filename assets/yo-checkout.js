@@ -150,6 +150,70 @@
     function byId(id){ return document.getElementById(id); }
     function show(id){ const el=byId(id); if(el) el.style.display='block'; }
     function hide(id){ const el=byId(id); if(el) el.style.display='none'; }
+    function openExternalPaymentWindow(){
+      let win = null;
+      try{
+        win = window.open('', 'yo_card_payment', 'noopener=false,noreferrer=false,width=980,height=760');
+        if(win && win.document){
+          win.document.open();
+          win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Secure card payment</title></head><body style="font-family:Arial,sans-serif;color:#07194b;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center"><div><h2>Preparing secure payment...</h2><p>Please keep this window open.</p></div></body></html>');
+          win.document.close();
+        }
+      }catch(e){ win = null; }
+      return win;
+    }
+    function closePaymentWindow(win){
+      try{ if(win && !win.closed) win.close(); }catch(e){}
+    }
+    function showExternalPaymentInfo(url, blocked, provider){
+      const info = byId('yo-external-payment-info');
+      const frame = byId('yo-payment-frame');
+      if(frame){ frame.src='about:blank'; frame.style.display='none'; }
+      if(!info) return;
+      const providerName = provider === 'western_bid' ? 'PayPal or Stripe' : (provider === 'monobank' ? 'Monobank' : 'card provider');
+      info.className = '';
+      info.innerHTML =
+        '<div class="uk-card uk-card-default uk-card-body uk-border-rounded uk-box-shadow-small yo-external-payment-card">' +
+          '<h4 class="uk-margin-small-bottom">Secure payment window opened</h4>' +
+          '<p class="uk-margin-small">Complete '+providerName+' payment in the separate window. This checkout will update automatically after payment confirmation.</p>' +
+          (blocked ? '<p class="uk-text-warning uk-margin-small">If the payment window did not open, use the button below.</p>' : '') +
+          '<p class="uk-margin"><a class="uk-button uk-button-primary" target="_blank" rel="noopener" href="'+String(url || '').replace(/"/g, '&quot;')+'">Open payment window</a></p>' +
+          '<p class="uk-text-meta uk-margin-remove">Do not close this checkout window until the payment is confirmed.</p>' +
+        '</div>';
+      info.style.display = 'block';
+    }
+    function resetExternalPaymentInfo(){
+      const info = byId('yo-external-payment-info');
+      const frame = byId('yo-payment-frame');
+      if(info){ info.innerHTML=''; info.style.display='none'; info.className='yo-hidden'; }
+      if(frame){ frame.style.display='block'; }
+    }
+    function notifyExternalPaymentReturnIfNeeded(){
+      let hasOpener = false;
+      try{ hasOpener = !!(window.opener && !window.opener.closed); }catch(e){ hasOpener = false; }
+      if(!hasOpener) return;
+      let path = '';
+      let params = null;
+      try{
+        path = String(window.location.pathname || '').replace(/\/+$/, '');
+        params = new URLSearchParams(window.location.search || '');
+      }catch(e){ return; }
+      const isConfirmReturn = path === '/confirm' || /\/confirm$/i.test(path) || params.get('yo_checkout_return') === 'card';
+      if(!isConfirmReturn) return;
+      const payload = {
+        type: 'yo_card_provider_return',
+        invoiceId: params.get('invoiceId') || params.get('invoice_id') || params.get('order_id') || '',
+        paid: false,
+        status: params.get('payment_status') || params.get('status') || 'returned'
+      };
+      function notify(){
+        try{ if(window.opener && !window.opener.closed){ window.opener.postMessage(payload, '*'); } }catch(e){}
+      }
+      notify();
+      setTimeout(notify, 1200);
+      setTimeout(function(){ try{ if(window.opener && !window.opener.closed){ window.close(); } }catch(e){} }, 1800);
+    }
+    notifyExternalPaymentReturnIfNeeded();
     function setStep(step){
       ['yo-step-cart','yo-step-loading','yo-step-method','yo-step-payment','yo-step-finalizing','yo-step-bank','yo-step-success'].forEach(hide);
       ['yo-pill-1','yo-pill-2','yo-pill-3','yo-pill-4'].forEach(function(id){ const el=byId(id); if(el) el.classList.remove('active'); });
@@ -1398,6 +1462,7 @@
     }
     byId('yo-back-to-details')?.addEventListener('click', function(){
       stopPaymentPolling();
+      resetExternalPaymentInfo();
       const frame = byId('yo-payment-frame');
       if(frame) frame.src='about:blank';
       if(current.orderId){ storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId || getStoredDraftLocalId() || ''); } if(current.localId) storeDraftLocalId(current.localId);
@@ -1406,6 +1471,7 @@
     });
     byId('yo-back-to-method-from-payment')?.addEventListener('click', function(){
       stopPaymentPolling();
+      resetExternalPaymentInfo();
       const frame = byId('yo-payment-frame');
       if(frame) frame.src='about:blank';
       setStep(2);
@@ -1455,14 +1521,30 @@
 
     byId('yo-pay-card')?.addEventListener('click', function(){
       if(!byId('yo-accept-terms')?.checked){ alert('Please confirm that you agree to the Terms & Conditions before continuing.'); return; }
+      const paymentWindow = openExternalPaymentWindow();
       validateCartAvailability(true).then(function(v){
-      if(v && v.removed > 0){ setStep(1); return; }
+      if(v && v.removed > 0){ closePaymentWindow(paymentWindow); setStep(1); return; }
       const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId());
       setStep('loading');
       post('yo_checkout_start_card_payment', fd).then(function(data){
-        if(data.success && data.data.pageUrl){ rememberKeycrmFromResponse(data); current.invoiceId=data.data.invoiceId || current.invoiceId || ''; if(data.data.localId){ current.localId=String(data.data.localId); storeDraftLocalId(current.localId); } else if(data.data.cartMarker && data.data.cartMarker.local_id){ current.localId=String(data.data.cartMarker.local_id); storeDraftLocalId(current.localId); } current.orderId=''; byId('yo-payment-frame').src=data.data.pageUrl; yoDebug('start_card_payment success', {invoiceId: current.invoiceId, localId: current.localId, orderId: current.orderId, pageUrl: data.data.pageUrl}); setStep(3); startPaymentPolling(); }
-        else { alert((data.data?.message || 'Payment error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
-      }).catch(function(){ alert('Connection error'); setStep(2); });
+        if(data.success && data.data.pageUrl){
+          rememberKeycrmFromResponse(data);
+          current.invoiceId=data.data.invoiceId || current.invoiceId || '';
+          if(data.data.localId){ current.localId=String(data.data.localId); storeDraftLocalId(current.localId); }
+          else if(data.data.cartMarker && data.data.cartMarker.local_id){ current.localId=String(data.data.cartMarker.local_id); storeDraftLocalId(current.localId); }
+          current.orderId='';
+          const provider = String(data.data.provider || '').toLowerCase();
+          const blocked = !paymentWindow || paymentWindow.closed;
+          if(paymentWindow && !paymentWindow.closed){
+            try{ paymentWindow.location.href = data.data.pageUrl; paymentWindow.focus(); }catch(e){}
+          }
+          showExternalPaymentInfo(data.data.pageUrl, blocked, provider);
+          yoDebug('start_card_payment success', {provider: provider || 'unknown', invoiceId: current.invoiceId, localId: current.localId, orderId: current.orderId, pageUrl: data.data.pageUrl});
+          setStep(3);
+          startPaymentPolling();
+        }
+        else { closePaymentWindow(paymentWindow); alert((data.data?.message || 'Payment error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
+      }).catch(function(){ closePaymentWindow(paymentWindow); alert('Connection error'); setStep(2); });
       });
     });
     byId('yo-pay-bank')?.addEventListener('click', function(){
@@ -1750,11 +1832,20 @@
     }
     window.addEventListener('message', function(event){
       const msg = event.data || {};
-      if(!msg || msg.type !== 'yo_wayforpay_return') return;
+      if(!msg || (msg.type !== 'yo_wayforpay_return' && msg.type !== 'yo_western_bid_return' && msg.type !== 'yo_card_provider_return')) return;
       if(msg.invoiceId && current.invoiceId && msg.invoiceId !== current.invoiceId) return;
+      const returnedStatus = String(msg.status || '').toLowerCase();
+      if(msg.type === 'yo_western_bid_return' && !msg.paid && ['cancel','cancelled','canceled','failed','declined','denied','expired'].indexOf(returnedStatus) !== -1){
+        stopPaymentPolling();
+        resetExternalPaymentInfo();
+        alert('Payment was not completed. You can try again or choose another payment method.');
+        setStep(2);
+        return;
+      }
       const sessionToken = activePaymentSessionToken;
-      checkPaymentOnce('wayforpay-message', sessionToken);
-      setTimeout(function(){ checkPaymentOnce('wayforpay-message-delay', sessionToken); }, 2500);
+      const providerReason = msg.type === 'yo_western_bid_return' ? 'western-bid-message' : (msg.type === 'yo_card_provider_return' ? 'card-provider-return' : 'wayforpay-message');
+      checkPaymentOnce(providerReason, sessionToken);
+      setTimeout(function(){ checkPaymentOnce(providerReason + '-delay', sessionToken); }, 2500);
     });
     window.addEventListener('focus', function(){ if(paymentPollingActive) checkPaymentOnce('window-focus', activePaymentSessionToken); });
     document.addEventListener('visibilitychange', function(){ if(!document.hidden && paymentPollingActive) checkPaymentOnce('visibility', activePaymentSessionToken); });

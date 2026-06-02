@@ -289,3 +289,37 @@ YOleotard Checkout v4.0.43
 - Uses safe HTML entities/unicode escapes for euro signs, bullet separators, middle dots, and cart notification check marks.
 - Keeps payment, KeyCRM, email, reservation, and auto-hide logic unchanged.
 
+YOleotard Checkout v4.0.48
+
+- Improves Western Bid Stripe address handoff by sending ISO-2 country code and additional checkout address aliases.
+- Keeps the full local card total in Western Bid `amount` and stops sending delivery as a second provider shipping charge, so Stripe should not ask for the full delivery address again.
+- Adds checkout-debug log lines for Western Bid form preparation and webhook verification without logging the secret key.
+- Marks the Monobank external payment window return as live-tested working after v4.0.47.
+
+YOleotard Checkout v4.0.47
+
+- Changed Monobank redirect URL from the missing `/confirm` page to the site homepage with a checkout return marker.
+- Added a frontend card-provider return bridge: external same-site payment windows notify the opener checkout and close themselves after provider return.
+- Main checkout continues polling after the payment window closes and still opens Step 4 only after payment, KeyCRM, and paid email finalization.
+
+YOleotard Checkout v4.0.46
+
+- Extended the external payment-window flow to all card providers, including Monobank.
+- Monobank `pageUrl` now opens in a separate payment window while the original checkout modal stays on Step 3 and continues polling.
+- This avoids iframe-related provider/country/security blocking while preserving the existing webhook, polling, KeyCRM, paid email, Step 4, and auto-hide finalization logic.
+
+YOleotard Checkout v4.0.45
+
+- Changed Western Bid PayPal/Stripe checkout to open in a separate payment window instead of the Step 3 iframe.
+- Added a Step 3 external-payment waiting panel while checkout polling continues in the original modal.
+- Updated Western Bid return handling to notify the opener/top checkout window and close the payment popup when possible.
+- Added canceled/failed Western Bid return handling that stops polling and returns the customer to payment-method selection.
+- Kept Monobank, bank invoice, KeyCRM finalization, email sending, product identity, reservations, and sold-item auto-hide behavior unchanged.
+
+YOleotard Checkout v4.0.44
+
+- Added Western Bid card-payment integration as the replacement visible provider for WayForPay.
+- Added `includes/class-yo-checkout-western-bid.php` for Western Bid form creation, return handling, webhook verification, amount/currency checks, and deferred finalizer queueing.
+- Updated admin payment settings to show Western Bid login, secret key, currency, payment gate, fee percent, country routing, notify URL, and return URL.
+- Updated card provider routing, card fee calculation, KeyCRM payment method selection, payment polling, and final order lookup to support `western_bid`.
+- Kept Monobank, bank invoice, KeyCRM finalization, email sending, product identity, reservations, and sold-item auto-hide behavior unchanged.

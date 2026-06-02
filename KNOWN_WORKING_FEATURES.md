@@ -14,6 +14,7 @@ Items listed here are protected: do not change them unless the current task dire
 - Customer email sending for bank invoice checkout after the v4.0.35 email-service extraction
 - Bank invoice confirmation screen with KeyCRM order number
 - Monobank card payment flow
+- Monobank external payment window closes after provider return and continues to Step 4 after v4.0.47
 - KeyCRM order creation for card checkout
 - Customer email sending for card checkout after the v4.0.35 email-service extraction
 - Step 4 card payment success screen after the v4.0.35 email-service extraction

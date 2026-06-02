@@ -1094,7 +1094,11 @@ class YO_Checkout_KeyCRM_Service {
             $s = $this->settings(); $d=$this->get_order_data($local_id);
             $provider = get_post_meta($local_id, 'payment_provider', true) ?: 'monobank';
             if ($status === 'paid') {
-                $method = ($provider === 'wayforpay') ? ($s['keycrm_payment_method_wayforpay'] ?? '8') : ($s['keycrm_payment_method_card'] ?? '');
+                if ($provider === 'western_bid') {
+                    $method = $s['keycrm_payment_method_western_bid'] ?? ($s['keycrm_payment_method_wayforpay'] ?? '8');
+                } else {
+                    $method = ($provider === 'wayforpay') ? ($s['keycrm_payment_method_wayforpay'] ?? '8') : ($s['keycrm_payment_method_card'] ?? '');
+                }
                 $amount = floatval($d['card_total_amount'] ?: (floatval($d['price_eur']) + floatval($d['shipping_cost_eur'])));
                 $fee = floatval($d['card_fee_amount'] ?: 0);
                 $percent = floatval($d['card_fee_percent'] ?: 0);

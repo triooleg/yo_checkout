@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.48`.
 
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
@@ -46,6 +46,9 @@ Rules for future work:
 - `includes/class-yo-checkout-email.php`
   Customer email service. Owns shared HTML email rendering, product thumbnail blocks, bank invoice email sending, paid-card email sending, email headers, and email-specific sent/error meta updates. The main plugin keeps thin wrapper methods so existing invoice/card flows continue to call the same method names.
 
+- `includes/class-yo-checkout-western-bid.php`
+  Western Bid card-payment service. Owns Western Bid credentials access, local invoice/reference mapping, auto-submit payment form generation, return-page parent message, notify/webhook hash verification, paid amount/currency/status checks, safe notify meta snapshots, and queueing the shared deferred payment finalizer after verified completed payments.
+
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
 
@@ -53,7 +56,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.43`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.48`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
@@ -127,6 +130,8 @@ AJAX actions:
 - `yo_checkout_final_order_status` -> `ajax_final_order_status()`
 - `yo_checkout_wayforpay_form` -> `ajax_wayforpay_form()`
 - `yo_checkout_wayforpay_return` -> `ajax_wayforpay_return()`
+- `yo_checkout_western_bid_form` -> `ajax_western_bid_form()`
+- `yo_checkout_western_bid_return` -> `ajax_western_bid_return()`
 
 Each AJAX action is registered for both logged-in and guest users.
 
@@ -135,6 +140,7 @@ REST routes:
 - `POST /wp-json/yoleotard/v1/mono-webhook` -> `mono_webhook()`
 - `GET /wp-json/yoleotard/v1/wayforpay-form` -> `wayforpay_form()`
 - `POST /wp-json/yoleotard/v1/wayforpay-webhook` -> `wayforpay_webhook()`
+- `POST /wp-json/yoleotard/v1/western-bid-webhook` -> `western_bid_webhook()`
 
 Scheduled actions:
 
@@ -273,15 +279,20 @@ Monobank:
 - Settings tab: Monobank token and card fee percent.
 - Card start, invoice status requests, invoice mapping, and webhook handling are delegated to `includes/class-yo-checkout-monobank.php`.
 - Multi-item card payments use a short Monobank payment label such as `custom leotard x5` for `merchantPaymInfo.destination`, `comment`, and `basketOrder.name` so provider length limits are not exceeded.
+- Frontend opens Monobank `pageUrl` in a separate payment window/tab instead of the Step 3 iframe, while the original checkout modal remains open and polls for payment status/final order completion. Monobank return URL points back to the site homepage with `yo_checkout_return=card`; the popup notifies the opener checkout and closes itself.
 - Shared successful-payment finalization remains in the main plugin.
 
-WayForPay:
+Western Bid:
 
-- Settings tab: merchant login, secret key, currency, fee percent, test modes, country routing.
-- Card start: `start_wayforpay_payment()`.
-- Form rendering: `wayforpay_form()` / `render_wayforpay_autosubmit_html()`.
-- Webhook: `wayforpay_webhook()`.
-- Country routing: `is_wayforpay_country()`.
+- Settings tab: Western Bid login, secret key, currency, payment gate, fee percent, country routing, and test provider forcing.
+- Card start: `start_western_bid_payment()`, delegated to `includes/class-yo-checkout-western-bid.php`.
+- Form rendering: `ajax_western_bid_form()` auto-submits a hidden form to `https://shop.westernbid.info`.
+- Stripe/PayPal buyer handoff: checkout passes full customer contact/address fields, ISO-2 country code, and provider aliases while keeping the full local card total in `amount`. Delivery is included in that local total and is not sent as a second provider shipping charge, reducing the chance that Stripe asks for the full delivery address again or reports a different paid amount.
+- Return page: `ajax_western_bid_return()` posts `yo_western_bid_return` to the opener/top checkout window and to the parent frame for legacy compatibility.
+- Webhook: `western_bid_webhook()` verifies Western Bid hash, `wb_result=VERIFIED`, `payment_status=Completed`, amount, and currency before marking a local order paid. Western Bid form preparation and webhook verification write safe `checkout-debug` lines to the existing Hiding/admin log without logging the secret key.
+- Country routing: `is_western_bid_country()` uses `western_bid_countries`; `wayforpay_*` settings/handlers remain only as a temporary legacy rollback layer.
+- Frontend behavior: card provider payment pages are opened in a separate window/tab instead of `#yo-payment-frame`, because PayPal, Stripe Checkout, and some provider/card-country checks do not reliably run inside iframes. The modal stays on Step 3, shows a waiting/open-payment message, and continues polling. Provider return pages notify the opener checkout using `postMessage`; same-site card returns such as Monobank homepage return are detected by `yo_checkout_return=card` and the popup attempts to close itself.
+- Shared successful-payment finalization remains unchanged: after a verified Western Bid notify, the service queues `queue_deferred_payment_finalizer()`, and Step 4 opens only after `yo_checkout_final_order_status` confirms KeyCRM and paid email completion. Canceled/failed Western Bid returns stop polling and send the user back to payment-method selection.
 
 KeyCRM:
 

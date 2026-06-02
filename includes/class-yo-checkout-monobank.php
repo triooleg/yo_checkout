@@ -76,7 +76,11 @@ class YO_Checkout_Monobank_Service {
             'amount' => $amount_cents,
             'ccy' => 978,
             'displayType' => 'iframe',
-            'redirectUrl' => home_url('/confirm?order_id=' . urlencode((string)($data['order_id'] ?? ''))),
+            'redirectUrl' => add_query_arg([
+                'yo_checkout_return' => 'card',
+                'provider' => 'monobank',
+                'invoice_id' => '',
+            ], home_url('/')),
             'webHookUrl' => rest_url($this->rest_namespace . '/mono-webhook'),
             'paymentType' => 'debit',
             'merchantPaymInfo' => [

@@ -1,8 +1,33 @@
 # Western Bid Migration Map
 
 Created: 2026-05-31
+Reviewed: 2026-06-02 against working checkout v4.0.43
 
 Purpose: replace the current WayForPay card-payment path with Western Bid while keeping the existing Monobank, bank invoice, KeyCRM, email, finalizer, and sold-item hiding behavior stable.
+
+## 2026-06-02 Review Notes Against v4.0.43
+
+The current checkout version has several live-tested stable areas that must be treated as protected integration boundaries:
+
+- Monobank card payment is working and must remain the default provider for non-Western-Bid-routed countries.
+- Bank invoice checkout, KeyCRM creation, customer email, and confirmation UI are working and must not be changed for Western Bid.
+- Card-payment Step 4 is now intentionally delayed until `yo_checkout_final_order_status` confirms:
+  - local order is paid,
+  - real KeyCRM order number exists,
+  - `keycrm_after_payment_done=1`,
+  - `paid_email_sent=1`.
+- Card payment starts with a local draft only. KeyCRM buyer/order creation must happen only after provider-confirmed successful payment.
+- Current cart/product identity, reservation, and multi-item auto-hide logic are working and must not be redesigned during Western Bid implementation.
+- Customer paid email sending is extracted to `includes/class-yo-checkout-email.php`; Western Bid should use the same `process_successful_card_payment()` path so email behavior stays identical.
+- KeyCRM integration is extracted to `includes/class-yo-checkout-keycrm.php`; only provider labels/method IDs should be extended for Western Bid.
+- The existing frontend payment polling/session token logic in `assets/yo-checkout.js` must be reused. Western Bid should add a return message type and mapping support, not create a second checkout success path.
+
+Architectural conclusion:
+
+- Western Bid should replace the WayForPay branch as a provider adapter.
+- The shared checkout lifecycle must stay:
+  `create local draft -> choose provider -> provider invoice/form -> provider notify marks paid -> deferred finalizer -> KeyCRM/email/auto-hide -> final_order_status -> Step 4`.
+- Do not call KeyCRM/email/auto-hide directly from a Western Bid return page. The return page should only notify the parent checkout and let polling/final status continue.
 
 ## Credentials Handling
 
@@ -149,6 +174,9 @@ Suggested responsibilities:
 - Normalize Western Bid invoice IDs back to local order IDs.
 - Return iframe message to frontend after customer redirect.
 - Provide provider labels and setting keys.
+- Write only safe diagnostic meta/log values; never log the secret key or full raw sensitive payload.
+- Mark the local order as paid and queue the shared deferred finalizer after a valid `Completed` notification.
+- Return "waiting" status while no valid Western Bid notification has arrived yet.
 
 Keep main file as composition layer:
 
@@ -162,6 +190,10 @@ Keep main file as composition layer:
   - queue_deferred_payment_finalizer
   - clean_product_title_for_display
   - cart_items_from_order_data if needed
+  - shipping_data / card_fee_data if needed for form totals
+  - append_auto_hide_log or checkout debug logging for safe operational traces
+
+Do not move Monobank, bank invoice, KeyCRM, email, product identity, reservation, or sold-item hiding logic as part of the Western Bid task.
 
 ## New Settings
 
@@ -190,8 +222,34 @@ Admin UI:
   - countries routed to Western Bid
   - KeyCRM payment method ID for Western Bid
   - notify URL and return URL examples
+- Keep the global Test mode field, but remove/hide WayForPay-specific test credential/result controls from the visible Western Bid tab.
+- Update the "Test card provider" selector from `Force WayForPay` to `Force Western Bid`.
 
 Do not remove old WayForPay option values immediately unless migration is confirmed. Keep sanitization tolerant so saving settings does not wipe unrelated legacy values.
+
+Admin behavior after migration:
+
+- Visible:
+  - Western Bid login/account.
+  - Western Bid secret key as password input.
+  - Western Bid currency.
+  - Western Bid payment gate selector.
+  - Western Bid card service fee percent.
+  - Countries routed to Western Bid.
+  - KeyCRM payment method ID for Western Bid.
+  - Notify URL and return URL.
+  - Test provider selector with `Auto`, `Force Monobank`, `Force Western Bid`.
+- Removed from visible UI:
+  - WayForPay merchant login field.
+  - WayForPay secret key field.
+  - WayForPay currency field.
+  - WayForPay service fee field.
+  - WayForPay country routing field.
+  - WayForPay official test credential selector.
+  - WayForPay simulated result selector.
+  - WayForPay webhook/service URL text.
+- Kept internally for transition/rollback only:
+  - old `wayforpay_*` settings and old order meta are tolerated by sanitization and lookup code until Western Bid is live-tested.
 
 ## Payment Flow Map
 
@@ -223,8 +281,16 @@ Do not remove old WayForPay option values immediately unless migration is confir
    - new type should be `yo_western_bid_return`
    - frontend should accept both old WayForPay and new Western Bid message during transition.
 10. Frontend polling calls existing `yo_checkout_check_payment_status`.
-11. Webhook/notify POST marks order paid only after all checks pass.
-12. Existing `process_successful_card_payment()` creates KeyCRM order, adds payment, sends paid email, hides sold item.
+11. Webhook/notify POST marks order paid only after hash, status, amount, and currency checks pass.
+12. Webhook queues `queue_deferred_payment_finalizer($local_id, $invoice, 'western_bid_webhook_completed')`.
+13. Existing `process_successful_card_payment()` creates KeyCRM order, adds payment, sends paid email, hides sold item.
+14. Frontend sees `paid:true`, then waits on `yo_checkout_final_order_status` until KeyCRM/email markers are complete before showing Step 4.
+
+Important:
+
+- Western Bid return/cancel pages must not show Step 4 by themselves.
+- If Western Bid redirects the buyer back before the notify POST is received, polling should show waiting/finalizing until the webhook completes.
+- If the notify POST never arrives, the order remains unpaid and Step 4 must not open.
 
 ## Western Bid Form Field Map
 
@@ -289,6 +355,11 @@ REST:
 - `POST /wp-json/yoleotard/v1/western-bid-webhook`
 - Optional `GET /wp-json/yoleotard/v1/western-bid-form` only if needed, but AJAX form endpoint is enough for iframe HTML.
 
+Transition routes:
+
+- Keep old WayForPay AJAX/REST handlers temporarily during first Western Bid test builds only if existing unpaid WayForPay test orders may still return.
+- After Western Bid is confirmed live, remove old WayForPay visible UI and either delete or leave legacy handlers unreachable. Do not remove legacy handlers in the same first integration step if that increases rollback risk.
+
 Local options/meta:
 
 - `western_bid_invoice`
@@ -314,8 +385,11 @@ Main file:
   - find local order by `yo_western_bid_order_{invoice}`.
   - provider branch for `western_bid`.
   - for Western Bid, rely mostly on webhook/local meta, because docs describe notify POST rather than a status-check API.
+  - if `paid=1`, reuse the existing early paid branch and queue the finalizer.
+  - if not paid, return `paid:false`, `status` from `western_bid_payment_status` or `waiting`.
 - Update `ajax_final_order_status()`:
   - include Western Bid invoice mapping.
+  - include `western_bid_invoice` in invoice mismatch checks.
 - Update `card_provider_for_order()`:
   - use `western_bid` instead of `wayforpay`.
 - Update `card_fee_percent_for_provider()`:
@@ -328,6 +402,8 @@ Main file:
 - Update `get_order_data()` meta keys:
   - add `western_bid_invoice`.
   - optionally keep `wayforpay_order_reference` during transition.
+- Update `sanitize()` / defaults without deleting unrelated existing settings.
+- Update plugin header name/description only after Western Bid replaces WayForPay in visible behavior.
 
 Frontend JS:
 
@@ -336,6 +412,7 @@ Frontend JS:
   - keep `yo_wayforpay_return` during transition if old orders may exist.
 - No major UI rewrite expected if Western Bid still opens in the existing iframe.
 - If Western Bid blocks iframe embedding, fallback will need top-level redirect or popup.
+- Keep the active payment session token and `waitForFinalOrderThenShowSuccess()` flow unchanged.
 
 Settings/admin:
 
@@ -397,20 +474,26 @@ Live/test checks:
 
 ## Recommended Implementation Order
 
-1. Create `includes/class-yo-checkout-western-bid.php` with form/hash/notify helpers.
-2. Add Western Bid settings to defaults and admin tab.
-3. Add service factory and routes/hooks in main file.
-4. Add start-payment path for provider `western_bid`.
-5. Add form-render endpoint.
-6. Add return endpoint.
-7. Add webhook/notify endpoint with hash, amount, currency, and status checks.
-8. Update polling/final-status order lookup to support Western Bid invoice IDs.
-9. Update provider routing, fee calculation, and KeyCRM payment method.
-10. Update frontend message listener.
-11. Update docs/changelog/version.
-12. Run static checks.
-13. Commit and push.
-14. Only when requested, create a test ZIP named with current plugin version.
+1. Snapshot current state with `git status -sb`; do not touch stable bank invoice/Monobank/email/auto-hide files except required adapter points.
+2. Create `includes/class-yo-checkout-western-bid.php` with form/hash/notify helpers.
+3. Add Western Bid defaults/settings/admin tab and KeyCRM payment method setting.
+4. Add service factory, AJAX actions, and REST notify route in the main file.
+5. Add start-payment path for provider `western_bid`, modeled after the current `start_wayforpay_payment()` branch.
+6. Add form-render endpoint that outputs an auto-submit HTML form to `https://shop.westernbid.info`.
+7. Add return/cancel endpoint that posts `yo_western_bid_return` to the parent checkout but does not finalize directly unless already paid.
+8. Add webhook/notify endpoint with hash, `wb_result`, `payment_status`, amount, currency, and duplicate transaction checks.
+9. Update payment-status polling and final-status lookup to support `western_bid_invoice` and `yo_western_bid_order_{invoice}`.
+10. Update provider routing, fee calculation, and KeyCRM payment method/label for `western_bid`.
+11. Update frontend message listener to accept both `yo_western_bid_return` and temporary `yo_wayforpay_return`.
+12. Update plugin name/description/changelog/docs for the test version.
+13. Run static checks:
+    - `php -l yoleotard-checkout-invoice.php`
+    - `php -l includes\class-yo-checkout-western-bid.php`
+    - `node --check assets\yo-checkout.js`
+    - `git diff --check`
+14. Create a local implementation report before test packaging.
+15. Only when requested, create a host-safe test ZIP under `plugin-archives/`.
+16. Commit/push only after the user confirms the live Western Bid test works.
 
 ## Risk Notes
 
@@ -419,5 +502,9 @@ Live/test checks:
 - `wb_result` is verification result, not payment status. It must be `VERIFIED`, but that alone is not enough.
 - Paid amount and currency comparison is mandatory.
 - Existing product URL may not be stored for `url_x`; implementation may need a fallback or frontend collection of product URL.
-- If Western Bid/PayPal refuses iframe embedding, frontend must switch from iframe to top-level redirect/popup.
+- Live testing confirmed that PayPal login and Stripe Checkout are not reliable inside the Step 3 iframe; v4.0.45 switches Western Bid PayPal/Stripe to an external popup/window while the original checkout keeps polling for webhook/final status.
+- Live testing after the external-window switch showed PayPal requires the exact Western Bid-issued sandbox PayPal buyer credentials. With those credentials, PayPal payment can pass.
+- Western Bid switched the merchant into real working mode for Stripe and PayPal.
+- Live Stripe/PayPal testing showed the payment window closes after payment but the original checkout does not reach Step 4. This means the local checkout has not received or accepted a verified Western Bid notify/webhook yet.
+- v4.0.48 sends ISO-2 country codes and fuller buyer/address aliases to Western Bid, avoids sending delivery as a duplicate provider shipping charge, and writes safe `checkout-debug wb-...` log lines for form preparation and webhook receive/verification.
 - Secret key must never be printed in HTML, logs, changelog, docs, or Git.

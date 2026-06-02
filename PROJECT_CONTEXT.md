@@ -20,11 +20,11 @@ This repository contains the working checkout plugin for `yoleotard.com`.
 
 Plugin name:
 
-- `YOleotard Checkout + Monobank + WayForPay + IBAN Invoice`
+- `YOleotard Checkout + Monobank + Western Bid + IBAN Invoice`
 
 Current plugin version in the main PHP header:
 
-- `4.0.43`
+- `4.0.48`
 
 Main business goal:
 

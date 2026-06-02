@@ -16,6 +16,270 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-02 - Western Bid Card Payment Integration v4.0.44
+
+User request:
+
+- Start implementing Western Bid online payment based on `WESTERN_BID_MIGRATION_MAP.md`.
+- Keep working Monobank, bank invoice, KeyCRM, email, product identity, reservation, and auto-hide logic intact as much as possible.
+- Verify and create a test archive.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-western-bid.php`
+- `includes/class-yo-checkout-keycrm.php`
+- `includes/class-yo-checkout-sold-items.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `WESTERN_BID_MIGRATION_MAP.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.44`.
+- Visible card-provider settings now show Western Bid instead of WayForPay.
+- New Western Bid service owns payment form generation, local invoice mapping, return-page messaging, notify/webhook verification, safe notify snapshots, and deferred finalizer queueing.
+- Western Bid notify marks a local order paid only after hash, `wb_result=VERIFIED`, `payment_status=Completed`, amount, and currency checks pass.
+- Card provider routing now uses `western_bid_countries`; Test mode can force `western_bid`.
+- KeyCRM paid payment selection supports `keycrm_payment_method_western_bid`.
+- Frontend payment return listener accepts `yo_western_bid_return` while keeping legacy `yo_wayforpay_return` temporarily.
+- Existing successful-card finalization remains shared: KeyCRM order creation, paid email, auto-hide, and Step 4 final status are not duplicated in the Western Bid service.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed during implementation.
+- `php -l includes\class-yo-checkout-western-bid.php` passed during implementation.
+- `php -l includes\class-yo-checkout-keycrm.php` passed during implementation.
+- `php -l includes\class-yo-checkout-sold-items.php` passed during implementation.
+- `node --check assets\yo-checkout.js` passed during implementation.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.44.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, Western Bid service present, and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- `WESTERN_BID_MIGRATION_MAP.md` reviewed against v4.0.43 and updated before implementation.
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `CHANGELOG.txt`, and this log were updated for v4.0.44.
+
+Repository rollback point:
+
+- Not created yet by user rule. Commit/push only after the user confirms the Western Bid test archive works.
+
+## 2026-06-02 - Western Bid External PayPal/Stripe Window v4.0.45
+
+User request:
+
+- PayPal accepts the password in a normal browser login but not on checkout Step 3.
+- Stripe console reports that Stripe Checkout cannot run in an iframe.
+- Change the plugin so Western Bid PayPal/Stripe checkout opens outside the iframe, returns to checkout, and Step 4 follows the existing success/failure logic without breaking working features.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-western-bid.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.45`.
+- Frontend now predicts Western Bid routing from `western_bid_countries` / forced test provider and opens a separate payment window synchronously from the card-payment click.
+- Western Bid PayPal/Stripe `pageUrl` is loaded into the separate payment window instead of `#yo-payment-frame`.
+- Step 3 shows an external-payment waiting panel and continues polling the original checkout until webhook/final status completes.
+- Western Bid return page now posts `yo_western_bid_return` to `window.opener` as well as `window.parent`, then attempts to close the popup.
+- Canceled/failed Western Bid returns stop polling and return the customer to payment-method selection.
+- Monobank iframe flow and bank invoice flow were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-western-bid.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.45.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, Western Bid service present, and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `CHANGELOG.txt`, and this log were updated for v4.0.45.
+
+Repository rollback point:
+
+- Not created yet by user rule. Commit/push only after the user confirms the Western Bid external-window test works.
+
+## 2026-06-02 - External Card Provider Window For Monobank v4.0.46
+
+User request:
+
+- Apply the same outside-iframe logic to Monobank card payments because country/provider payment blocking may have the same cause as PayPal/Stripe iframe restrictions.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.46`.
+- The frontend now opens a separate payment window synchronously for card payments before provider AJAX completes.
+- Any returned card provider `pageUrl`, including Monobank and Western Bid, is loaded into that separate payment window instead of the Step 3 iframe.
+- The original checkout modal stays on Step 3, displays a secure-payment-window waiting panel, and continues existing payment polling/final order status checks.
+- Monobank backend service, webhook handling, KeyCRM finalization, paid email, Step 4 readiness, reservations, bank invoice flow, and sold-item auto-hide were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-western-bid.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Confirmed Western Bid login/secret values provided in conversation were not written to repository files.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.46.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, Western Bid service present, and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `CHANGELOG.txt`, and this log were updated for v4.0.46.
+
+Repository rollback point:
+
+- Not created yet by user rule. Commit/push only after the user confirms the external card provider window test works.
+
+## 2026-06-02 - External Card Provider Return Bridge v4.0.47
+
+User request:
+
+- The external payment window must close after payment confirmation/return and the main checkout must continue to Step 4. This applies to Monobank and other payment types.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-monobank.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.47`.
+- Monobank redirect URL now points to the site homepage with `yo_checkout_return=card` instead of the missing `/confirm` page.
+- Frontend detects external same-site card-provider returns (`/confirm` legacy path or `yo_checkout_return=card`), posts `yo_card_provider_return` to the opener checkout window, and attempts to close the external payment window.
+- Main checkout receives `yo_card_provider_return`, continues payment polling, and still waits for the existing final-order status checks before Step 4.
+- Western Bid return handling remains in its service, and Monobank backend/webhook/finalizer logic remains unchanged.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-monobank.php` passed.
+- `php -l includes\class-yo-checkout-western-bid.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Confirmed Western Bid login/secret values provided in conversation were not written to repository files.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.47.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, Monobank and Western Bid services present, and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `CHANGELOG.txt`, and this log were updated for v4.0.47.
+
+Repository rollback point:
+
+- Not created yet by user rule. Commit/push only after the user confirms the external return bridge works.
+
+## 2026-06-02 - Western Bid Stripe Address And Notify Diagnostics v4.0.48
+
+User request:
+
+- Monobank external payment window now closes and reaches Step 4 successfully.
+- PayPal still rejects the entered password.
+- Stripe asks for the full delivery address again even though checkout Step 1 already has it.
+- After Stripe payment, the payment window closes but the original checkout does not reach Step 4.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-western-bid.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `KNOWN_WORKING_FEATURES.md`
+- `WESTERN_BID_MIGRATION_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.48`.
+- Western Bid form generation now sends an ISO-2 country code and additional address aliases (`country_code`, `zip_code`) alongside the existing buyer fields.
+- Western Bid form generation keeps the full local card total in `amount` and no longer sends delivery as a second provider shipping charge; delivery remains included in the checkout total and is recorded in a non-charging note field.
+- Western Bid form preparation and webhook receive/verification now write safe `checkout-debug wb-...` lines to the existing admin Hiding log without logging the Western Bid secret key.
+- Monobank external payment-window return is documented as live-tested working after v4.0.47.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-western-bid.php` passed.
+- `php -l includes\class-yo-checkout-monobank.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Confirmed Western Bid login/secret values provided in conversation were not written to repository files.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.48.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, Monobank and Western Bid services present, and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `KNOWN_WORKING_FEATURES.md`, `WESTERN_BID_MIGRATION_MAP.md`, `CHANGELOG.txt`, and this log were updated for v4.0.48.
+
+Repository rollback point:
+
+- Not created yet by user rule. Commit/push only after the user confirms Western Bid Stripe/PayPal test behavior is acceptable.
+
+## 2026-06-02 - Western Bid Integrated With Pending Step 4 Confirmation
+
+User request:
+
+- PayPal password issue was resolved by using the specific Western Bid-issued test PayPal login/password.
+- Western Bid switched the merchant to real working Stripe/PayPal mode.
+- Stripe/PayPal provider payment can complete and the payment window closes, but the main checkout remains on Step 3.
+- Commit the current version as a checkpoint: Western Bid payment is implemented and works at the provider handoff/payment level, with the remaining issue in confirmation to Step 4.
+
+Files changed:
+
+- `KNOWN_ISSUES.md`
+- `WESTERN_BID_MIGRATION_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime plugin behavior changed in this entry.
+- Documentation now records that PayPal login was not a popup/code issue; it required the Western Bid-issued sandbox PayPal credentials.
+- Documentation now records the current remaining Western Bid issue: provider payment succeeds/closes, but checkout has not yet received or accepted a verified notify/local paid marker for Step 4.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-western-bid.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Confirmed Western Bid login/secret values provided in conversation were not written to repository files.
+
+Documentation updates:
+
+- `KNOWN_ISSUES.md`, `WESTERN_BID_MIGRATION_MAP.md`, and this log were updated.
+
+Repository rollback point:
+
+- Local git commit: `a4351d1` (`Add Western Bid payment integration checkpoint`).
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:
