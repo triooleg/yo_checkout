@@ -17,6 +17,8 @@ If a task changes plugin structure, data flow, hooks, AJAX actions, REST routes,
 
 Before adding new functionality, review `AUDIT_REMEDIATION_MAP.md` and complete or consciously account for the relevant audit-hardening phase first.
 
+For onboarding a new manager or starting a similar new project, use `PROJECT_MANAGER_START_GUIDE.md` as the process template.
+
 ## Project
 
 This repository contains the working checkout plugin for `yoleotard.com`.

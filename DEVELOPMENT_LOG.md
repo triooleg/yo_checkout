@@ -471,6 +471,34 @@ Repository rollback point:
 
 - Include this audit map with the approved stable v4.0.51 rollback point.
 
+## 2026-06-03 - Project Manager Start Guide
+
+User request:
+
+- Create an initial instruction for a new manager describing how the development plan and work sequence should look based on the current project.
+- The instruction will be used as a template for creating a new project.
+
+Files changed:
+
+- `PROJECT_MANAGER_START_GUIDE.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Documentation changed:
+
+- Added a manager-facing process guide that covers required project documents, planning structure, standard task sequence, verification, versioning, live testing, archive creation, Git rollback points, working-feature protection, known-issue handling, architecture rules, payment rules, data authority rules, stop conditions, and a reusable phase template.
+- Added the guide to project context and plugin map references.
+- No runtime code, plugin version, payment logic, checkout behavior, or integration setting was changed.
+
+Verification performed:
+
+- Documentation-only change; `git diff --check` will be run before commit.
+
+Repository rollback point:
+
+- Not created yet.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

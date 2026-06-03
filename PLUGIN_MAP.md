@@ -67,6 +67,9 @@ Rules for future work:
 - `AUDIT_REMEDIATION_MAP.md`
   Staged implementation map based on the 2026-06-03 holistic audit. Defines the required security, payment-integrity, state-management, privacy, maintainability, and test-hardening phases that should be completed before adding unrelated new functionality. Its primary rule is to preserve confirmed working checkout behavior while improving internal authority and reliability.
 
+- `PROJECT_MANAGER_START_GUIDE.md`
+  Process template for onboarding a new manager or starting a similar plugin project. Defines how to structure project documents, development plans, task sequencing, verification, versioning, live testing, archives, and repository rollback points.
+
 - `PROJECT_CONTEXT.md`
   Project-level context and required rules for future Codex work.
 
