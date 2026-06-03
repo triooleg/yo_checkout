@@ -497,7 +497,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Not created yet.
+- Documentation commit pushed to GitHub: `448b1d4` (`Add project manager start guide`).
 
 ## 2026-05-31 - Repository Documentation Baseline
 
