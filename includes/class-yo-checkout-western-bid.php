@@ -13,6 +13,30 @@ class YO_Checkout_Western_Bid_Service {
         return call_user_func_array($this->callbacks[$name], $args);
     }
 
+    private function invoice_candidates($invoice) {
+        $invoice = sanitize_text_field((string)$invoice);
+        $list = [];
+        if ($invoice !== '') $list[] = $invoice;
+
+        $login = preg_quote((string)$this->credentials()['login'], '/');
+        if ($login !== '' && preg_match('/^' . $login . '[-_](.+)$/', $invoice, $m)) {
+            $list[] = sanitize_text_field($m[1]);
+        }
+        if (preg_match('/(YO-WB-\d+-\d+)$/', $invoice, $m)) {
+            $list[] = sanitize_text_field($m[1]);
+        }
+
+        return array_values(array_unique(array_filter($list)));
+    }
+
+    private function local_id_for_invoice($invoice) {
+        foreach ($this->invoice_candidates($invoice) as $candidate) {
+            $local_id = absint(get_option('yo_western_bid_order_' . $candidate));
+            if ($local_id) return [$local_id, $candidate];
+        }
+        return [0, ''];
+    }
+
     public function credentials() {
         $s = (array)$this->call('settings');
         return [
@@ -82,7 +106,7 @@ class YO_Checkout_Western_Bid_Service {
 
     public function ajax_return() {
         $invoice = sanitize_text_field(wp_unslash($_REQUEST['invoice'] ?? $_REQUEST['order_id'] ?? ''));
-        $local_id = $invoice ? absint(get_option('yo_western_bid_order_' . $invoice)) : 0;
+        [$local_id] = $invoice ? $this->local_id_for_invoice($invoice) : [0, ''];
         $status = sanitize_text_field(wp_unslash($_REQUEST['payment_status'] ?? $_REQUEST['status'] ?? ''));
         $paid = ($local_id && get_post_meta($local_id, 'paid', true) === '1');
         $message = $paid
@@ -131,8 +155,18 @@ class YO_Checkout_Western_Bid_Service {
         ]);
         if ($invoice === '') return new WP_REST_Response(['status' => 'error', 'message' => 'Missing invoice'], 400);
 
-        $local_id = absint(get_option('yo_western_bid_order_' . $invoice));
-        if (!$local_id) return new WP_REST_Response(['status' => 'error', 'message' => 'Order not found'], 404);
+        [$local_id, $local_invoice] = $this->local_id_for_invoice($invoice);
+        if (!$local_id) {
+            $this->call('append_checkout_debug_log', $debug_id, 'western_bid webhook order not found', [
+                'invoice' => $invoice,
+                'candidates' => implode(' | ', $this->invoice_candidates($invoice)),
+            ]);
+            return new WP_REST_Response(['status' => 'error', 'message' => 'Order not found'], 404);
+        }
+        if ($local_invoice !== '' && !hash_equals($local_invoice, $invoice)) {
+            update_option('yo_western_bid_order_' . $invoice, $local_id, false);
+            update_post_meta($local_id, 'western_bid_notify_invoice', $invoice);
+        }
 
         update_post_meta($local_id, 'western_bid_last_notify', $this->safe_notify_snapshot($data));
         update_post_meta($local_id, 'western_bid_payment_status', sanitize_text_field($data['payment_status'] ?? ''));
@@ -155,13 +189,14 @@ class YO_Checkout_Western_Bid_Service {
             update_post_meta($local_id, 'paid_at', time());
         }
         update_post_meta($local_id, 'western_bid_notify_verified', '1');
-        $this->call('queue_deferred_payment_finalizer', $local_id, $invoice, 'western_bid_webhook_completed');
+        $this->call('queue_deferred_payment_finalizer', $local_id, $local_invoice ?: $invoice, 'western_bid_webhook_completed');
         $this->call('append_checkout_debug_log', $debug_id, 'western_bid webhook completed', [
             'local_id' => $local_id,
             'invoice' => $invoice,
+            'local_invoice' => $local_invoice,
         ]);
 
-        return new WP_REST_Response(['status' => 'accept', 'invoice' => $invoice], 200);
+        return new WP_REST_Response(['status' => 'accept', 'invoice' => $invoice, 'local_invoice' => $local_invoice], 200);
     }
 
     public function purchase_fields($local_id, $invoice) {
@@ -291,12 +326,28 @@ class YO_Checkout_Western_Bid_Service {
         $creds = $this->credentials();
         $wb_result = (string)($data['wb_result'] ?? '');
         $payment_status = (string)($data['payment_status'] ?? '');
-        $gross = number_format(round(floatval(str_replace(',', '.', (string)($data['mc_gross'] ?? ''))), 2), 2, '.', '');
+        $gross_raw = trim(str_replace(',', '.', (string)($data['mc_gross'] ?? '')));
+        $gross = number_format(round(floatval($gross_raw), 2), 2, '.', '');
         $currency = strtoupper(trim((string)($data['mc_currency'] ?? '')));
         $hash = (string)($data['wb_hash'] ?? '');
-        $expected_hash = md5($creds['login'] . $wb_result . $creds['secret'] . $gross . $invoice);
+        $gross_hash_candidates = array_values(array_unique(array_filter([$gross_raw, $gross], function($value) {
+            return $value !== '';
+        })));
+        $hash_ok = false;
+        foreach ($gross_hash_candidates as $gross_for_hash) {
+            $expected_hash = md5($creds['login'] . $wb_result . $creds['secret'] . $gross_for_hash . $invoice);
+            if ($hash !== '' && hash_equals($expected_hash, $hash)) {
+                $hash_ok = true;
+                break;
+            }
+        }
 
-        if ($hash === '' || !hash_equals($expected_hash, $hash)) return new WP_Error('western_bid_bad_hash', 'Western Bid notify hash is invalid');
+        if (!$hash_ok) {
+            return new WP_Error('western_bid_bad_hash', 'Western Bid notify hash is invalid', [
+                'gross_raw' => $gross_raw,
+                'gross_normalized' => $gross,
+            ]);
+        }
         if ($wb_result !== 'VERIFIED') return new WP_Error('western_bid_not_verified', 'Western Bid notify is not verified');
         if ($payment_status !== 'Completed') return new WP_Error('western_bid_not_completed', 'Western Bid payment is not completed');
 
@@ -306,8 +357,19 @@ class YO_Checkout_Western_Bid_Service {
             $fee = (array)$this->call('card_fee_data', $local_id, 'western_bid');
             $expected_amount = number_format(round(floatval($fee['total'] ?? 0), 2), 2, '.', '');
         }
-        if (!hash_equals($expected_amount, $gross)) return new WP_Error('western_bid_amount_mismatch', 'Western Bid paid amount does not match the order');
-        if ($currency !== $creds['currency']) return new WP_Error('western_bid_currency_mismatch', 'Western Bid paid currency does not match the order');
+        if (!hash_equals($expected_amount, $gross)) {
+            return new WP_Error('western_bid_amount_mismatch', 'Western Bid paid amount does not match the order', [
+                'expected_amount' => $expected_amount,
+                'received_amount' => $gross,
+            ]);
+        }
+        if ($currency === '') $currency = $creds['currency'];
+        if ($currency !== $creds['currency']) {
+            return new WP_Error('western_bid_currency_mismatch', 'Western Bid paid currency does not match the order', [
+                'expected_currency' => $creds['currency'],
+                'received_currency' => $currency,
+            ]);
+        }
 
         return true;
     }

@@ -289,6 +289,22 @@ YOleotard Checkout v4.0.43
 - Uses safe HTML entities/unicode escapes for euro signs, bullet separators, middle dots, and cart notification check marks.
 - Keeps payment, KeyCRM, email, reservation, and auto-hide logic unchanged.
 
+YOleotard Checkout v4.0.49
+
+- Fixes Western Bid Step 4 confirmation when notify payloads prefix the checkout invoice with the merchant login.
+- Accepts both the full Western Bid notify invoice, such as `{wb_login}-YO-WB-...`, and the original local checkout invoice, such as `YO-WB-...`, for order mapping.
+- Keeps webhook hash verification tied to the full received Western Bid invoice for payment security.
+- Adds a clear `western_bid webhook order not found` diagnostic if future notify invoice formats cannot be mapped.
+- Fixes checkout country ISO conversion for San Marino (`SM`) before passing address data to Western Bid/Stripe.
+- Allows Western Bid Stripe notify payloads with an empty `mc_currency` to use the configured Western Bid currency when hash, status, and amount checks pass.
+
+YOleotard Checkout v4.0.50
+
+- Fixes Western Bid Stripe webhook verification when the provider signs a raw amount such as `1` instead of the normalized checkout amount `1.00`.
+- Keeps the paid amount comparison strict after normalizing the provider amount to two decimal places.
+- Allows Western Bid payment polling and final Step 4 confirmation to recognize both the original local invoice and the merchant-prefixed notify invoice.
+- Keeps Monobank, bank invoice, KeyCRM, email, reservation, and sold-item auto-hide logic unchanged.
+
 YOleotard Checkout v4.0.48
 
 - Improves Western Bid Stripe address handoff by sending ISO-2 country code and additional checkout address aliases.

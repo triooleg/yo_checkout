@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.48. Improves Western Bid Stripe address handoff and webhook diagnostics.
- * Version: 4.0.48
+ * Description: v4.0.50. Stabilizes Western Bid Step 4 polling for prefixed invoices.
+ * Version: 4.0.50
  * Author: YOleotard / ChatGPT
  */
 
@@ -1971,7 +1971,11 @@ EUR=1',
         }
         if ($invoice_id !== '') {
             $stored_invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'western_bid_invoice', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
-            if ($stored_invoice_id !== '' && !hash_equals((string)$stored_invoice_id, (string)$invoice_id)) {
+            $provider_for_match = get_post_meta($local_id, 'payment_provider', true);
+            $invoice_matches = ($provider_for_match === 'western_bid')
+                ? $this->western_bid_invoice_matches_local_order($local_id, $invoice_id)
+                : ($stored_invoice_id === '' || hash_equals((string)$stored_invoice_id, (string)$invoice_id));
+            if (!$invoice_matches) {
                 wp_send_json_success([
                     'localId' => $local_id,
                     'paid' => false,
@@ -2067,7 +2071,10 @@ EUR=1',
         }
         if ($invoice_id !== '') {
             $stored_invoice_id = $provider === 'western_bid' ? get_post_meta($local_id, 'western_bid_invoice', true) : ($provider === 'wayforpay' ? get_post_meta($local_id, 'wayforpay_order_reference', true) : get_post_meta($local_id, 'mono_invoice_id', true));
-            if ($stored_invoice_id !== '' && !hash_equals((string)$stored_invoice_id, (string)$invoice_id)) {
+            $invoice_matches = ($provider === 'western_bid')
+                ? $this->western_bid_invoice_matches_local_order($local_id, $invoice_id)
+                : ($stored_invoice_id === '' || hash_equals((string)$stored_invoice_id, (string)$invoice_id));
+            if (!$invoice_matches) {
                 wp_send_json_success([
                     'paid' => false,
                     'status' => 'invoice_mismatch',
@@ -2150,6 +2157,25 @@ EUR=1',
             wp_send_json_success(['paid'=>true,'status'=>'success','provider'=>'monobank','localId'=>$local_id,'orderId'=>get_post_meta($local_id,'order_id',true),'finalizer'=>'queued']);
         }
         wp_send_json_success(['paid'=>false,'status'=>$status ?: 'waiting','provider'=>'monobank','localId'=>$local_id]);
+    }
+
+    private function western_bid_invoice_matches_local_order($local_id, $invoice_id) {
+        $local_id = absint($local_id);
+        $invoice_id = sanitize_text_field((string)$invoice_id);
+        if (!$local_id || $invoice_id === '') return false;
+
+        $known = array_filter(array_map('strval', [
+            get_post_meta($local_id, 'western_bid_invoice', true),
+            get_post_meta($local_id, 'western_bid_notify_invoice', true),
+        ]));
+        foreach ($known as $candidate) {
+            if ($candidate !== '' && hash_equals($candidate, $invoice_id)) return true;
+            if ($candidate !== '' && preg_match('/(^|[-_])' . preg_quote($candidate, '/') . '$/', $invoice_id)) return true;
+            if ($invoice_id !== '' && preg_match('/(^|[-_])' . preg_quote($invoice_id, '/') . '$/', $candidate)) return true;
+        }
+
+        $mapped = absint(get_option('yo_western_bid_order_' . $invoice_id));
+        return $mapped === $local_id;
     }
 
     public function rest_routes() {
@@ -2818,7 +2844,7 @@ EUR=1',
             'austria'=>'AT','belgium'=>'BE','bulgaria'=>'BG','croatia'=>'HR','cyprus'=>'CY','czech republic'=>'CZ','czechia'=>'CZ',
             'denmark'=>'DK','estonia'=>'EE','finland'=>'FI','greece'=>'GR','hungary'=>'HU','ireland'=>'IE','latvia'=>'LV',
             'lithuania'=>'LT','luxembourg'=>'LU','malta'=>'MT','netherlands'=>'NL','portugal'=>'PT','romania'=>'RO',
-            'slovakia'=>'SK','slovenia'=>'SI','sweden'=>'SE','switzerland'=>'CH','canada'=>'CA','australia'=>'AU','new zealand'=>'NZ',
+            'slovakia'=>'SK','slovenia'=>'SI','sweden'=>'SE','switzerland'=>'CH','san marino'=>'SM','canada'=>'CA','australia'=>'AU','new zealand'=>'NZ',
             'united arab emirates'=>'AE','uae'=>'AE','saudi arabia'=>'SA','qatar'=>'QA','kuwait'=>'KW','bahrain'=>'BH','oman'=>'OM',
         ];
         if (preg_match('/^[a-z]{2}$/', $c)) return strtoupper($c);

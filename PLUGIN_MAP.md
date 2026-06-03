@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.48`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.50`.
 
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
@@ -56,7 +56,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.48`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.50`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
@@ -289,10 +289,10 @@ Western Bid:
 - Form rendering: `ajax_western_bid_form()` auto-submits a hidden form to `https://shop.westernbid.info`.
 - Stripe/PayPal buyer handoff: checkout passes full customer contact/address fields, ISO-2 country code, and provider aliases while keeping the full local card total in `amount`. Delivery is included in that local total and is not sent as a second provider shipping charge, reducing the chance that Stripe asks for the full delivery address again or reports a different paid amount.
 - Return page: `ajax_western_bid_return()` posts `yo_western_bid_return` to the opener/top checkout window and to the parent frame for legacy compatibility.
-- Webhook: `western_bid_webhook()` verifies Western Bid hash, `wb_result=VERIFIED`, `payment_status=Completed`, amount, and currency before marking a local order paid. Western Bid form preparation and webhook verification write safe `checkout-debug` lines to the existing Hiding/admin log without logging the secret key.
+- Webhook: `western_bid_webhook()` verifies Western Bid hash, `wb_result=VERIFIED`, `payment_status=Completed`, amount, and currency before marking a local order paid. Western Bid may prefix the original checkout invoice with the merchant login in notify payloads, for example `{wb_login}-YO-WB-...`; webhook handling verifies the hash against the received full invoice but maps the order by both the full and normalized local invoice. Stripe notify payloads from Western Bid may sign the raw `mc_gross` string such as `1` instead of normalized `1.00`, and may send an empty `mc_currency`; the handler verifies the hash against raw/normalized amount candidates, then still compares the normalized amount strictly and treats an empty currency as the configured Western Bid currency. Western Bid form preparation and webhook verification write safe `checkout-debug` lines to the existing Hiding/admin log without logging the secret key.
 - Country routing: `is_western_bid_country()` uses `western_bid_countries`; `wayforpay_*` settings/handlers remain only as a temporary legacy rollback layer.
 - Frontend behavior: card provider payment pages are opened in a separate window/tab instead of `#yo-payment-frame`, because PayPal, Stripe Checkout, and some provider/card-country checks do not reliably run inside iframes. The modal stays on Step 3, shows a waiting/open-payment message, and continues polling. Provider return pages notify the opener checkout using `postMessage`; same-site card returns such as Monobank homepage return are detected by `yo_checkout_return=card` and the popup attempts to close itself.
-- Shared successful-payment finalization remains unchanged: after a verified Western Bid notify, the service queues `queue_deferred_payment_finalizer()`, and Step 4 opens only after `yo_checkout_final_order_status` confirms KeyCRM and paid email completion. Canceled/failed Western Bid returns stop polling and send the user back to payment-method selection.
+- Shared successful-payment finalization remains unchanged: after a verified Western Bid notify, the service queues `queue_deferred_payment_finalizer()`, and Step 4 opens only after `yo_checkout_final_order_status` confirms KeyCRM and paid email completion. Western Bid polling/final status accepts either the original local invoice or the merchant-prefixed notify invoice. Canceled/failed Western Bid returns stop polling and send the user back to payment-method selection.
 
 KeyCRM:
 

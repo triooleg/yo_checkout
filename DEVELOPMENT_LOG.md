@@ -280,6 +280,115 @@ Repository rollback point:
 
 - Local git checkpoint commit: `418254a` (`Add Western Bid payment integration checkpoint`).
 
+## 2026-06-02 - Western Bid Notify Invoice Prefix Mapping v4.0.49
+
+User request:
+
+- User provided Western Bid logs after a successful provider payment where checkout still stayed on Step 3.
+- Diagnose why the completed payment was not transferred into checkout Step 4.
+
+Root cause:
+
+- Checkout submitted Western Bid form invoice `YO-WB-22037-1780403106`.
+- Western Bid notify reached the site with `invoice = {wb_login}-YO-WB-22037-1780403106`, adding the merchant login before the local invoice.
+- The previous webhook handler only looked up `yo_western_bid_order_{invoice}` by the exact received invoice, so it could not find local order `22037` and returned before marking the order paid.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-western-bid.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `WESTERN_BID_MIGRATION_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.49`.
+- Western Bid webhook now maps both the full received invoice and normalized local invoice candidates back to the same local order.
+- Webhook hash verification still uses the full received Western Bid invoice, preserving the documented security check.
+- When a prefixed notify invoice maps successfully, the full notify invoice is saved as an alias for future polling/lookup.
+- If no mapping is found, the log now writes `western_bid webhook order not found` with the candidate invoice values.
+- Country ISO conversion now maps `San Marino` to `SM`; previous fallback produced `SA`, which is Saudi Arabia and could confuse Western Bid/Stripe address handling.
+- Full user log showed Stripe/Western Bid notify does reach the plugin with `payment_status=Completed`, `wb_result=VERIFIED`, and matching `mc_gross`, but `mc_currency` can be empty.
+- Western Bid verification now treats empty `mc_currency` as the configured Western Bid currency after hash/status/amount checks pass.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-western-bid.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Confirmed Western Bid login/secret values provided in conversation were not written to repository files.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.49.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, Monobank and Western Bid services present, and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `WESTERN_BID_MIGRATION_MAP.md`, `CHANGELOG.txt`, and this log were updated for v4.0.49.
+
+Repository rollback point:
+
+- Not created yet. Commit/push after live test confirms Step 4 completion.
+
+## 2026-06-03 - Western Bid Stripe Confirmation And Step 4 v4.0.50
+
+User request:
+
+- PayPal payment completed, created the KeyCRM order, and sent the customer email, but checkout remained on Step 3.
+- Stripe payment completed at the provider, but Western Bid webhook verification failed and checkout remained on Step 3.
+- Fix Stripe confirmation, keep the working payment flows intact, and create a test archive.
+
+Root cause:
+
+- Western Bid Stripe notify sent the paid amount as raw string `1`, while the previous verifier normalized it to `1.00` before calculating the webhook hash.
+- The numeric amount is equivalent, but the MD5 input string is different, so the valid Stripe notify was rejected as `Western Bid notify hash is invalid`.
+- Western Bid can also use either the original local invoice `YO-WB-...` or the merchant-prefixed notify invoice during the return/polling path, so Step 4 matching must accept both values for the same local order.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-western-bid.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `WESTERN_BID_MIGRATION_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.50`.
+- Western Bid hash verification now tries the raw provider `mc_gross` string and the normalized two-decimal amount.
+- After hash verification, the paid amount is still normalized and compared strictly with the local order total.
+- Western Bid payment polling and final-order status now recognize both the local invoice and merchant-prefixed notify invoice for the same local order.
+- Monobank, bank invoice, KeyCRM, email, reservation, and sold-item auto-hide behavior were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-western-bid.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Confirmed Western Bid login/secret values provided in conversation were not written to repository files.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.50.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, Western Bid service present, and real `assets/` / `includes/` directories after extraction.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `WESTERN_BID_MIGRATION_MAP.md`, `CHANGELOG.txt`, and this log were updated for v4.0.50.
+
+Repository rollback point:
+
+- Not created yet. Commit/push after live test confirms Western Bid Stripe reaches Step 4.
+
+Live test confirmation:
+
+- User confirmed the v4.0.50 payment confirmation fix works.
+- Western Bid PayPal created the KeyCRM order and sent the customer email.
+- Western Bid Stripe payment confirmation continued to Step 4.
+- A separate totals issue was reported: disabled delivery is excluded from card payment but still appears in customer email and KeyCRM totals.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

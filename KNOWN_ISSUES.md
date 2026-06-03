@@ -8,7 +8,7 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Western Bid card payment needs live provider testing
 
-Status: Western Bid payment handoff is implemented and live provider payment can complete, but checkout Step 4 confirmation is still not completed from Western Bid notify/polling.
+Status: fixed and live-tested after v4.0.50.
 
 Details:
 
@@ -19,22 +19,34 @@ Details:
 - v4.0.45 opens Western Bid PayPal/Stripe in a separate payment window and keeps the original checkout polling for webhook/final status.
 - PayPal login issue was traced to the specific Western Bid PayPal test account credentials required by the sandbox instructions; with the issued login/password, PayPal payment passed.
 - Western Bid merchant was switched to real working Stripe/PayPal mode.
-- Live Stripe/PayPal payment windows can close after payment, but the main checkout remains on Step 3. That means the original checkout did not see a verified Western Bid webhook/local paid marker yet.
+- Live Stripe/PayPal payment windows can close after payment, but the main checkout remains on Step 3. The captured log showed that Western Bid notify reaches the site, but it prefixes the original checkout invoice with the merchant login: form invoice `YO-WB-22037-1780403106`, notify invoice `{wb_login}-YO-WB-22037-1780403106`.
+- v4.0.49 keeps hash verification against the full received Western Bid invoice, but maps the local order by both full and normalized invoice candidates.
+- The full log showed Stripe notify reaches the plugin with matching `mc_gross`, `payment_status=Completed`, and `wb_result=VERIFIED`, but `mc_currency` can be empty. v4.0.49 treats empty `mc_currency` as the configured Western Bid currency when the other verification checks pass.
+- A later Stripe log showed `mc_gross="1"` and `western_bid webhook verification failed: Western Bid notify hash is invalid`. The previous verifier normalized the amount to `1.00` before building the hash, but Western Bid signed the raw string `1`.
+- v4.0.50 verifies the Western Bid hash against both the raw provider amount and normalized two-decimal amount, then keeps the actual paid amount comparison strict.
+- v4.0.50 also lets payment polling and final Step 4 status accept both the original `YO-WB-...` invoice and the merchant-prefixed notify invoice.
 - Stripe also asked for the full delivery address again even though checkout Step 1 already had it. v4.0.48 sends ISO-2 country code and extra address aliases, and avoids sending delivery as a second provider shipping charge.
 
 Handling:
 
-- Test with a Western Bid-routed country or forced Western Bid provider in plugin Test mode.
-- Confirm the payment form redirects to Western Bid.
-- Confirm the payment opens in a separate window/tab, not inside the Step 3 iframe.
-- Confirm `POST /wp-json/yoleotard/v1/western-bid-webhook` reaches the site.
-- If the provider payment succeeds but checkout remains on Step 3, prioritize the backend confirmation path: notify field names, invoice mapping, hash formula, amount/currency comparison, and finalizer queue.
-- After a Stripe test, search the admin Hiding log for `checkout-debug wb-...` lines:
-  - `western_bid form fields prepared`
-  - `western_bid webhook received`
-  - `western_bid webhook verification failed` or `western_bid webhook completed`
-- Confirm Step 4 opens only after KeyCRM order creation and paid email completion.
-- Do not mark Western Bid as a known working feature until a live test confirms payment, KeyCRM, email, and auto-hide.
+- User confirmed Western Bid payment confirmation and Step 4 work after v4.0.50.
+- PayPal also created the KeyCRM order and sent the customer email.
+- Keep the webhook hash, invoice mapping, finalizer, and polling behavior unchanged unless a direct Western Bid issue requires it.
+
+### Disabled delivery can remain in email and KeyCRM totals
+
+Status: newly reported after the successful v4.0.50 Western Bid test; not fixed yet.
+
+Details:
+
+- When delivery is disabled, the card payment amount does not include delivery.
+- The customer email and KeyCRM total still include a delivery amount.
+- This creates a mismatch between the amount actually paid and the order records.
+
+Handling:
+
+- Review how the disabled-delivery state is stored in local order meta and how `card_fee_data()`, KeyCRM payloads, and paid email totals read shipping.
+- Keep the confirmed Western Bid payment confirmation behavior unchanged while fixing the shared total source.
 
 ### Monobank external payment window return
 

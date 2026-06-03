@@ -507,4 +507,10 @@ Live/test checks:
 - Western Bid switched the merchant into real working mode for Stripe and PayPal.
 - Live Stripe/PayPal testing showed the payment window closes after payment but the original checkout does not reach Step 4. This means the local checkout has not received or accepted a verified Western Bid notify/webhook yet.
 - v4.0.48 sends ISO-2 country codes and fuller buyer/address aliases to Western Bid, avoids sending delivery as a duplicate provider shipping charge, and writes safe `checkout-debug wb-...` log lines for form preparation and webhook receive/verification.
+- Live webhook log showed Western Bid prefixes the submitted invoice with the merchant login in notify payloads: submitted `YO-WB-...`, received `{wb_login}-YO-WB-...`.
+- v4.0.49 maps both full and normalized invoice values back to the same local order while keeping hash verification tied to the full received Western Bid invoice.
+- Live Stripe webhook log showed `payment_status=Completed`, `wb_result=VERIFIED`, matching `mc_gross`, but empty `mc_currency`. v4.0.49 treats empty `mc_currency` as the configured Western Bid currency after hash/status/amount checks pass.
+- A later live Stripe webhook sent raw `mc_gross="1"` and failed hash verification because the plugin had normalized it to `1.00` before calculating the hash.
+- v4.0.50 verifies the notify hash against raw and normalized amount string candidates, while still requiring the normalized paid amount to exactly match the local order total.
+- v4.0.50 also allows Western Bid polling/final status to recognize both local and merchant-prefixed invoice values so a completed webhook can continue to Step 4.
 - Secret key must never be printed in HTML, logs, changelog, docs, or Git.
