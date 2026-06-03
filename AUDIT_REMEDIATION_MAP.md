@@ -42,7 +42,7 @@ The following confirmed working behavior must remain unchanged unless a phase ex
 
 Audit baseline:
 
-- Stable version approved for GitHub: `4.0.51`
+- Stable GitHub version: `4.0.51`
 - Current local worktree version: `4.0.51`
 - Disabled shipping total persistence was live-tested successfully on 2026-06-03
 - PHP syntax checks passed

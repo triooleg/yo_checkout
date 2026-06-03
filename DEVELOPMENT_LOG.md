@@ -439,7 +439,7 @@ Repository rollback point:
 
 - User confirmed v4.0.51 works after live testing on 2026-06-03.
 - The test log showed Monobank order creation for local order `#22064`, KeyCRM order `#592`, and successful sold-item auto-hide for `new_leotard_velvet_flowers`.
-- Commit/push is approved to create the stable v4.0.51 rollback point.
+- Stable v4.0.51 commit pushed to GitHub: `6ee6734` (`Confirm v4.0.51 shipping totals and add audit map`).
 
 ## 2026-06-03 - Holistic Audit Remediation Map
 
