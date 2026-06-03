@@ -305,6 +305,12 @@ YOleotard Checkout v4.0.50
 - Allows Western Bid payment polling and final Step 4 confirmation to recognize both the original local invoice and the merchant-prefixed notify invoice.
 - Keeps Monobank, bank invoice, KeyCRM, email, reservation, and sold-item auto-hide logic unchanged.
 
+YOleotard Checkout v4.0.51
+
+- Fixes stale delivery totals when shipping is disabled in plugin settings.
+- Persists `shipping_cost_eur = 0.00` and clears old selected-delivery metadata so card payment, KeyCRM, and customer email use the same total.
+- Keeps the confirmed Western Bid payment confirmation behavior unchanged.
+
 YOleotard Checkout v4.0.48
 
 - Improves Western Bid Stripe address handoff by sending ISO-2 country code and additional checkout address aliases.

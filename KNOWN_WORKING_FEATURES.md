@@ -9,6 +9,7 @@ Items listed here are protected: do not change them unless the current task dire
 ## Confirmed Working Without Open Bugs
 
 - Shipping Calculator
+- Disabled-shipping card checkout totals remain aligned with KeyCRM and customer email after v4.0.51
 - Bank invoice checkout for two-item orders
 - KeyCRM order creation for bank invoice checkout
 - Customer email sending for bank invoice checkout after the v4.0.35 email-service extraction

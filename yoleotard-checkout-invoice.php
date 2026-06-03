@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.50. Stabilizes Western Bid Step 4 polling for prefixed invoices.
- * Version: 4.0.50
+ * Description: v4.0.51. Keeps disabled shipping out of payment, KeyCRM, and email totals.
+ * Version: 4.0.51
  * Author: YOleotard / ChatGPT
  */
 
@@ -3300,6 +3300,11 @@ EUR=1',
         $d = $this->get_order_data($local_id);
         if (($s['shipping_enabled'] ?? '1') !== '1') {
             $weight = $this->order_shipping_weight_kg($local_id);
+            update_post_meta($local_id, 'shipping_cost_eur', '0.00');
+            update_post_meta($local_id, 'shipping_source', 'disabled');
+            foreach (['shipping_selected_key','shipping_selected_label','shipping_selected_service','shipping_selected_method','shipping_delivery_days'] as $meta_key) {
+                delete_post_meta($local_id, $meta_key);
+            }
             return ['country'=>$d['country'] ?? '', 'amount'=>'0.00', 'currency'=>'EUR', 'source'=>'disabled', 'weight_kg'=>$weight];
         }
         $country = trim((string)($d['country'] ?? ''));

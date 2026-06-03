@@ -35,18 +35,20 @@ Handling:
 
 ### Disabled delivery can remain in email and KeyCRM totals
 
-Status: newly reported after the successful v4.0.50 Western Bid test; not fixed yet.
+Status: fixed and live-tested in v4.0.51 on 2026-06-03.
 
 Details:
 
 - When delivery is disabled, the card payment amount does not include delivery.
 - The customer email and KeyCRM total still include a delivery amount.
 - This creates a mismatch between the amount actually paid and the order records.
+- Root cause: the disabled branch of `shipping_data()` returned `0.00` to card payment calculation but did not persist that zero, leaving an older `shipping_cost_eur` value for KeyCRM and email.
 
 Handling:
 
-- Review how the disabled-delivery state is stored in local order meta and how `card_fee_data()`, KeyCRM payloads, and paid email totals read shipping.
-- Keep the confirmed Western Bid payment confirmation behavior unchanged while fixing the shared total source.
+- v4.0.51 persists `shipping_cost_eur = 0.00`, sets the source to `disabled`, and clears stale selected-delivery metadata.
+- User confirmed the disabled-shipping checkout works after the v4.0.51 test.
+- Keep the shared zero-shipping persistence behavior unchanged unless a direct shipping totals issue requires it.
 
 ### Monobank external payment window return
 
@@ -234,6 +236,7 @@ Details:
 
 - A three-item card payment appeared to disable six YOOtheme items in Builder.
 - Some disabled items may have been from previous tests, but matching was still too permissive because broad text/alias matching could match more than the exact purchased card.
+- A v4.0.50 Western Bid Stripe test purchased `New leotards test "Dynamic Pulse" for height 130-165` with product ID `new_leotards_test_dynamic_pulse`, but backend auto-hide disabled `New leotards DUO "Dynamic Pulse" for height 130-165`. This confirms that title fallback can still overmatch products that share the same quoted model name and height but differ in another important title word.
 
 Handling:
 
@@ -250,6 +253,7 @@ Handling:
 - Live testing after v4.0.41 confirmed that all products in the cart were hidden after card payment.
 - Title fallback no longer treats one title word plus the same height range as enough to disable an item; this reduces the risk of hiding a different model with the same height.
 - Existing already-disabled wrong Builder items are not automatically restored; use the YOOtheme backup/custom fields or manually re-enable them if needed.
+- Future auto-hide work should treat differing meaningful title words such as `test` versus `DUO` as a mismatch, even when quoted model name and height are equal.
 
 ### Expired promo discount could survive in a stored cart/order
 

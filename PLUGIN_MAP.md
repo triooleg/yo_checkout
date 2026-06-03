@@ -1,10 +1,10 @@
 # YOleotard Checkout Plugin Map
 
-Last updated: 2026-06-01
+Last updated: 2026-06-03
 
 ## Purpose
 
-This file is the navigation map for the YOleotard checkout plugin. Before any new development task, Codex must read `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, `DEVELOPMENT_LOG.md`, `KNOWN_ISSUES.md`, and `KNOWN_WORKING_FEATURES.md`.
+This file is the navigation map for the YOleotard checkout plugin. Before any new development task, Codex must read `PROJECT_CONTEXT.md`, `PLUGIN_MAP.md`, `DEVELOPMENT_LOG.md`, `KNOWN_ISSUES.md`, `KNOWN_WORKING_FEATURES.md`, and `AUDIT_REMEDIATION_MAP.md`.
 
 Rules for future work:
 
@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.50`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.51`.
 
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
@@ -56,13 +56,16 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.50`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.51`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
 
 - `WESTERN_BID_MIGRATION_MAP.md`
   Prepared implementation map for replacing WayForPay with Western Bid. Contains required code touchpoints, new settings/routes/meta, verification plan, and security notes. Does not store Western Bid secret credentials.
+
+- `AUDIT_REMEDIATION_MAP.md`
+  Staged implementation map based on the 2026-06-03 holistic audit. Defines the required security, payment-integrity, state-management, privacy, maintainability, and test-hardening phases that should be completed before adding unrelated new functionality. Its primary rule is to preserve confirmed working checkout behavior while improving internal authority and reliability.
 
 - `PROJECT_CONTEXT.md`
   Project-level context and required rules for future Codex work.
@@ -342,6 +345,7 @@ YOOtheme:
 - If touching AJAX, always verify nonce handling and guest-user behavior.
 - If touching checkout pricing, check product price, promo discount, shipping, card fee, bank total, and KeyCRM payment amount together.
 - If touching shipping, check all sources: structured DB rows, structured settings text, fallback country table, Nova Post API fallback, and currency conversion.
+- When shipping is disabled, `shipping_data()` persists `shipping_cost_eur = 0.00` and clears selected-delivery metadata so later KeyCRM/email reads cannot reuse an older shipping amount.
 
 ## Verification Checklist
 

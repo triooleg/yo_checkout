@@ -1,6 +1,6 @@
 # YOleotard Checkout Project Context
 
-Last updated: 2026-06-01
+Last updated: 2026-06-03
 
 ## Required Reading Before Changes
 
@@ -11,8 +11,11 @@ Codex must read these files before making any code change:
 - `DEVELOPMENT_LOG.md`
 - `KNOWN_ISSUES.md`
 - `KNOWN_WORKING_FEATURES.md`
+- `AUDIT_REMEDIATION_MAP.md`
 
 If a task changes plugin structure, data flow, hooks, AJAX actions, REST routes, settings, assets, integrations, or known risks, update the relevant documentation in the same task.
+
+Before adding new functionality, review `AUDIT_REMEDIATION_MAP.md` and complete or consciously account for the relevant audit-hardening phase first.
 
 ## Project
 
@@ -24,7 +27,7 @@ Plugin name:
 
 Current plugin version in the main PHP header:
 
-- `4.0.50`
+- `4.0.51`
 
 Main business goal:
 

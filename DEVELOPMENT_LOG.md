@@ -380,7 +380,7 @@ Documentation updates:
 
 Repository rollback point:
 
-- Not created yet. Commit/push after live test confirms Western Bid Stripe reaches Step 4.
+- Working v4.0.50 commit pushed to GitHub: `fe2b778` (`Fix Western Bid Stripe confirmation`).
 
 Live test confirmation:
 
@@ -388,6 +388,88 @@ Live test confirmation:
 - Western Bid PayPal created the KeyCRM order and sent the customer email.
 - Western Bid Stripe payment confirmation continued to Step 4.
 - A separate totals issue was reported: disabled delivery is excluded from card payment but still appears in customer email and KeyCRM totals.
+- Stripe log confirmed `western_bid webhook received` followed by `western_bid webhook completed` for a raw `mc_gross="1"` and empty `mc_currency`.
+- The same test exposed a separate auto-hide title fallback issue: a purchased `test "Dynamic Pulse"` item disabled a `DUO "Dynamic Pulse"` Builder item.
+
+## 2026-06-03 - Persist Disabled Shipping Total v4.0.51
+
+User request:
+
+- After confirming Western Bid works, user reported that disabled delivery is excluded from card payment but still appears in the customer email and KeyCRM total.
+
+Root cause:
+
+- `shipping_data()` returned `0.00` when shipping was disabled, so card payment calculation was correct.
+- The disabled branch did not persist that zero into `shipping_cost_eur`.
+- KeyCRM and email later read the older stored `shipping_cost_eur` value and included stale delivery in their totals.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version increased to `4.0.51`.
+- Disabled shipping now persists `shipping_cost_eur = 0.00` and `shipping_source = disabled`.
+- Old selected-delivery metadata is cleared when shipping is disabled.
+- Card payment, KeyCRM, and customer email now read the same stored shipping total.
+- Confirmed Western Bid payment confirmation logic was not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-keycrm.php` passed.
+- `php -l includes\class-yo-checkout-email.php` passed.
+- `node --check assets\yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- All PHP files under `includes/` passed `php -l` before the v4.0.51 live-test archive was prepared.
+- Host-safe archive verification passed for both `plugin-archives/yoleotard-checkout-invoice.zip` and the local reference copy `plugin-archives/yoleotard-checkout-invoice-v4.0.51.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, and real `assets/` / `includes/` directories after extraction.
+- Live test is still required.
+
+Documentation updates:
+
+- `PLUGIN_MAP.md`, `PROJECT_CONTEXT.md`, `KNOWN_ISSUES.md`, `CHANGELOG.txt`, and this log were updated for v4.0.51.
+
+Repository rollback point:
+
+- User confirmed v4.0.51 works after live testing on 2026-06-03.
+- The test log showed Monobank order creation for local order `#22064`, KeyCRM order `#592`, and successful sold-item auto-hide for `new_leotard_velvet_flowers`.
+- Commit/push is approved to create the stable v4.0.51 rollback point.
+
+## 2026-06-03 - Holistic Audit Remediation Map
+
+User request:
+
+- Create a staged map file from the completed holistic plugin audit.
+- Preserve the current functional checkout behavior and include only the improvements identified during the audit.
+- Use the map before starting new feature development.
+
+Files changed:
+
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Documentation changed:
+
+- Added a dedicated audit remediation map with functional invariants, implementation rules, priority levels, staged phases, verification gates, live-test matrix, stop conditions, and completion definition.
+- Added `AUDIT_REMEDIATION_MAP.md` to the required reading list before future code changes and new functionality.
+- No runtime code, plugin version, payment logic, checkout behavior, or integration setting was changed.
+
+Verification performed:
+
+- Reviewed the map against the current plugin structure and the 2026-06-03 audit findings.
+- `git diff --check` will be run after the documentation update.
+
+Repository rollback point:
+
+- Include this audit map with the approved stable v4.0.51 rollback point.
 
 ## 2026-05-31 - Repository Documentation Baseline
 
