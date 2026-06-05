@@ -499,6 +499,34 @@ Repository rollback point:
 
 - Documentation commit pushed to GitHub: `448b1d4` (`Add project manager start guide`).
 
+## 2026-06-06 - Checkout Logic Analyst Agent
+
+User request:
+
+- Create an analytics agent that checks the current plugin code, performs logical verification of checkout behavior, identifies error stages and mismatches, and hands findings off for implementation.
+
+Files changed:
+
+- `.agents/checkout-logic-analyst.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Documentation changed:
+
+- Added a reusable analysis-first agent instruction for checkout logic investigations.
+- The agent must read the project documentation, map expected vs actual flow, inspect logs/code/state, classify findings, and produce an implementation handoff before code changes.
+- Added references to the agent in project context and plugin map.
+- No runtime code, plugin version, payment logic, checkout behavior, or integration setting was changed.
+
+Verification performed:
+
+- Documentation-only change; `git diff --check` will be run before commit.
+
+Repository rollback point:
+
+- Not created yet.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

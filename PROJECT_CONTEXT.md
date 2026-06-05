@@ -19,6 +19,8 @@ Before adding new functionality, review `AUDIT_REMEDIATION_MAP.md` and complete 
 
 For onboarding a new manager or starting a similar new project, use `PROJECT_MANAGER_START_GUIDE.md` as the process template.
 
+For analysis-only investigations, use `.agents/checkout-logic-analyst.md` before implementation. The analyst agent should inspect code, logs, state transitions, data authority, and mismatch points, then produce a handoff report before code is changed.
+
 ## Project
 
 This repository contains the working checkout plugin for `yoleotard.com`.

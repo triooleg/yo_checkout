@@ -70,6 +70,9 @@ Rules for future work:
 - `PROJECT_MANAGER_START_GUIDE.md`
   Process template for onboarding a new manager or starting a similar plugin project. Defines how to structure project documents, development plans, task sequencing, verification, versioning, live testing, archives, and repository rollback points.
 
+- `.agents/checkout-logic-analyst.md`
+  Analysis-only agent instruction for investigating checkout logic, logs, payment state, KeyCRM/email synchronization, totals, product identity, reservations, auto-hide, security, and privacy issues. It produces findings and implementation handoff reports before code changes.
+
 - `PROJECT_CONTEXT.md`
   Project-level context and required rules for future Codex work.
 
