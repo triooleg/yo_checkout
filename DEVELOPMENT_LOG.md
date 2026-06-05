@@ -527,6 +527,44 @@ Repository rollback point:
 
 - Documentation commit pushed to GitHub: `2c48b46` (`Add checkout logic analyst agent`).
 
+## 2026-06-06 - Project Agent System
+
+User request:
+
+- Create the necessary agents for the project and define their rules and relationships.
+
+Files changed:
+
+- `.agents/README.md`
+- `.agents/payment-integrity-agent.md`
+- `.agents/order-totals-agent.md`
+- `.agents/keycrm-sync-agent.md`
+- `.agents/email-invoice-agent.md`
+- `.agents/product-identity-autohide-agent.md`
+- `.agents/security-privacy-agent.md`
+- `.agents/frontend-checkout-state-agent.md`
+- `.agents/qa-regression-agent.md`
+- `.agents/release-packaging-agent.md`
+- `.agents/documentation-curator-agent.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Documentation changed:
+
+- Added a coordinated agent system with global rules, default workflows, blocking rules, and handoff format.
+- Added domain agents for payment integrity, totals, KeyCRM, emails/invoices, product identity and auto-hide, security/privacy, frontend checkout state, QA regression, release/packaging, and documentation curation.
+- Updated project context and plugin map to point to `.agents/README.md` as the agent index.
+- No runtime code, plugin version, payment logic, checkout behavior, or integration setting was changed.
+
+Verification performed:
+
+- Documentation-only change; `git diff --check` will be run before commit.
+
+Repository rollback point:
+
+- Not created yet.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

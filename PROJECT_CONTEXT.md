@@ -21,6 +21,8 @@ For onboarding a new manager or starting a similar new project, use `PROJECT_MAN
 
 For analysis-only investigations, use `.agents/checkout-logic-analyst.md` before implementation. The analyst agent should inspect code, logs, state transitions, data authority, and mismatch points, then produce a handoff report before code is changed.
 
+For coordinated agent work, use `.agents/README.md` as the agent index. Domain agents are available for payments, totals, KeyCRM, email/invoices, product identity/auto-hide, security/privacy, frontend checkout state, QA regression, release packaging, and documentation curation.
+
 ## Project
 
 This repository contains the working checkout plugin for `yoleotard.com`.
