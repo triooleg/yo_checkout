@@ -3,7 +3,7 @@
     let selectedProduct = {};
     let cartItems = [];
     let appliedCartPromo = null;
-    let current = {localId:'', orderId:'', invoiceId:'', customer:{}, cardFee:null, bankTotal:null, shipping:null, shippingOptions:[]};
+    let current = {localId:'', orderId:'', invoiceId:'', accessToken:'', customer:{}, cardFee:null, bankTotal:null, shipping:null, shippingOptions:[]};
     let bankInvoiceInProgress = false;
     function yoDebug(msg, obj){
       // Visible Step 3 debug panel removed in v4.0.24.
@@ -35,6 +35,7 @@
     const BUYER_STORAGE_KEY = 'yo_checkout_buyer_id_v1';
     const CHECKOUT_SESSION_KEY = 'yo_checkout_session_id_v1';
     const CHECKOUT_DRAFT_KEY = 'yo_checkout_local_order_id_v1';
+    const CHECKOUT_ACCESS_TOKEN_KEY = 'yo_checkout_order_access_token_v1';
     const CHECKOUT_KEYCRM_ORDER_KEY = 'yo_checkout_keycrm_order_id_v1';
     const CHECKOUT_CART_MARKER_KEY = 'yo_checkout_cart_keycrm_marker_v1';
     function buyerId(){
@@ -56,6 +57,20 @@
     }
     function storeDraftLocalId(id){
       try{ if(id) localStorage.setItem(CHECKOUT_DRAFT_KEY, String(id)); }catch(e){}
+    }
+    function getStoredAccessToken(){
+      try{ return current.accessToken || localStorage.getItem(CHECKOUT_ACCESS_TOKEN_KEY) || sessionStorage.getItem(CHECKOUT_ACCESS_TOKEN_KEY) || getCookie('yo_checkout_order_access_token') || ''; }catch(e){ return current.accessToken || getCookie('yo_checkout_order_access_token') || ''; }
+    }
+    function storeAccessToken(token){
+      token = token ? String(token) : '';
+      if(!token) return;
+      current.accessToken = token;
+      try{ localStorage.setItem(CHECKOUT_ACCESS_TOKEN_KEY, token); sessionStorage.setItem(CHECKOUT_ACCESS_TOKEN_KEY, token); }catch(e){}
+      setCookie('yo_checkout_order_access_token', token, 2);
+    }
+    function appendOrderAccessToken(fd){
+      const token = getStoredAccessToken();
+      if(token) fd.append('access_token', token);
     }
     function getCookie(name){
       try{ const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.$?*|{}()\[\]\\\/+^]/g, '\\$&') + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : ''; }catch(e){ return ''; }
@@ -82,6 +97,7 @@
             return {
               keycrm_order_id:String(cart.keycrm_order_id),
               local_id: cart.local_id ? String(cart.local_id) : (getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id') || ''),
+              access_token: cart.access_token || getStoredAccessToken(),
               checkout_session_id: cart.checkout_session_id || checkoutSessionId(),
               buyer_id: cart.buyer_id || buyerId()
             };
@@ -89,13 +105,14 @@
         }
       }catch(e){}
       const oid = getStoredKeycrmOrderId();
-      return oid ? {keycrm_order_id:String(oid), local_id:(getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id') || ''), checkout_session_id:checkoutSessionId(), buyer_id:buyerId()} : {};
+      return oid ? {keycrm_order_id:String(oid), local_id:(getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id') || ''), access_token:getStoredAccessToken(), checkout_session_id:checkoutSessionId(), buyer_id:buyerId()} : {};
     }
     function storeCartKeycrmMarker(orderId, localId){
       if(!orderId) return;
       const marker = {
         keycrm_order_id:String(orderId),
         local_id: localId ? String(localId) : (current.localId || getStoredDraftLocalId() || ''),
+        access_token: getStoredAccessToken(),
         checkout_session_id: checkoutSessionId(),
         buyer_id: buyerId(),
         saved_at: Date.now()
@@ -107,6 +124,7 @@
         if(cart && typeof cart === 'object'){
           cart.keycrm_order_id = String(orderId);
           cart.local_id = marker.local_id || '';
+          cart.access_token = marker.access_token || getStoredAccessToken();
           cart.checkout_session_id = marker.checkout_session_id;
           cart.buyer_id = marker.buyer_id;
           cart.marker_saved_at = marker.saved_at;
@@ -115,6 +133,7 @@
       }catch(e){}
       setCookie('yo_checkout_keycrm_order_id', String(orderId), 2);
       if(marker.local_id) setCookie('yo_checkout_local_order_id', String(marker.local_id), 2);
+      if(marker.access_token) setCookie('yo_checkout_order_access_token', String(marker.access_token), 2);
     }
     function storeKeycrmOrderId(id){
       try{ if(id){ localStorage.setItem(CHECKOUT_KEYCRM_ORDER_KEY, String(id)); sessionStorage.setItem(CHECKOUT_KEYCRM_ORDER_KEY, String(id)); setCookie('yo_checkout_keycrm_order_id', String(id), 2); storeCartKeycrmMarker(id, current.localId || getStoredDraftLocalId() || ''); } }catch(e){ if(id) setCookie('yo_checkout_keycrm_order_id', String(id), 2); }
@@ -127,7 +146,9 @@
         const marker = d.cartMarker || d.cart_marker || null;
         const oid = (marker && marker.keycrm_order_id) || d.orderId || d.order_id || '';
         const lid = (marker && marker.local_id) || d.localId || d.local_id || current.localId || getStoredDraftLocalId() || '';
+        const token = d.accessToken || d.access_token || (marker && (marker.access_token || marker.accessToken)) || '';
         if(lid){ current.localId = String(lid); storeDraftLocalId(lid); }
+        if(token){ storeAccessToken(token); }
         if(oid){ current.orderId = String(oid); storeKeycrmOrderId(oid); storeCartKeycrmMarker(oid, lid); saveCart(); }
       }catch(e){}
     }
@@ -140,10 +161,11 @@
     }
 
     function clearCheckoutDraftSession(){
-      try{ localStorage.removeItem(CHECKOUT_DRAFT_KEY); localStorage.removeItem(CHECKOUT_SESSION_KEY); localStorage.removeItem(CHECKOUT_KEYCRM_ORDER_KEY); localStorage.removeItem(CHECKOUT_CART_MARKER_KEY); }catch(e){}
+      try{ localStorage.removeItem(CHECKOUT_DRAFT_KEY); localStorage.removeItem(CHECKOUT_SESSION_KEY); localStorage.removeItem(CHECKOUT_ACCESS_TOKEN_KEY); localStorage.removeItem(CHECKOUT_KEYCRM_ORDER_KEY); localStorage.removeItem(CHECKOUT_CART_MARKER_KEY); }catch(e){}
       deleteCookie('yo_checkout_keycrm_order_id');
       deleteCookie('yo_checkout_local_order_id');
-      current.localId = ''; current.orderId = ''; current.invoiceId = '';
+      deleteCookie('yo_checkout_order_access_token');
+      current.localId = ''; current.orderId = ''; current.invoiceId = ''; current.accessToken = '';
       paymentPollingActive = false; activePaymentInvoiceId = ''; activePaymentLocalId = ''; activePaymentSessionToken = ''; finalOrderPollingActive = false;
     }
     function promoEnabled(){ return !!window.YOCheckout?.promoEnabled; }
@@ -1271,6 +1293,7 @@
       if(!current.localId || !key) return;
       const fd = new FormData();
       fd.append('local_id', current.localId);
+      appendOrderAccessToken(fd);
       fd.append('shipping_key', key);
       post('yo_checkout_update_shipping_option', fd).then(function(data){
         if(data.success){
@@ -1433,6 +1456,7 @@
         const cartMarker = getCartKeycrmMarker();
         const draftLocalId = current.localId || (cartMarker && cartMarker.local_id ? cartMarker.local_id : '') || getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id');
         if(draftLocalId) fd.append('local_id', draftLocalId);
+        appendOrderAccessToken(fd);
         fd.append('checkout_session_id', checkoutSessionId());
         fd.append('buyer_id', buyerId());
         buildSelectedProductFromCart();
@@ -1448,7 +1472,7 @@
         current.customer={name:fd.get('full_name'), email:fd.get('email'), phone:fd.get('phone'), product:selectedProduct.title, amount:selectedProduct.price_eur};
         setStep('loading');
         post('yo_checkout_create_order', fd).then(function(data){
-          if(data.success){ current.localId=data.data.localId; storeDraftLocalId(current.localId); current.orderId=data.data.orderId || ''; if(current.orderId){ storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); } current.cardFee=data.data.cardFee || null; current.shipping=data.data.shipping || null; current.shippingOptions=data.data.shippingOptions || []; current.bankTotal=data.data.bankTotal || null; current.customer.amount = current.cardFee ? money(current.cardFee.total) : selectedProduct.price_eur; const t=byId('yo-accept-terms'); if(t) t.checked=false; updateTermsButtons(); renderCardFeeNote(); setStep(2); }
+          if(data.success){ rememberKeycrmFromResponse(data); current.localId=data.data.localId; storeDraftLocalId(current.localId); current.orderId=data.data.orderId || ''; if(current.orderId){ storeKeycrmOrderId(current.orderId); storeCartKeycrmMarker(current.orderId, current.localId); } current.cardFee=data.data.cardFee || null; current.shipping=data.data.shipping || null; current.shippingOptions=data.data.shippingOptions || []; current.bankTotal=data.data.bankTotal || null; current.customer.amount = current.cardFee ? money(current.cardFee.total) : selectedProduct.price_eur; const t=byId('yo-accept-terms'); if(t) t.checked=false; updateTermsButtons(); renderCardFeeNote(); setStep(2); }
           else { alert((data.data?.message || 'Order error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(1); }
         }).catch(function(){ alert('Connection error'); setStep(1); });
       });
@@ -1529,6 +1553,7 @@
       validateCartAvailability(true).then(function(v){
       if(v && v.removed > 0){ closePaymentWindow(paymentWindow); setStep(1); return; }
       const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId());
+      appendOrderAccessToken(fd);
       setStep('loading');
       post('yo_checkout_start_card_payment', fd).then(function(data){
         if(data.success && data.data.pageUrl){
@@ -1567,6 +1592,7 @@
       const cartMarkerForOrder = getCartKeycrmMarker();
       const draftLocalId = current.localId || (cartMarkerForOrder && cartMarkerForOrder.local_id ? cartMarkerForOrder.local_id : '') || getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id');
       if(draftLocalId) orderFd.append('local_id', draftLocalId);
+      appendOrderAccessToken(orderFd);
       orderFd.append('payment_intent', 'bank_invoice');
       orderFd.append('ignore_stale_keycrm_marker', '1');
       orderFd.append('yo_checkout_debug_id', bankDebugId);
@@ -1598,7 +1624,7 @@
       }).catch(function(err){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert(checkoutAjaxErrorMessage('yo_checkout_create_order', err, {debugId: bankDebugId, localId: draftLocalId, orderId: storedKeycrmOrderId, cartItems: cartItems.length})); setStep(2); });
       function submitBankInvoice(attempt){
         attempt = attempt || 0;
-        const fd=new FormData(); fd.append('local_id', current.localId); fd.append('yo_checkout_debug_id', bankDebugId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); fd.append('ignore_stale_keycrm_marker', '1');
+        const fd=new FormData(); fd.append('local_id', current.localId); appendOrderAccessToken(fd); fd.append('yo_checkout_debug_id', bankDebugId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); fd.append('ignore_stale_keycrm_marker', '1');
         setStep('loading');
         post('yo_checkout_create_bank_invoice', fd).then(function(data){
           if(data.success && data.data && data.data.preparing && attempt < 60){
@@ -1763,6 +1789,7 @@
         const fd = new FormData();
         fd.append('local_id', localId);
         fd.append('invoice_id', invoiceId);
+        appendOrderAccessToken(fd);
         return post('yo_checkout_final_order_status', fd).then(function(data){
           const payload = data && data.success ? data.data : null;
           yoDebug('final_order_status response', payload || data);
@@ -1811,6 +1838,7 @@
       const fd=new FormData();
       fd.append('invoice_id', activeInvoice);
       fd.append('local_id', activeLocal);
+      appendOrderAccessToken(fd);
       fd.append('poll_reason', reason || 'poll');
       return post('yo_checkout_check_payment_status', fd).then(function(data){
         yoDebug('checkPaymentOnce response', data && data.success ? data.data : data);
@@ -1877,7 +1905,7 @@
           return;
         }
         attempts++;
-        const fd=new FormData(); fd.append('invoice_id', activePaymentInvoiceId || current.invoiceId || ''); fd.append('local_id', activePaymentLocalId || current.localId || ''); fd.append('poll_reason', 'interval-'+attempts);
+        const fd=new FormData(); fd.append('invoice_id', activePaymentInvoiceId || current.invoiceId || ''); fd.append('local_id', activePaymentLocalId || current.localId || ''); appendOrderAccessToken(fd); fd.append('poll_reason', 'interval-'+attempts);
         post('yo_checkout_check_payment_status', fd).then(function(data){
           if(!isActivePaymentSession(sessionToken)) return;
           yoDebug('interval response', data && data.success ? data.data : data);

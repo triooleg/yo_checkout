@@ -134,6 +134,7 @@ class YO_Checkout_Promo_Service {
 
         if ($local_id) {
             if (get_post_type($local_id) !== $order_post_type) wp_send_json_error(['message'=>'Order not found']);
+            $this->call('verify_order_access', $local_id);
             if (get_post_meta($local_id, 'keycrm_created', true) === '1' || get_post_meta($local_id, 'paid', true) === '1') wp_send_json_error(['message'=>'Promo code cannot be changed after payment method is selected']);
             $d = $this->call('get_order_data', $local_id);
             if (!is_array($d)) $d = [];

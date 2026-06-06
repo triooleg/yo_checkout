@@ -6,6 +6,22 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Per-order guest access token live validation
+
+Status: v4.0.57 test candidate requires live validation.
+
+Details:
+
+- v4.0.57 adds per-order guest access tokens for public AJAX actions that read or mutate a local checkout order.
+- Only the token hash is stored in WordPress order meta.
+- Provider webhooks remain outside the guest-token check and continue using provider authentication.
+
+Handling:
+
+- Live-test Monobank card payment, Western Bid Stripe/PayPal card payment, and bank invoice flow.
+- Confirm Step 2 shipping changes, Step 3 polling, Step 4 finalization, KeyCRM creation, email sending, and sold-item auto-hide still work.
+- If a customer sees `Order access token is invalid or expired`, check whether browser storage/cookies were cleared between Step 2 and Step 3.
+
 ### Monobank webhook signature verification live validation
 
 Status: fixed and live-tested after v4.0.56.

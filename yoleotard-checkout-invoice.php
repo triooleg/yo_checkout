@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.56. Verifies Monobank webhook signatures before accepting paid webhook status.
- * Version: 4.0.56
+ * Description: v4.0.57. Adds per-order guest access tokens for protected checkout order AJAX actions.
+ * Version: 4.0.57
  * Author: YOleotard / ChatGPT
  */
 
@@ -44,6 +44,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-monobank.ph
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-keycrm.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-email.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-western-bid.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-order-access.php';
 
 
 class YO_Checkout_Invoice_Plugin {
@@ -58,6 +59,7 @@ class YO_Checkout_Invoice_Plugin {
     private $keycrm_service = null;
     private $email_service = null;
     private $western_bid_service = null;
+    private $order_access_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -141,9 +143,38 @@ class YO_Checkout_Invoice_Plugin {
                 'shipping_data' => function($local_id) { return $this->shipping_data($local_id); },
                 'card_fee_data' => function($local_id, $provider) { return $this->card_fee_data($local_id, $provider); },
                 'bank_total_data' => function($local_id) { return $this->bank_total_data($local_id); },
+                'verify_order_access' => function($local_id) { return $this->verify_order_access_for_ajax($local_id); },
             ]);
         }
         return $this->promo_service;
+    }
+
+    private function order_access_service() {
+        if (!$this->order_access_service instanceof YO_Checkout_Order_Access_Service) {
+            $this->order_access_service = new YO_Checkout_Order_Access_Service(self::CPT);
+        }
+        return $this->order_access_service;
+    }
+
+    private function verify_order_access_for_ajax($local_id) {
+        $verified = $this->order_access_service()->verify_posted_or_error($local_id);
+        if (is_wp_error($verified)) {
+            wp_send_json_error(['message' => $verified->get_error_message(), 'localId' => absint($local_id)], 403);
+        }
+        return true;
+    }
+
+    private function order_access_response_fields($local_id, $token = '') {
+        return $this->order_access_service()->response_fields($local_id, $token);
+    }
+
+    private function order_access_cart_marker($local_id, $order_id = '', $token = '') {
+        $fields = $this->order_access_response_fields($local_id, $token);
+        return [
+            'keycrm_order_id' => $order_id,
+            'local_id' => $local_id,
+            'access_token' => $fields['accessToken'],
+        ];
     }
 
     private function google_reviews_service() {
@@ -1599,6 +1630,12 @@ EUR=1',
             update_post_meta($local_id, 'paid', '0');
             update_post_meta($local_id, 'keycrm_created', '0');
         }
+        $posted_access_token = $this->order_access_service()->posted_token();
+        if ($this->order_access_service()->has_token($local_id) && !$this->order_access_service()->verify($local_id, $posted_access_token)) {
+            $this->append_checkout_debug_log($debug_id, 'create_order access denied', ['local_id' => $local_id]);
+            wp_send_json_error(['message'=>'Order access token is invalid or expired.', 'debugId'=>$debug_id, 'localId'=>$local_id], 403);
+        }
+        $order_access_token = $this->order_access_service()->ensure_token_for_response($local_id, $posted_access_token);
         foreach ($data as $k=>$v) update_post_meta($local_id, $k, $v);
         if ($checkout_session_id !== '') update_post_meta($local_id, 'checkout_session_id', $checkout_session_id);
         if ($browser_buyer_id !== '') update_post_meta($local_id, 'browser_buyer_id', $browser_buyer_id);
@@ -1626,7 +1663,8 @@ EUR=1',
             'provider' => $provider_preview,
             'bank_total' => $this->bank_total_data($local_id)['total'] ?? '',
         ]);
-        wp_send_json_success(['localId'=>$local_id,'orderId'=>get_post_meta($local_id,'order_id',true),'buyerId'=>get_post_meta($local_id,'buyer_id',true),'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],'cardProvider'=>$provider_preview,'cardFee'=>$fee_preview,'shipping'=>$shipping_preview,'shippingOptions'=>$this->shipping_options_for_order($local_id),'bankTotal'=>$this->bank_total_data($local_id),'debugId'=>$debug_id]);
+        $order_id = get_post_meta($local_id,'order_id',true);
+        wp_send_json_success(array_merge(['localId'=>$local_id,'orderId'=>$order_id,'buyerId'=>get_post_meta($local_id,'buyer_id',true),'cartMarker'=>$this->order_access_cart_marker($local_id, $order_id, $order_access_token),'cardProvider'=>$provider_preview,'cardFee'=>$fee_preview,'shipping'=>$shipping_preview,'shippingOptions'=>$this->shipping_options_for_order($local_id),'bankTotal'=>$this->bank_total_data($local_id),'debugId'=>$debug_id], $this->order_access_response_fields($local_id, $order_access_token)));
     }
 
 
@@ -1634,6 +1672,7 @@ EUR=1',
         $this->verify_nonce();
         $local_id = absint($_POST['local_id'] ?? 0);
         if (!$local_id || get_post_type($local_id) !== self::CPT) wp_send_json_error(['message'=>'Order not found']);
+        $this->verify_order_access_for_ajax($local_id);
         $shipping_key = sanitize_text_field(wp_unslash($_POST['shipping_key'] ?? ''));
         $options = $this->shipping_options_for_order($local_id);
         $found = null;
@@ -1649,7 +1688,7 @@ EUR=1',
         $provider = $this->card_provider_for_order($local_id);
         $shipping = $this->shipping_data($local_id);
         $fee = $this->card_fee_data($local_id, $provider);
-        wp_send_json_success(['shipping'=>$shipping, 'shippingOptions'=>$options, 'cardFee'=>$fee, 'bankTotal'=>$this->bank_total_data($local_id)]);
+        wp_send_json_success(array_merge(['shipping'=>$shipping, 'shippingOptions'=>$options, 'cardFee'=>$fee, 'bankTotal'=>$this->bank_total_data($local_id)], $this->order_access_response_fields($local_id)));
     }
 
     private function order_items_are_payable_for_buyer($local_id, $buyer_id) {
@@ -1693,6 +1732,7 @@ EUR=1',
         $this->verify_nonce();
         $local_id = absint($_POST['local_id'] ?? 0);
         if (!$local_id || get_post_type($local_id) !== self::CPT) wp_send_json_error(['message'=>'Order not found']);
+        $this->verify_order_access_for_ajax($local_id);
         $buyer_id = sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? ''));
         $payable = $this->order_items_are_payable_for_buyer($local_id, $buyer_id);
         if (is_wp_error($payable)) wp_send_json_error(['message'=>$payable->get_error_message(), 'details'=>$payable->get_error_data()]);
@@ -1735,6 +1775,9 @@ EUR=1',
                 'details' => $result->get_error_data(),
             ]);
         }
+        $result = array_merge($result, $this->order_access_response_fields($local_id));
+        if (!isset($result['cartMarker']) || !is_array($result['cartMarker'])) $result['cartMarker'] = [];
+        $result['cartMarker'] = array_merge($result['cartMarker'], $this->order_access_cart_marker($local_id, get_post_meta($local_id, 'order_id', true)));
         wp_send_json_success($result);
     }
 
@@ -1746,6 +1789,9 @@ EUR=1',
                 'details' => $result->get_error_data(),
             ]);
         }
+        $result = array_merge($result, $this->order_access_response_fields($local_id));
+        if (!isset($result['cartMarker']) || !is_array($result['cartMarker'])) $result['cartMarker'] = [];
+        $result['cartMarker'] = array_merge($result['cartMarker'], $this->order_access_cart_marker($local_id, get_post_meta($local_id, 'order_id', true)));
         wp_send_json_success($result);
     }
 
@@ -1766,7 +1812,7 @@ EUR=1',
         ], admin_url('admin-ajax.php'));
         // Do not use the REST endpoint for the HTML form here: WordPress REST encodes string responses as JSON,
         // which makes the iframe show only a quote/blank page instead of the auto-submit WayForPay form.
-        wp_send_json_success(['provider'=>'wayforpay','invoiceId'=>$order_reference,'pageUrl'=>$page_url,'orderId'=>('WEB-' . $local_id), 'cartMarker'=>['local_id'=>$local_id]]);
+        wp_send_json_success(array_merge(['provider'=>'wayforpay','invoiceId'=>$order_reference,'pageUrl'=>$page_url,'orderId'=>('WEB-' . $local_id), 'cartMarker'=>$this->order_access_cart_marker($local_id, get_post_meta($local_id, 'order_id', true))], $this->order_access_response_fields($local_id)));
     }
 
     public function ajax_create_bank_invoice() {
@@ -1784,6 +1830,7 @@ EUR=1',
             $this->append_checkout_debug_log($debug_id, 'bank_invoice order not found', ['local_id' => $local_id]);
             wp_send_json_error(['message'=>'Order not found', 'debugId'=>$debug_id]);
         }
+        $this->verify_order_access_for_ajax($local_id);
         $existing_lock = absint(get_post_meta($local_id, 'bank_invoice_lock', true));
         if ($existing_lock && (time() - $existing_lock) < 45) {
             $existing_response = $this->bank_invoice_existing_response($local_id, true);
@@ -1794,7 +1841,8 @@ EUR=1',
                 'retryAfter' => 2,
                 'message' => 'Bank invoice is being prepared.',
                 'debugId' => $debug_id,
-                'cartMarker' => ['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],
+                'cartMarker' => $this->order_access_cart_marker($local_id, get_post_meta($local_id,'order_id',true)),
+                'accessToken' => $this->order_access_response_fields($local_id)['accessToken'],
             ]);
         }
         delete_post_meta($local_id, 'bank_invoice_lock');
@@ -1887,7 +1935,8 @@ EUR=1',
         }
         delete_post_meta($local_id, 'bank_invoice_lock');
         $this->append_checkout_debug_log($debug_id, 'bank_invoice success', ['local_id' => $local_id, 'order_id' => get_post_meta($local_id,'order_id',true), 'invoice_url' => $files['pdf_url'] ?? '', 'html_url' => $files['html_url'] ?? '']);
-        wp_send_json_success(['invoiceUrl'=>$files['pdf_url'], 'htmlUrl'=>$files['html_url'], 'pdfMessage'=>$files['pdf_message'] ?? '', 'bankType'=>$bank_for_order['type'], 'orderId'=>get_post_meta($local_id,'order_id',true), 'debugId'=>$debug_id, 'cartMarker'=>['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id]]);
+        $order_id = get_post_meta($local_id,'order_id',true);
+        wp_send_json_success(array_merge(['invoiceUrl'=>$files['pdf_url'], 'htmlUrl'=>$files['html_url'], 'pdfMessage'=>$files['pdf_message'] ?? '', 'bankType'=>$bank_for_order['type'], 'orderId'=>$order_id, 'debugId'=>$debug_id, 'cartMarker'=>$this->order_access_cart_marker($local_id, $order_id)], $this->order_access_response_fields($local_id)));
     }
 
     private function remove_invalid_promo_from_order($local_id) {
@@ -1980,7 +2029,8 @@ EUR=1',
             'orderId' => get_post_meta($local_id, 'order_id', true),
             'reused' => true,
             'locked' => (bool)$locked,
-            'cartMarker' => ['keycrm_order_id'=>get_post_meta($local_id,'order_id',true),'local_id'=>$local_id],
+            'cartMarker' => $this->order_access_cart_marker($local_id, get_post_meta($local_id,'order_id',true)),
+            'accessToken' => $this->order_access_response_fields($local_id)['accessToken'],
         ];
     }
 
@@ -1997,6 +2047,7 @@ EUR=1',
         if (!$local_id || get_post_type($local_id) !== self::CPT) {
             wp_send_json_error(['message'=>'Local order not found','localId'=>$local_id,'invoiceId'=>$invoice_id]);
         }
+        $this->verify_order_access_for_ajax($local_id);
         if ($invoice_id !== '') {
             $stored_invoice_id = get_post_meta($local_id, 'mono_invoice_id', true) ?: get_post_meta($local_id, 'western_bid_invoice', true) ?: get_post_meta($local_id, 'wayforpay_order_reference', true);
             $provider_for_match = get_post_meta($local_id, 'payment_provider', true);
@@ -2026,7 +2077,7 @@ EUR=1',
         $email_sent = get_post_meta($local_id, 'paid_email_sent', true) === '1';
         $auto_hide_done = get_post_meta($local_id, 'auto_hide_sold_done', true) === '1';
         $d = $this->get_order_data($local_id);
-        wp_send_json_success([
+        wp_send_json_success(array_merge([
             'localId' => $local_id,
             'paid' => $paid,
             'orderId' => $order_id,
@@ -2038,7 +2089,7 @@ EUR=1',
             'keycrmError' => get_post_meta($local_id, 'keycrm_after_payment_error', true),
             'finalizerError' => get_post_meta($local_id, 'payment_finalizer_error', true) ?: get_post_meta($local_id, 'deferred_finalizer_error', true),
             'emailError' => get_post_meta($local_id, 'paid_email_error', true),
-        ]);
+        ], $this->order_access_response_fields($local_id)));
     }
 
     public function ajax_check_payment_status() {
@@ -2092,6 +2143,7 @@ EUR=1',
         if (!$local_id) {
             wp_send_json_error(['message'=>'Invoice/local order mapping not found','invoice_id'=>$invoice_id,'local_id'=>$posted_local_id]);
         }
+        $this->verify_order_access_for_ajax($local_id);
 
         $provider = get_post_meta($local_id, 'payment_provider', true) ?: $provider;
         if ($invoice_id === '') {

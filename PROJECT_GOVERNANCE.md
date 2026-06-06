@@ -371,8 +371,8 @@ Current status:
 
 - Stable runtime version: `4.0.56`
 - Current branch: `main`
-- Current next planned work: `Phase 3 - Per-Order Guest Access Tokens`
-- Runtime work in progress: none
+- Current next planned work: `Phase 4 - Invoice Access Hardening`
+- Runtime work in progress: `v4.0.57` Phase 3 per-order guest access token test candidate
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule

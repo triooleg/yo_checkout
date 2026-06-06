@@ -383,3 +383,10 @@ YOleotard Checkout v4.0.56
 - Rejects missing, invalid, or unverifiable Monobank webhook signatures without changing order payment state.
 - Checks signed paid webhook amount/currency against the stored Monobank card total when provider fields are present.
 - Keeps Monobank status polling as the recovery path when webhook delivery or verification is delayed.
+
+YOleotard Checkout v4.0.57
+
+- Adds per-order guest access tokens for public AJAX actions that work with a local checkout order.
+- Stores only a server-side token hash and sends the raw token only to the originating checkout browser state.
+- Protects order update, shipping update, existing-order promo update, card-payment start, bank-invoice creation, payment polling, and final status polling.
+- Keeps Monobank and Western Bid provider webhooks authenticated by provider-level signature/hash logic instead of guest tokens.

@@ -1521,6 +1521,50 @@ Repository rollback point:
 
 - Not created yet by user request. Commit/push only after the user confirms the test archive works.
 
+## 2026-06-06 - Phase 3 Per-Order Guest Access Tokens v4.0.57
+
+User request:
+
+- Execute Phase 3 from the audit remediation map after confirming v4.0.56 works.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-order-access.php`
+- `includes/class-yo-checkout-promo.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.57`.
+- Added a dedicated order-access service that issues a cryptographically random token for local checkout orders and stores only a hash in order meta.
+- Frontend checkout state stores the token beside the local draft and sends it with protected order AJAX requests.
+- Protected AJAX actions now include create/update order, shipping update, existing-order promo update, card-payment start, bank-invoice creation, payment-status polling, and final-order-status polling.
+- Provider webhooks are intentionally unchanged and continue using provider-level authentication.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed during implementation.
+- `php -l includes/class-yo-checkout-order-access.php` passed during implementation.
+- `php -l includes/class-yo-checkout-promo.php` passed during implementation.
+- `node --check assets/yo-checkout.js` passed during implementation.
+- Full verification will be run before commit.
+
+Live test status:
+
+- Not live-tested yet. v4.0.57 should be tested with Monobank card, Western Bid Stripe/PayPal card, and bank invoice checkout before marking it stable.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-06 - Confirm Monobank Webhook Signature Verification v4.0.56
 
 User request:

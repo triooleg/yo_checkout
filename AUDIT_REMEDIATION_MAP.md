@@ -43,7 +43,7 @@ The following confirmed working behavior must remain unchanged unless a phase ex
 Audit baseline:
 
 - Stable GitHub version: `4.0.51`
-- Current local worktree version: `4.0.56`
+- Current local worktree version: `4.0.57`
 - Disabled shipping total persistence was live-tested successfully on 2026-06-03
 - PHP syntax checks passed
 - JavaScript syntax check passed
@@ -226,6 +226,8 @@ Mark a Monobank payment paid only after cryptographic webhook verification.
 
 ## Phase 3 - Per-Order Guest Access Tokens
 
+Status: implemented locally as v4.0.57 test candidate on 2026-06-06; live checkout validation is still required before marking it stable.
+
 ### Objective
 
 Prevent one visitor from reading or mutating another visitor's local checkout order by guessing `local_id` or invoice mappings.
@@ -264,6 +266,15 @@ Prevent one visitor from reading or mutating another visitor's local checkout or
 - Missing or incorrect token cannot read order status or start payment.
 - A token from one order cannot access another order.
 - Monobank, Western Bid, and bank invoice flows still complete normally.
+
+### v4.0.57 Implementation Note
+
+- Added `includes/class-yo-checkout-order-access.php` as the dedicated guest order-access service.
+- Local checkout orders now receive a random access token; only its HMAC hash is stored in order meta.
+- Frontend checkout state stores the token with the local draft and cart marker and sends it with protected AJAX requests.
+- Protected AJAX actions now include order creation/update, shipping-option update, promo update for an existing local order, card-payment start, bank-invoice creation, payment polling, and final Step 4 status polling.
+- Provider webhooks remain authenticated by provider-level verification and are not blocked by guest access tokens.
+- Existing legacy orders without a token remain compatible, but new/reused orders receive a token during the next create-order pass.
 
 ## Phase 4 - Protected Invoice Delivery
 
