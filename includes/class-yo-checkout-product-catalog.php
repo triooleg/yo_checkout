@@ -121,7 +121,7 @@ class YO_Checkout_Product_Catalog_Service {
         $page_id = $this->source_page_id();
         if (!$page_id) return $this->cache[$cache_key] = ['found' => false, 'reason' => 'missing_source_page'];
 
-        foreach ($this->source_texts($page_id) as $source) {
+        foreach ($this->source_texts($page_id, $product_id, $title) as $source) {
             $candidate = $this->candidate_from_text($source['text'], $product_id, $title);
             if (!empty($candidate['found'])) {
                 $candidate['source'] = 'page:' . $page_id . ':' . $source['source'];
@@ -144,36 +144,55 @@ class YO_Checkout_Product_Catalog_Service {
         return $page_id;
     }
 
-    private function source_texts($page_id) {
-        if (isset($this->source_text_cache[$page_id])) return $this->source_text_cache[$page_id];
+    private function source_texts($page_id, $product_id = '', $title = '') {
+        $cache_key = $page_id . ':' . strtolower((string)$product_id) . ':' . md5((string)$title);
+        if (isset($this->source_text_cache[$cache_key])) return $this->source_text_cache[$cache_key];
 
         $texts = [];
         $content = (string)get_post_field('post_content', $page_id);
-        if ($content !== '') $texts[] = ['source' => 'post_content', 'text' => $content];
+        foreach ($this->source_fragments_from_raw($content, $product_id, $title) as $fragment) {
+            $texts[] = ['source' => 'post_content', 'text' => $fragment];
+        }
 
         $meta = get_post_meta($page_id);
         if (is_array($meta)) {
             foreach ($meta as $key => $values) {
                 foreach ((array)$values as $value) {
-                    $flat = $this->flatten_storage_value($value);
-                    if ($flat !== '') $texts[] = ['source' => 'meta:' . $key, 'text' => $flat];
+                    foreach ($this->source_fragments_from_raw((string)$value, $product_id, $title) as $fragment) {
+                        $texts[] = ['source' => 'meta:' . $key, 'text' => $fragment];
+                    }
                 }
             }
         }
 
-        return $this->source_text_cache[$page_id] = $texts;
+        return $this->source_text_cache[$cache_key] = $texts;
     }
 
-    private function flatten_storage_value($value) {
-        $maybe = maybe_unserialize($value);
-        if (is_array($maybe) || is_object($maybe)) {
-            return wp_json_encode($maybe, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    private function source_fragments_from_raw($raw, $product_id = '', $title = '') {
+        $raw = (string)$raw;
+        if ($raw === '') return [];
+
+        $needles = array_filter(array_unique([
+            (string)$product_id,
+            $this->clean_title($title),
+        ]));
+        if (!$needles) return [];
+
+        $fragments = [];
+        foreach ($needles as $needle) {
+            if ($needle === '') continue;
+            $offset = 0;
+            while (($pos = stripos($raw, $needle, $offset)) !== false) {
+                $start = max(0, $pos - 9000);
+                $length = min(strlen($raw) - $start, 22000);
+                $fragment = substr($raw, $start, $length);
+                if ($fragment !== '') $fragments[] = $fragment;
+                $offset = $pos + max(1, strlen($needle));
+                if (count($fragments) >= 8) break 2;
+            }
         }
-        $raw = (string)$maybe;
-        if ($raw === '') return '';
-        $decoded = json_decode($raw, true);
-        if (is_array($decoded)) return wp_json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        return $raw;
+
+        return array_values(array_unique($fragments));
     }
 
     private function candidate_from_text($text, $product_id, $title = '') {

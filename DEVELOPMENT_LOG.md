@@ -702,6 +702,50 @@ Repository rollback point:
 
 - Pending until final verification and commit/push.
 
+## 2026-06-06 - Product Catalog Memory Hotfix v4.0.53
+
+User report:
+
+- After installing/testing v4.0.52, checkout failed on Step 2 with `Connection error`.
+- Checkout debug log showed `yo_checkout_create_order fatal shutdown` with `Allowed memory size of 536870912 bytes exhausted`.
+
+Root cause:
+
+- The first Phase 1 product catalog implementation scanned the configured YOOtheme page by loading all post meta values.
+- For array/serialized values it called `maybe_unserialize()` and `wp_json_encode()` to flatten the full meta tree before searching.
+- On the live YOOtheme Builder page this can expand a very large structure and exhaust PHP memory during `yo_checkout_create_order`.
+
+Files changed:
+
+- `includes/class-yo-checkout-product-catalog.php`
+- `yoleotard-checkout-invoice.php`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `KNOWN_ISSUES.md`
+- `CHANGELOG.txt`
+- `DEVELOPMENT_LOG.md`
+
+Implementation:
+
+- Removed full meta flattening from the product catalog source reader.
+- The catalog now searches raw post content/meta strings for the requested `product_id` / title and parses only small nearby fragments.
+- Fragment reads are capped to avoid loading or copying the full YOOtheme Builder tree during checkout creation.
+- Payment, KeyCRM, email, promo, shipping, reservation, and sold-item auto-hide services were not edited.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+
+Live test status:
+
+- Not live-tested yet. v4.0.53 replaces v4.0.52 as the product catalog test candidate.
+
+Repository rollback point:
+
+- Pending until final verification and commit/push.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

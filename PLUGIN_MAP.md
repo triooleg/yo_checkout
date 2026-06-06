@@ -23,10 +23,10 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.52`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.53`.
 
 - `includes/class-yo-checkout-product-catalog.php`
-  Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics.
+  Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation.
 
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
@@ -59,7 +59,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.52`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.53`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.

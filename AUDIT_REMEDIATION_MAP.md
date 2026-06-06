@@ -43,7 +43,7 @@ The following confirmed working behavior must remain unchanged unless a phase ex
 Audit baseline:
 
 - Stable GitHub version: `4.0.51`
-- Current local worktree version: `4.0.52`
+- Current local worktree version: `4.0.53`
 - Disabled shipping total persistence was live-tested successfully on 2026-06-03
 - PHP syntax checks passed
 - JavaScript syntax check passed
@@ -113,7 +113,7 @@ Create a repeatable safety baseline before changing payment or order authority l
 
 ## Phase 1 - Trusted Server-Side Product Catalog
 
-Status: implemented locally as v4.0.52 test candidate on 2026-06-06; live checkout validation is still required before marking it stable.
+Status: implemented locally as v4.0.53 test candidate on 2026-06-06; live checkout validation is still required before marking it stable.
 
 ### Objective
 
@@ -151,6 +151,12 @@ Suggested responsibility:
 - When resolved, the stored checkout item uses server-side title, current price, original price, product discount, weight, and image.
 - When not resolved, the existing sanitized browser payload remains as a compatibility fallback and the order stores `product_catalog_status` / `product_catalog_summary`.
 - Promo discounts still run after catalog resolution through the existing promo service.
+
+### v4.0.53 Hotfix Note
+
+- v4.0.52 exhausted PHP memory on the live YOOtheme page during Step 2 order creation.
+- Root cause: the first catalog implementation unserialized/JSON-encoded full page meta values while searching for product data.
+- v4.0.53 no longer expands the full YOOtheme meta tree and only reads small source fragments around the requested `product_id` / title.
 
 ### Must Not Change
 

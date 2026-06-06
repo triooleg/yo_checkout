@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.52. Adds a server-side product catalog authority for checkout order snapshots.
- * Version: 4.0.52
+ * Description: v4.0.53. Limits product catalog reads to product-specific fragments to prevent checkout memory exhaustion.
+ * Version: 4.0.53
  * Author: YOleotard / ChatGPT
  */
 

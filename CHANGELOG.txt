@@ -353,3 +353,10 @@ YOleotard Checkout v4.0.52
 - When a product resolves, server-side title, current price, original price, product discount, weight, and image override browser-provided values.
 - Keeps the existing sanitized browser payload as a temporary compatibility fallback and records `product_catalog_status` / `product_catalog_summary` diagnostics when fallback is used.
 - Keeps promo-code, shipping, payment provider, KeyCRM, email, invoice, reservation, and auto-hide business rules unchanged.
+
+YOleotard Checkout v4.0.53
+
+- Fixes a Step 2 checkout memory exhaustion introduced by the first server-side product catalog test candidate.
+- Stops expanding the full YOOtheme page meta tree during order creation.
+- Reads only small source fragments around the requested `product_id` / title before parsing trusted product data.
+- Keeps the v4.0.52 catalog authority behavior, diagnostics, and compatibility fallback, while protecting checkout creation on large YOOtheme pages.
