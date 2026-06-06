@@ -658,7 +658,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Not created yet.
+- Documentation commit pushed to GitHub: `ba7603e` (`Add phase 0 regression baseline`).
 
 ## 2026-05-31 - Repository Documentation Baseline
 
