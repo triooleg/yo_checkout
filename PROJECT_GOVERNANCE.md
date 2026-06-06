@@ -369,10 +369,10 @@ Runtime changes require:
 
 Current status:
 
-- Stable runtime version: `4.0.55`
+- Stable runtime version: `4.0.56`
 - Current branch: `main`
 - Current next planned work: `Phase 3 - Per-Order Guest Access Tokens`
-- Runtime work in progress: `v4.0.56` Phase 2 Monobank webhook signature verification test candidate
+- Runtime work in progress: none
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule

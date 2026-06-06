@@ -8,7 +8,7 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Monobank webhook signature verification live validation
 
-Status: v4.0.56 test candidate requires live validation.
+Status: fixed and live-tested after v4.0.56.
 
 Details:
 
@@ -18,9 +18,8 @@ Details:
 
 Handling:
 
-- Live-test one Monobank card payment and confirm checkout still reaches Step 4, KeyCRM order is created, customer email is sent, and sold-item auto-hide runs.
-- Watch the admin Hiding log for `monobank webhook verified`.
-- If webhook verification fails during live testing, check `mono_webhook_signature_error` on the local order and the checkout-debug log before changing payment logic.
+- Keep monitoring the admin Hiding log for `monobank webhook verified` during future Monobank tests.
+- If webhook verification fails in a later regression, check `mono_webhook_signature_error` on the local order and the checkout-debug log before changing payment logic.
 
 ### Product catalog fallback during Phase 1
 

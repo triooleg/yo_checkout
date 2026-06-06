@@ -1521,6 +1521,34 @@ Repository rollback point:
 
 - Not created yet by user request. Commit/push only after the user confirms the test archive works.
 
+## 2026-06-06 - Confirm Monobank Webhook Signature Verification v4.0.56
+
+User request:
+
+- User confirmed the Monobank payment flow works after the v4.0.56 webhook-signature change.
+- Mark the current version as working before starting Phase 3.
+
+Files changed:
+
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_WORKING_FEATURES.md`
+- `KNOWN_ISSUES.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Documentation only. Runtime code was not changed.
+- `v4.0.56` is now recorded as the stable runtime version for Monobank webhook signature verification.
+
+Verification performed:
+
+- Documentation-only update.
+
+Repository rollback point:
+
+- Pending commit/push in this task.
+
 ## 2026-06-06 - Monobank Live/Test Token Switch v4.0.55
 
 User request:

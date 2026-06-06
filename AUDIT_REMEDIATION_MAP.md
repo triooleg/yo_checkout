@@ -181,7 +181,7 @@ Suggested responsibility:
 
 ## Phase 2 - Monobank Webhook Signature Verification
 
-Status: implemented locally as v4.0.56 test candidate on 2026-06-06; live Monobank checkout validation is still required before marking it stable.
+Status: completed and live-tested as v4.0.56 on 2026-06-06.
 
 ### Objective
 
