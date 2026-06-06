@@ -592,7 +592,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Not created yet.
+- Documentation commit pushed to GitHub: `7c4cf2c` (`Add project orchestrator and governance model`).
 
 ## 2026-06-06 - Project Governance Model
 
@@ -624,7 +624,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Not created yet.
+- Documentation commit pushed to GitHub: `7c4cf2c` (`Add project orchestrator and governance model`).
 
 ## 2026-05-31 - Repository Documentation Baseline
 
