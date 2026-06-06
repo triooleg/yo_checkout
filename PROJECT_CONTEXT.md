@@ -12,11 +12,14 @@ Codex must read these files before making any code change:
 - `KNOWN_ISSUES.md`
 - `KNOWN_WORKING_FEATURES.md`
 - `AUDIT_REMEDIATION_MAP.md`
+- `REGRESSION_BASELINE.md`
 - `PROJECT_GOVERNANCE.md`
 
 If a task changes plugin structure, data flow, hooks, AJAX actions, REST routes, settings, assets, integrations, or known risks, update the relevant documentation in the same task.
 
 Before adding new functionality, review `AUDIT_REMEDIATION_MAP.md` and complete or consciously account for the relevant audit-hardening phase first.
+
+Before starting audit remediation implementation phases after Phase 0, review `REGRESSION_BASELINE.md` and preserve the documented stable checkout behavior unless a phase explicitly changes it.
 
 For onboarding a new manager or starting a similar new project, use `PROJECT_MANAGER_START_GUIDE.md` as the process template.
 

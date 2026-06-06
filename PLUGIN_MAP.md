@@ -67,6 +67,9 @@ Rules for future work:
 - `AUDIT_REMEDIATION_MAP.md`
   Staged implementation map based on the 2026-06-03 holistic audit. Defines the required security, payment-integrity, state-management, privacy, maintainability, and test-hardening phases that should be completed before adding unrelated new functionality. Its primary rule is to preserve confirmed working checkout behavior while improving internal authority and reliability.
 
+- `REGRESSION_BASELINE.md`
+  Phase 0 baseline for regression checks. Documents the current v4.0.51 stable checkout endpoints, request/response fields, expected card/bank invoice flows, totals behavior, live-test matrix, and release criteria before later audit remediation phases change runtime logic.
+
 - `PROJECT_MANAGER_START_GUIDE.md`
   Process template for onboarding a new manager or starting a similar plugin project. Defines how to structure project documents, development plans, task sequencing, verification, versioning, live testing, archives, and repository rollback points.
 

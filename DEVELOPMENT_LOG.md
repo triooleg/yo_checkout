@@ -626,6 +626,40 @@ Repository rollback point:
 
 - Documentation commit pushed to GitHub: `7c4cf2c` (`Add project orchestrator and governance model`).
 
+## 2026-06-06 - Phase 0 Regression Baseline
+
+User request:
+
+- Start the next implementation point from the development plan.
+- The current queued point was `Phase 0 - Baseline and Regression Harness`.
+
+Files changed:
+
+- `REGRESSION_BASELINE.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `DEVELOPMENT_LOG.md`
+
+Documentation changed:
+
+- Added the Phase 0 regression baseline for stable v4.0.51 checkout behavior.
+- Documented the current AJAX endpoint request/response fields for order creation, card payment start, bank invoice creation, payment polling, and final order status polling.
+- Documented expected one-item card, multi-item card, bank invoice, shipping enabled/disabled, product discount, and promo monitoring behavior.
+- Added the regression test matrix and local/release verification baseline for future audit remediation phases.
+- Marked Phase 0 as completed in `AUDIT_REMEDIATION_MAP.md`.
+- Updated governance to show `Phase 1 - Trusted Server-Side Product Catalog` as the next planned runtime implementation phase.
+- No runtime code, plugin version, payment logic, checkout behavior, or integration setting was changed.
+
+Verification performed:
+
+- Documentation-only change; `git diff --check` will be run before commit.
+
+Repository rollback point:
+
+- Not created yet.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

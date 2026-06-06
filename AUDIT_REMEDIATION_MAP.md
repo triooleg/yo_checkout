@@ -77,6 +77,8 @@ Audit baseline:
 
 ## Phase 0 - Baseline and Regression Harness
 
+Status: completed as documentation baseline on 2026-06-06 in `REGRESSION_BASELINE.md`.
+
 ### Objective
 
 Create a repeatable safety baseline before changing payment or order authority logic.
@@ -110,6 +112,8 @@ Create a repeatable safety baseline before changing payment or order authority l
 - The current working flows can be compared against a written expected result after every later phase.
 
 ## Phase 1 - Trusted Server-Side Product Catalog
+
+Status: next planned runtime implementation phase.
 
 ### Objective
 

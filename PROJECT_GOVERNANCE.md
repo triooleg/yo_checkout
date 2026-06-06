@@ -371,9 +371,9 @@ Current status:
 
 - Stable runtime version: `4.0.51`
 - Current branch: `main`
-- Current next planned work: `Phase 0 - Baseline and Regression Harness`
+- Current next planned work: `Phase 1 - Trusted Server-Side Product Catalog`
 - Runtime work in progress: none
-- Agent/governance work in progress: this governance setup
+- Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule
 
@@ -387,4 +387,3 @@ A task is done when the orchestrator can show:
 - how it was verified;
 - where it is documented;
 - which commit can restore it.
-
