@@ -565,6 +565,67 @@ Repository rollback point:
 
 - Documentation commit pushed to GitHub: `0aa7f26` (`Add coordinated project agent system`).
 
+## 2026-06-06 - Project Orchestrator Agent
+
+User request:
+
+- Create an orchestrator so development follows the project rules.
+
+Files changed:
+
+- `.agents/project-orchestrator-agent.md`
+- `.agents/README.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Documentation changed:
+
+- Added the Project Orchestrator Agent as the main coordinator for task intake, agent selection, phase control, blocking rules, implementation handoff, verification, documentation, release, and archive flow.
+- Updated the agent index so the orchestrator runs before domain agents for bug investigations and audit remediation phases.
+- Updated project context and plugin map to point coordinated work through the orchestrator first.
+- No runtime code, plugin version, payment logic, checkout behavior, or integration setting was changed.
+
+Verification performed:
+
+- Documentation-only change; `git diff --check` will be run before commit.
+
+Repository rollback point:
+
+- Not created yet.
+
+## 2026-06-06 - Project Governance Model
+
+User request:
+
+- Rebuild project management so development follows the correct rules.
+
+Files changed:
+
+- `PROJECT_GOVERNANCE.md`
+- `.agents/project-orchestrator-agent.md`
+- `.agents/README.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `PROJECT_MANAGER_START_GUIDE.md`
+- `DEVELOPMENT_LOG.md`
+
+Documentation changed:
+
+- Added a top-level project governance model with task gates from intake through release and rollback.
+- Defined management roles, agent responsibilities, task classification, implementation permission, blocking model, phase governance, archive governance, Git governance, and version governance.
+- Updated the orchestrator so it uses `PROJECT_GOVERNANCE.md` as the controlling project-management model.
+- Added governance references to project context, plugin map, manager guide, and agent index.
+- No runtime code, plugin version, payment logic, checkout behavior, or integration setting was changed.
+
+Verification performed:
+
+- Documentation-only change; `git diff --check` will be run before commit.
+
+Repository rollback point:
+
+- Not created yet.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

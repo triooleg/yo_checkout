@@ -31,9 +31,13 @@ Every agent must:
 4. `KNOWN_ISSUES.md`
 5. `KNOWN_WORKING_FEATURES.md`
 6. `AUDIT_REMEDIATION_MAP.md`
-7. Relevant `.agents/*.md` files for cooperating roles
+7. `PROJECT_GOVERNANCE.md`
+8. Relevant `.agents/*.md` files for cooperating roles
 
 ## Agent List
+
+- `project-orchestrator-agent.md`
+  Main coordinator for task intake, agent selection, phase control, blocking rules, implementation handoff, verification, documentation, release, and archive flow.
 
 - `checkout-logic-analyst.md`
   First-line investigation agent for expected vs actual checkout flow.
@@ -72,6 +76,7 @@ Every agent must:
 
 For bug investigation:
 
+0. `project-orchestrator-agent`
 1. `checkout-logic-analyst`
 2. Domain agent:
    - payment issue -> `payment-integrity-agent`
@@ -87,6 +92,7 @@ For bug investigation:
 
 For audit remediation phases:
 
+0. `project-orchestrator-agent` selects the phase and agents.
 1. Start with the phase in `AUDIT_REMEDIATION_MAP.md`.
 2. Run `checkout-logic-analyst` to map the current flow.
 3. Run the matching domain agent.
@@ -107,6 +113,7 @@ The following agents can block implementation or release:
 - `product-identity-autohide-agent` can block release if auto-hide can disable the wrong product.
 - `qa-regression-agent` can block release if required checks are missing.
 - `release-packaging-agent` can block release if archive structure or git state is unsafe.
+- `project-orchestrator-agent` can stop or pause the task when a blocking agent reports an unresolved blocker, when the requested work would mix unrelated phases, or when implementation is not yet confirmed.
 
 ## Handoff Format Between Agents
 
@@ -129,11 +136,11 @@ Each agent should pass:
 
 For small tasks:
 
-- use `checkout-logic-analyst`;
+- use `project-orchestrator-agent`;
+- use `checkout-logic-analyst` when flow analysis is needed;
 - use one domain agent;
 - use `qa-regression-agent`;
 - use `documentation-curator-agent`;
 - use `release-packaging-agent` only if release/ZIP/git is requested or required.
 
 For payment or checkout core tasks, use all relevant domain agents before implementation.
-

@@ -70,8 +70,11 @@ Rules for future work:
 - `PROJECT_MANAGER_START_GUIDE.md`
   Process template for onboarding a new manager or starting a similar plugin project. Defines how to structure project documents, development plans, task sequencing, verification, versioning, live testing, archives, and repository rollback points.
 
+- `PROJECT_GOVERNANCE.md`
+  Top-level project governance model. Defines intake, classification, agent selection, analysis, implementation permission, verification, documentation, live testing, release, archive, version, Git, blocking, and rollback gates.
+
 - `.agents/`
-  Project agent system. `README.md` defines global agent rules, workflow, blocking rules, and handoff format. The folder includes analysis and domain agents for checkout logic, payment integrity, order totals, KeyCRM sync, email/invoices, product identity/auto-hide, security/privacy, frontend checkout state, QA regression, release packaging, and documentation curation.
+  Project agent system. `project-orchestrator-agent.md` is the main coordinator for task intake, phase control, agent selection, blockers, implementation handoff, verification, documentation, and release flow. `README.md` defines global agent rules, workflow, blocking rules, and handoff format. The folder includes analysis and domain agents for checkout logic, payment integrity, order totals, KeyCRM sync, email/invoices, product identity/auto-hide, security/privacy, frontend checkout state, QA regression, release packaging, and documentation curation.
 
 - `PROJECT_CONTEXT.md`
   Project-level context and required rules for future Codex work.

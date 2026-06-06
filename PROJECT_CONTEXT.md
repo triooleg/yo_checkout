@@ -12,6 +12,7 @@ Codex must read these files before making any code change:
 - `KNOWN_ISSUES.md`
 - `KNOWN_WORKING_FEATURES.md`
 - `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
 
 If a task changes plugin structure, data flow, hooks, AJAX actions, REST routes, settings, assets, integrations, or known risks, update the relevant documentation in the same task.
 
@@ -21,7 +22,9 @@ For onboarding a new manager or starting a similar new project, use `PROJECT_MAN
 
 For analysis-only investigations, use `.agents/checkout-logic-analyst.md` before implementation. The analyst agent should inspect code, logs, state transitions, data authority, and mismatch points, then produce a handoff report before code is changed.
 
-For coordinated agent work, use `.agents/README.md` as the agent index. Domain agents are available for payments, totals, KeyCRM, email/invoices, product identity/auto-hide, security/privacy, frontend checkout state, QA regression, release packaging, and documentation curation.
+For coordinated agent work, use `.agents/project-orchestrator-agent.md` first and `.agents/README.md` as the agent index. Domain agents are available for payments, totals, KeyCRM, email/invoices, product identity/auto-hide, security/privacy, frontend checkout state, QA regression, release packaging, and documentation curation.
+
+For project management gates, task classification, implementation permission, QA, release, archive, version, and Git governance, use `PROJECT_GOVERNANCE.md`.
 
 ## Project
 

@@ -52,6 +52,9 @@ Every serious plugin project should have these files from the beginning:
 - Optional but recommended: `AUDIT_REMEDIATION_MAP.md`
   A staged hardening plan based on audit findings before adding new features.
 
+- Optional but recommended: `PROJECT_GOVERNANCE.md`
+  Project operating model for task gates, agent orchestration, implementation permission, QA, release, archives, versioning, Git, and rollback.
+
 ## Required Reading Before Any Change
 
 Before starting any new code change, the manager should require Codex or any developer to read:
@@ -62,6 +65,7 @@ Before starting any new code change, the manager should require Codex or any dev
 4. `KNOWN_ISSUES.md`
 5. `KNOWN_WORKING_FEATURES.md`
 6. The active phase map, for example `AUDIT_REMEDIATION_MAP.md`
+7. The governance model, for example `PROJECT_GOVERNANCE.md`
 
 If the project does not yet have these files, the first task is to create them before feature development continues.
 
@@ -475,4 +479,3 @@ Return to commit `...` if this phase breaks the protected behavior.
 The best development plan is not the biggest plan.
 
 The best plan is the one that keeps the current working business alive while making the next risk smaller.
-
