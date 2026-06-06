@@ -375,3 +375,11 @@ YOleotard Checkout v4.0.55
 - Adds an active token mode selector for Monobank live/test payments.
 - Saves the selected Monobank token mode on each created Monobank order and uses that same mode for later invoice status polling.
 - Keeps Monobank webhook/finalizer, KeyCRM, paid email, bank invoice, Western Bid, product identity, reservation, and auto-hide behavior unchanged.
+
+YOleotard Checkout v4.0.56
+
+- Adds Monobank webhook `X-Sign` verification before a webhook can mark an order paid.
+- Fetches and caches the Monobank merchant public key from `/api/merchant/pubkey` per live/test token mode, refreshing once if verification fails.
+- Rejects missing, invalid, or unverifiable Monobank webhook signatures without changing order payment state.
+- Checks signed paid webhook amount/currency against the stored Monobank card total when provider fields are present.
+- Keeps Monobank status polling as the recovery path when webhook delivery or verification is delayed.

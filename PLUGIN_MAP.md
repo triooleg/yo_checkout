@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.55`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.56`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
@@ -41,7 +41,7 @@ Rules for future work:
   Google Customer Reviews service. Owns footer script rendering for survey opt-in and optional merchant badge while preserving the frontend callback name `window.YOCheckoutGoogleReviews`.
 
 - `includes/class-yo-checkout-monobank.php`
-  Monobank payment service. Owns Monobank invoice creation, live/test token selection, per-order token-mode persistence, invoice status requests with the same saved token mode, local invoice-to-order mapping helpers, and webhook handling. Shared payment finalization remains in the main plugin.
+  Monobank payment service. Owns Monobank invoice creation, live/test token selection, per-order token-mode persistence, invoice status requests with the same saved token mode, local invoice-to-order mapping helpers, webhook `X-Sign` verification through the cached Monobank merchant public key, webhook amount/currency checks where provider fields are available, and webhook handling. Shared payment finalization remains in the main plugin.
 
 - `includes/class-yo-checkout-keycrm.php`
   KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names.
@@ -59,7 +59,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.55`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.56`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
@@ -296,7 +296,8 @@ Monobank:
 
 - Settings tab: active Monobank token mode, Monobank live X-Token, Monobank test X-Token, and card fee percent.
 - When a Monobank invoice is created, the selected token mode is saved to order meta `mono_token_mode`; later status polling for that invoice uses the saved mode so switching the admin setting does not break existing payment checks.
-- Card start, invoice status requests, invoice mapping, and webhook handling are delegated to `includes/class-yo-checkout-monobank.php`.
+- Card start, invoice status requests, invoice mapping, webhook signature verification, and webhook handling are delegated to `includes/class-yo-checkout-monobank.php`.
+- Webhook: `mono_webhook()` now verifies the raw request body against the `X-Sign` header using the Monobank public key from `/api/merchant/pubkey`, cached per live/test token mode. Invalid or missing signatures are rejected without marking the order paid. If the cached key fails verification, the service refreshes the public key once and retries. For signed paid webhooks, provider `ccy` and `amount` / `finalAmount` are compared with the stored Monobank card total when those fields are present. Authenticated invoice status polling remains the recovery path when webhook delivery is delayed or rejected.
 - Multi-item card payments use a short Monobank payment label such as `custom leotard x5` for `merchantPaymInfo.destination`, `comment`, and `basketOrder.name` so provider length limits are not exceeded.
 - Frontend opens Monobank `pageUrl` in a separate payment window/tab instead of the Step 3 iframe, while the original checkout modal remains open and polls for payment status/final order completion. Monobank return URL points back to the site homepage with `yo_checkout_return=card`; the popup notifies the opener checkout and closes itself.
 - Shared successful-payment finalization remains in the main plugin.

@@ -6,6 +6,22 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Monobank webhook signature verification live validation
+
+Status: v4.0.56 test candidate requires live validation.
+
+Details:
+
+- v4.0.56 implements Monobank webhook `X-Sign` verification using the raw request body and the cached Monobank merchant public key.
+- Invalid or missing webhook signatures no longer mark local orders paid.
+- Authenticated Monobank invoice status polling remains as the recovery path if webhook delivery or verification is delayed.
+
+Handling:
+
+- Live-test one Monobank card payment and confirm checkout still reaches Step 4, KeyCRM order is created, customer email is sent, and sold-item auto-hide runs.
+- Watch the admin Hiding log for `monobank webhook verified`.
+- If webhook verification fails during live testing, check `mono_webhook_signature_error` on the local order and the checkout-debug log before changing payment logic.
+
 ### Product catalog fallback during Phase 1
 
 Status: v4.0.54 test candidate requires live validation.

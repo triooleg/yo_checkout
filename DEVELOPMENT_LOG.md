@@ -1581,6 +1581,55 @@ Verification performed:
 Repository rollback point:
 
 - Pending commit/push in this task.
+
+## 2026-06-06 - Phase 2 Monobank Webhook Signature Verification v4.0.56
+
+User request:
+
+- Proceed with the next audit-remediation step after confirming v4.0.55 works.
+
+References checked:
+
+- `AUDIT_REMEDIATION_MAP.md` Phase 2.
+- Monobank acquiring docs for webhook `X-Sign` verification and `/api/merchant/pubkey`.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-monobank.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.56`.
+- Monobank webhook handling now verifies the raw request body against the `X-Sign` header before accepting paid webhook status.
+- The Monobank merchant public key is fetched from `/api/merchant/pubkey`, cached per live/test token mode, and refreshed once if signature verification fails.
+- Invalid, missing, or unverifiable webhook signatures return an error response and do not mark the local order paid.
+- Signed paid webhooks compare provider `ccy` and `amount` / `finalAmount` with the stored Monobank card total when those fields are present.
+- Existing authenticated Monobank status polling remains the recovery path if webhook delivery is delayed or rejected.
+- Monobank payment window behavior, return URL, shared payment finalizer, Step 4 readiness, KeyCRM, paid email, bank invoice, Western Bid, product identity, reservation, shipping, and auto-hide behavior were not intentionally changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Confirmed no Monobank token values or new secrets were added to repository files.
+- Optional inline OpenSSL sample sanity-check could not start because the Windows sandbox returned `setup refresh failed`; PHP syntax checks still passed in the same environment.
+
+Live test status:
+
+- Not live-tested yet. v4.0.56 should be tested with one Monobank card payment and the admin Hiding log should show `monobank webhook verified`.
+
+Repository rollback point:
+
+- Pending.
 ## 2026-06-01 - Finalize Working Bank Invoice Version 4.0.33
 
 User request:

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.55. Adds Monobank live/test token selection with per-order token mode persistence.
- * Version: 4.0.55
+ * Description: v4.0.56. Verifies Monobank webhook signatures before accepting paid webhook status.
+ * Version: 4.0.56
  * Author: YOleotard / ChatGPT
  */
 
@@ -161,6 +161,7 @@ class YO_Checkout_Invoice_Plugin {
                 'card_fee_data' => function($local_id, $provider) { return $this->card_fee_data($local_id, $provider); },
                 'process_successful_card_payment' => function($local_id, $invoice_id) { return $this->process_successful_card_payment($local_id, $invoice_id); },
                 'queue_deferred_payment_finalizer' => function($local_id, $invoice_id, $source) { return $this->queue_deferred_payment_finalizer($local_id, $invoice_id, $source); },
+                'append_checkout_debug_log' => function($debug_id, $message, $context = []) { return $this->append_checkout_debug_log($debug_id, $message, $context); },
             ], self::NS, self::CPT);
         }
         return $this->monobank_service;

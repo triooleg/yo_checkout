@@ -308,9 +308,9 @@ The orchestrator must not skip phases casually.
 
 Current next phase:
 
-- `Phase 0 - Baseline and Regression Harness`
+- `Phase 3 - Per-Order Guest Access Tokens`
 
-Phase 0 is documentation/test-baseline work and should not change runtime logic.
+Phase 0 is complete. Phase 1 and Phase 2 are implemented as test candidates and require the documented live validation before they are marked stable.
 
 ## Archive Governance
 
@@ -369,10 +369,10 @@ Runtime changes require:
 
 Current status:
 
-- Stable runtime version: `4.0.51`
+- Stable runtime version: `4.0.55`
 - Current branch: `main`
-- Current next planned work: `Phase 1 - Trusted Server-Side Product Catalog`
-- Runtime work in progress: none
+- Current next planned work: `Phase 3 - Per-Order Guest Access Tokens`
+- Runtime work in progress: `v4.0.56` Phase 2 Monobank webhook signature verification test candidate
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule

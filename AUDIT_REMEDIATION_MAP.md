@@ -43,7 +43,7 @@ The following confirmed working behavior must remain unchanged unless a phase ex
 Audit baseline:
 
 - Stable GitHub version: `4.0.51`
-- Current local worktree version: `4.0.54`
+- Current local worktree version: `4.0.56`
 - Disabled shipping total persistence was live-tested successfully on 2026-06-03
 - PHP syntax checks passed
 - JavaScript syntax check passed
@@ -181,6 +181,8 @@ Suggested responsibility:
 
 ## Phase 2 - Monobank Webhook Signature Verification
 
+Status: implemented locally as v4.0.56 test candidate on 2026-06-06; live Monobank checkout validation is still required before marking it stable.
+
 ### Objective
 
 Mark a Monobank payment paid only after cryptographic webhook verification.
@@ -198,6 +200,14 @@ Mark a Monobank payment paid only after cryptographic webhook verification.
 - Reject invalid or missing signatures without changing order state.
 - Keep the existing authenticated invoice status request as a recovery path for polling or webhook desynchronization.
 - Compare the provider invoice amount and currency with the stored payment snapshot before finalization where available.
+
+### v4.0.56 Implementation Note
+
+- `includes/class-yo-checkout-monobank.php` now verifies webhook `X-Sign` against the raw request body using the cached merchant public key from `/api/merchant/pubkey`.
+- Public keys are cached per Monobank token mode (`live` / `test`) and refreshed once if signature verification fails.
+- Invalid, missing, or unverifiable signatures return an error response and do not mark the order paid.
+- Signed paid webhooks compare provider `ccy` and `amount` / `finalAmount` with the stored Monobank card total when those fields are present.
+- Authenticated status polling remains available as the recovery path when webhook delivery is delayed or rejected.
 
 ### Must Not Change
 
