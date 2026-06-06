@@ -23,6 +23,34 @@ class YO_Checkout_Monobank_Service {
         return is_array($settings) ? $settings : [];
     }
 
+    private function selected_token_mode($local_id = 0) {
+        $local_id = absint($local_id);
+        if ($local_id) {
+            $stored = get_post_meta($local_id, 'mono_token_mode', true);
+            if ($stored === 'test' || $stored === 'live') return $stored;
+        }
+
+        $s = $this->settings();
+        return (($s['mono_token_mode'] ?? 'live') === 'test') ? 'test' : 'live';
+    }
+
+    private function token_for_mode($mode) {
+        $s = $this->settings();
+        $mode = ($mode === 'test') ? 'test' : 'live';
+        $key = ($mode === 'test') ? 'mono_test_token' : 'mono_token';
+        $token = trim((string)($s[$key] ?? ''));
+
+        return [$token, $mode];
+    }
+
+    private function token_error($mode) {
+        $mode = ($mode === 'test') ? 'test' : 'live';
+        return new WP_Error(
+            $mode === 'test' ? 'mono_test_token_empty' : 'mono_token_empty',
+            $mode === 'test' ? 'Monobank test token is empty' : 'Monobank live token is empty'
+        );
+    }
+
     public function option_key($invoice_id) {
         return 'yo_mono_invoice_' . sanitize_text_field((string)$invoice_id);
     }
@@ -51,8 +79,9 @@ class YO_Checkout_Monobank_Service {
 
     public function start_payment($local_id) {
         $local_id = absint($local_id);
-        $s = $this->settings();
-        if (empty($s['mono_token'])) return new WP_Error('mono_token_empty', 'Monobank token is empty');
+        $mode = $this->selected_token_mode();
+        [$token, $mode] = $this->token_for_mode($mode);
+        if ($token === '') return $this->token_error($mode);
 
         $data = $this->call('get_order_data', $local_id);
         if (!is_array($data)) $data = [];
@@ -99,7 +128,7 @@ class YO_Checkout_Monobank_Service {
         ];
 
         $resp = wp_remote_post('https://api.monobank.ua/api/merchant/invoice/create', [
-            'headers' => ['X-Token'=>$s['mono_token'], 'Content-Type'=>'application/json'],
+            'headers' => ['X-Token'=>$token, 'Content-Type'=>'application/json'],
             'body' => wp_json_encode($payload),
             'timeout' => 30,
         ]);
@@ -111,6 +140,7 @@ class YO_Checkout_Monobank_Service {
         }
 
         update_post_meta($local_id, 'mono_invoice_id', sanitize_text_field($body['invoiceId']));
+        update_post_meta($local_id, 'mono_token_mode', $mode);
         update_post_meta($local_id, 'payment_provider', 'monobank');
         update_post_meta($local_id, 'payment_type', 'card');
         update_option($this->option_key($body['invoiceId']), $local_id, false);
@@ -121,15 +151,20 @@ class YO_Checkout_Monobank_Service {
             'invoiceId' => $body['invoiceId'],
             'pageUrl' => $body['pageUrl'],
             'orderId' => $checkout_ref,
+            'tokenMode' => $mode,
             'cartMarker' => ['local_id'=>$local_id],
         ];
     }
 
     public function check_status($invoice_id) {
-        $s = $this->settings();
         $invoice_id = sanitize_text_field((string)$invoice_id);
+        $local_id = $this->local_id_for_invoice($invoice_id);
+        $mode = $this->selected_token_mode($local_id);
+        [$token, $mode] = $this->token_for_mode($mode);
+        if ($token === '') return $this->token_error($mode);
+
         $resp = wp_remote_get('https://api.monobank.ua/api/merchant/invoice/status?invoiceId=' . urlencode($invoice_id), [
-            'headers' => ['X-Token'=>$s['mono_token'], 'Accept'=>'application/json'],
+            'headers' => ['X-Token'=>$token, 'Accept'=>'application/json'],
             'timeout' => 30,
         ]);
         if (is_wp_error($resp)) return $resp;

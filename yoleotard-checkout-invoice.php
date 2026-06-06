@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.54. Improves product catalog title-derived matching and closes card payment windows after Step 4.
- * Version: 4.0.54
+ * Description: v4.0.55. Adds Monobank live/test token selection with per-order token mode persistence.
+ * Version: 4.0.55
  * Author: YOleotard / ChatGPT
  */
 
@@ -254,6 +254,8 @@ class YO_Checkout_Invoice_Plugin {
     public static function defaults() {
         return [
             'mono_token' => '',
+            'mono_test_token' => '',
+            'mono_token_mode' => 'live',
             'monobank_card_fee_percent' => '2',
             'shipping_enabled' => '1',
             'shipping_default_eur' => '0',
@@ -730,6 +732,8 @@ EUR=1',
             $out[$key] = is_string($value) ? wp_kses_post(trim($value)) : $value;
         }
 
+        $out['mono_token_mode'] = (($out['mono_token_mode'] ?? 'live') === 'test') ? 'test' : 'live';
+
         return $out;
     }
 
@@ -847,10 +851,13 @@ EUR=1',
                 <?php elseif ($tab === 'monobank'): ?>
                     <h2>Monobank</h2>
                     <table class="form-table">
-                        <?php $this->field('mono_token', 'Monobank X-Token', 'password'); ?>
+                        <?php $this->select('mono_token_mode', 'Active Monobank token', ['live'=>'Live token', 'test'=>'Test token']); ?>
+                        <?php $this->field('mono_token', 'Monobank live X-Token', 'password'); ?>
+                        <?php $this->field('mono_test_token', 'Monobank test X-Token', 'password'); ?>
                         <?php $this->field('monobank_card_fee_percent', 'Monobank card service fee, %'); ?>
                     </table>
                     <p><strong>Monobank webhook URL:</strong> <code><?php echo esc_html(rest_url(self::NS . '/mono-webhook')); ?></code></p>
+                    <p class="description">The selected token mode is saved to each Monobank order when the invoice is created, so status polling for that invoice continues with the same token even if this setting is changed later.</p>
                 <?php elseif ($tab === 'promo'): ?>
                     <h2>Promo code discount</h2>
                     <table class="form-table">
@@ -2856,7 +2863,7 @@ EUR=1',
     }
 
     private function get_order_data($local_id) {
-        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','western_bid_invoice','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id','product_catalog_status','product_catalog_summary'];
+        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','mono_token_mode','western_bid_invoice','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id','product_catalog_status','product_catalog_summary'];
         $out=[]; foreach($keys as $k) $out[$k]=get_post_meta($local_id,$k,true); return $out;
     }
 

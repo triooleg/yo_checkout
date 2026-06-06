@@ -368,3 +368,10 @@ YOleotard Checkout v4.0.54
 - Keeps the memory-safe fragment reader from v4.0.53.
 - Attempts to close the opened card payment window from the main checkout as soon as Step 4 success is shown.
 - Keeps Monobank, Western Bid, bank invoice, KeyCRM, email, shipping, promo, reservation, and auto-hide business rules unchanged.
+
+YOleotard Checkout v4.0.55
+
+- Adds a separate Monobank test X-Token field in the Monobank admin settings tab.
+- Adds an active token mode selector for Monobank live/test payments.
+- Saves the selected Monobank token mode on each created Monobank order and uses that same mode for later invoice status polling.
+- Keeps Monobank webhook/finalizer, KeyCRM, paid email, bank invoice, Western Bid, product identity, reservation, and auto-hide behavior unchanged.

@@ -1520,6 +1520,43 @@ Documentation updates:
 Repository rollback point:
 
 - Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-06-06 - Monobank Live/Test Token Switch v4.0.55
+
+User request:
+
+- Add one more field in the Monobank admin section for a test token.
+- Add the ability to choose which Monobank token is active.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-monobank.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.55`.
+- Monobank admin settings now include `Active Monobank token`, `Monobank live X-Token`, and `Monobank test X-Token`.
+- Monobank invoice creation uses the selected token mode from admin settings.
+- The selected mode is saved to local order meta `mono_token_mode`.
+- Monobank status polling for an existing invoice uses the saved per-order mode, so switching the admin selector later does not break already-open payment checks.
+- Empty selected tokens return a clear error: `Monobank live token is empty` or `Monobank test token is empty`.
+- Monobank webhook/finalizer, KeyCRM, paid email, bank invoice, Western Bid, product identity, reservation, shipping, and auto-hide behavior were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Repository rollback point:
+
+- Commit `Add Monobank live test token switch` created locally and pushed to GitHub in this task. Final hash is reported in the task response.
 ## 2026-06-01 - Finalize Working Bank Invoice Version 4.0.33
 
 User request:
