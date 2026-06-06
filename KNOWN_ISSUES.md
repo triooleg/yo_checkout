@@ -8,7 +8,7 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Product catalog fallback during Phase 1
 
-Status: v4.0.53 hotfix test candidate requires live validation.
+Status: v4.0.54 test candidate requires live validation.
 
 Details:
 
@@ -16,13 +16,29 @@ Details:
 - During the transition, if a product cannot be resolved, checkout keeps the existing sanitized browser payload instead of blocking payment.
 - This preserves confirmed checkout behavior while the source parser is validated against real YOOtheme storage.
 - v4.0.52 caused a live Step 2 memory exhaustion because it expanded full YOOtheme meta values while searching for product data.
+- v4.0.53 fixed the memory exhaustion and live tests confirmed Monobank and bank invoice still complete, but catalog diagnostics still showed `partial_fallback`.
 
 Handling:
 
 - v4.0.53 limits catalog reads to small product-specific fragments and avoids full meta unserialization/JSON encoding during checkout creation.
+- v4.0.54 also allows trusted title-derived matching when the stored Builder data does not contain the literal frontend `product_id`.
 - Watch checkout-debug for `product catalog fallback used`.
 - Check order meta `product_catalog_status` and `product_catalog_summary` after test orders.
 - After live validation confirms all active product cards resolve as `trusted`, a later phase can make unknown/ambiguous products fail closed.
+
+### Card payment popup can remain on provider page
+
+Status: v4.0.54 test candidate requires live validation.
+
+Details:
+
+- In the v4.0.53 Monobank test, the main checkout reached Step 4 successfully but the provider popup stayed on `pay.monobank.ua` until `Return to site` was clicked.
+- This happens because checkout JavaScript cannot run on the external provider domain.
+
+Handling:
+
+- v4.0.54 keeps a reference to the opened card-payment window and attempts to close it from the main checkout when Step 4 is shown.
+- If the browser refuses to close a cross-origin provider window in some cases, payment completion remains correct; the remaining issue is UX only.
 
 ### Western Bid card payment needs live provider testing
 

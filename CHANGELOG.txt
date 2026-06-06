@@ -360,3 +360,11 @@ YOleotard Checkout v4.0.53
 - Stops expanding the full YOOtheme page meta tree during order creation.
 - Reads only small source fragments around the requested `product_id` / title before parsing trusted product data.
 - Keeps the v4.0.52 catalog authority behavior, diagnostics, and compatibility fallback, while protecting checkout creation on large YOOtheme pages.
+
+YOleotard Checkout v4.0.54
+
+- Improves Phase 1 product catalog matching for YOOtheme storage that does not contain the literal frontend `product_id`.
+- Allows a catalog item to be trusted when the stored card title generates the same canonical product ID requested by checkout.
+- Keeps the memory-safe fragment reader from v4.0.53.
+- Attempts to close the opened card payment window from the main checkout as soon as Step 4 success is shown.
+- Keeps Monobank, Western Bid, bank invoice, KeyCRM, email, shipping, promo, reservation, and auto-hide business rules unchanged.

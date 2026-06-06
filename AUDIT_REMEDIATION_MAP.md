@@ -43,7 +43,7 @@ The following confirmed working behavior must remain unchanged unless a phase ex
 Audit baseline:
 
 - Stable GitHub version: `4.0.51`
-- Current local worktree version: `4.0.53`
+- Current local worktree version: `4.0.54`
 - Disabled shipping total persistence was live-tested successfully on 2026-06-03
 - PHP syntax checks passed
 - JavaScript syntax check passed
@@ -113,7 +113,7 @@ Create a repeatable safety baseline before changing payment or order authority l
 
 ## Phase 1 - Trusted Server-Side Product Catalog
 
-Status: implemented locally as v4.0.53 test candidate on 2026-06-06; live checkout validation is still required before marking it stable.
+Status: implemented locally as v4.0.54 test candidate on 2026-06-06; live checkout validation is still required before marking it stable.
 
 ### Objective
 
@@ -157,6 +157,12 @@ Suggested responsibility:
 - v4.0.52 exhausted PHP memory on the live YOOtheme page during Step 2 order creation.
 - Root cause: the first catalog implementation unserialized/JSON-encoded full page meta values while searching for product data.
 - v4.0.53 no longer expands the full YOOtheme meta tree and only reads small source fragments around the requested `product_id` / title.
+
+### v4.0.54 Follow-Up Note
+
+- Live tests showed Monobank and bank invoice completed successfully, but catalog diagnostics still reported `partial_fallback`.
+- v4.0.54 allows trusted catalog matching when the stored Builder card has the same title and that title generates the requested canonical product ID, even if the literal DOM `product_id` is only added later by frontend enhancers.
+- The frontend now keeps a reference to the opened card-payment window and attempts to close it when the main checkout reaches Step 4.
 
 ### Must Not Change
 

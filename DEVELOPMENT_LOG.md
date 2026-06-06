@@ -746,6 +746,51 @@ Repository rollback point:
 
 - Pending until final verification and commit/push.
 
+## 2026-06-06 - Product Catalog Matching And Payment Window UX v4.0.54
+
+User report:
+
+- v4.0.53 allowed both Monobank card payment and bank invoice checkout to complete successfully.
+- Monobank card payment created KeyCRM order `#595`, email/finalization completed, and sold-item auto-hide disabled `new_leotard_velvet_flowers`.
+- Bank invoice created KeyCRM order `#596`, generated invoice files, and sent the customer email.
+- Checkout-debug still reported `product catalog fallback used` with `partial_fallback`.
+- The Monobank payment popup stayed on `pay.monobank.ua` until the customer clicked `Return to site`, although the main checkout had already reached Step 4.
+
+Root cause:
+
+- The product catalog hotfix looked for small source fragments by `product_id` / title, but `parse_card_text()` still required the literal `product_id` to exist inside the fragment.
+- Some product IDs are added to the live DOM by frontend enhancers and may not exist literally in the stored YOOtheme Builder data.
+- Browser JavaScript cannot run on `pay.monobank.ua`, so the popup cannot close itself until Monobank redirects it back to the site; however, the opener checkout can attempt to close a window it opened once Step 4 is reached.
+
+Files changed:
+
+- `assets/yo-checkout.js`
+- `includes/class-yo-checkout-product-catalog.php`
+- `yoleotard-checkout-invoice.php`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `CHANGELOG.txt`
+- `DEVELOPMENT_LOG.md`
+
+Implementation:
+
+- Product catalog now accepts a title-derived match when the stored card title generates the requested canonical product ID.
+- Frontend stores the active card-payment popup reference and attempts to close it when Step 4 success is shown.
+- Back/cancel payment cleanup also closes the active payment window if one exists.
+
+Verification performed:
+
+- Pending final local syntax checks after this documentation update.
+
+Live test status:
+
+- Not live-tested yet. v4.0.54 should be tested against the same one-item Monobank and bank invoice scenarios that passed on v4.0.53, checking whether `product_catalog_status` becomes `trusted`.
+
+Repository rollback point:
+
+- Pending until final verification and commit/push.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:

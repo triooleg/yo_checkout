@@ -252,11 +252,15 @@ class YO_Checkout_Product_Catalog_Service {
 
     private function parse_card_text($card, $product_id, $fallback_title = '') {
         $card = html_entity_decode(wp_unslash((string)$card), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        if ($product_id !== '' && stripos($card, $product_id) === false) return ['found' => false];
+        $has_explicit_product_id = ($product_id !== '' && stripos($card, $product_id) !== false);
 
         $title = $this->extract_title($card);
         if ($title === '') $title = $fallback_title;
         $title = $this->clean_title($title);
+        $derived_product_id = $this->canonical_product_id('', $title);
+        if ($product_id !== '' && !$has_explicit_product_id && strcasecmp($derived_product_id, $product_id) !== 0) {
+            return ['found' => false];
+        }
 
         $prices = $this->extract_prices($card);
         if (!$prices) return ['found' => false];

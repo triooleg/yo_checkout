@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.53. Limits product catalog reads to product-specific fragments to prevent checkout memory exhaustion.
- * Version: 4.0.53
+ * Description: v4.0.54. Improves product catalog title-derived matching and closes card payment windows after Step 4.
+ * Version: 4.0.54
  * Author: YOleotard / ChatGPT
  */
 

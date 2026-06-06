@@ -29,6 +29,7 @@
     let activePaymentInvoiceId = '';
     let activePaymentLocalId = '';
     let activePaymentSessionToken = '';
+    let activePaymentWindow = null;
     let finalOrderPollingActive = false;
     let reservationServerOffsetMs = 0;
     const BUYER_STORAGE_KEY = 'yo_checkout_buyer_id_v1';
@@ -164,6 +165,7 @@
     }
     function closePaymentWindow(win){
       try{ if(win && !win.closed) win.close(); }catch(e){}
+      if(win && activePaymentWindow === win) activePaymentWindow = null;
     }
     function showExternalPaymentInfo(url, blocked, provider){
       const info = byId('yo-external-payment-info');
@@ -1454,6 +1456,7 @@
 
     function stopPaymentPolling(){
       if(paymentTimer){ clearInterval(paymentTimer); paymentTimer = null; }
+      closePaymentWindow(activePaymentWindow);
       paymentPollingActive = false;
       activePaymentInvoiceId = '';
       activePaymentLocalId = '';
@@ -1522,6 +1525,7 @@
     byId('yo-pay-card')?.addEventListener('click', function(){
       if(!byId('yo-accept-terms')?.checked){ alert('Please confirm that you agree to the Terms & Conditions before continuing.'); return; }
       const paymentWindow = openExternalPaymentWindow();
+      activePaymentWindow = paymentWindow;
       validateCartAvailability(true).then(function(v){
       if(v && v.removed > 0){ closePaymentWindow(paymentWindow); setStep(1); return; }
       const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId());
@@ -1704,6 +1708,7 @@
       setTextSafe('yo-success-product', checkoutProductSummaryLabel());
       setTextSafe('yo-success-amount', cust.amount || (current.cardFee && current.cardFee.total ? money(current.cardFee.total) : ''));
       const frame = byId('yo-payment-frame'); if(frame) frame.src='about:blank';
+      closePaymentWindow(activePaymentWindow);
       paymentPollingActive = false;
       activePaymentInvoiceId = '';
       activePaymentLocalId = '';
