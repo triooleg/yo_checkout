@@ -15,6 +15,7 @@ Items listed here are protected: do not change them unless the current task dire
 - Customer email sending for bank invoice checkout after the v4.0.35 email-service extraction
 - Bank invoice confirmation screen with KeyCRM order number
 - Monobank card payment flow
+- Monobank live/test token switch in the admin settings after v4.0.55
 - Monobank external payment window closes after provider return and continues to Step 4 after v4.0.47
 - Western Bid PayPal card payment flow, KeyCRM order creation, customer email, and Step 4 after v4.0.50
 - Western Bid Stripe card payment flow and Step 4 after v4.0.50

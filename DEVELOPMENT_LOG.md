@@ -1557,6 +1557,30 @@ Verification performed:
 Repository rollback point:
 
 - Commit `Add Monobank live test token switch` created locally and pushed to GitHub in this task. Final hash is reported in the task response.
+
+## 2026-06-06 - Confirm Monobank Live/Test Token Switch v4.0.55
+
+User confirmation:
+
+- User confirmed the Monobank live/test token switch works.
+
+Files changed:
+
+- `KNOWN_WORKING_FEATURES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime code changed.
+- `KNOWN_WORKING_FEATURES.md` now records the Monobank live/test token switch as confirmed working after v4.0.55.
+
+Verification performed:
+
+- Documentation-only update.
+
+Repository rollback point:
+
+- Pending commit/push in this task.
 ## 2026-06-01 - Finalize Working Bank Invoice Version 4.0.33
 
 User request:
