@@ -345,3 +345,11 @@ YOleotard Checkout v4.0.44
 - Updated admin payment settings to show Western Bid login, secret key, currency, payment gate, fee percent, country routing, notify URL, and return URL.
 - Updated card provider routing, card fee calculation, KeyCRM payment method selection, payment polling, and final order lookup to support `western_bid`.
 - Kept Monobank, bank invoice, KeyCRM finalization, email sending, product identity, reservations, and sold-item auto-hide behavior unchanged.
+
+YOleotard Checkout v4.0.52
+
+- Adds `includes/class-yo-checkout-product-catalog.php` as the Phase 1 server-side product catalog authority.
+- Resolves cart items by stable `product_id` from the configured YOOtheme product source page before storing checkout order snapshots.
+- When a product resolves, server-side title, current price, original price, product discount, weight, and image override browser-provided values.
+- Keeps the existing sanitized browser payload as a temporary compatibility fallback and records `product_catalog_status` / `product_catalog_summary` diagnostics when fallback is used.
+- Keeps promo-code, shipping, payment provider, KeyCRM, email, invoice, reservation, and auto-hide business rules unchanged.

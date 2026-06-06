@@ -6,6 +6,22 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Product catalog fallback during Phase 1
+
+Status: v4.0.52 test candidate requires live validation.
+
+Details:
+
+- Phase 1 adds a server-side product catalog service that resolves product data by `product_id` from the configured YOOtheme product source page.
+- During the transition, if a product cannot be resolved, checkout keeps the existing sanitized browser payload instead of blocking payment.
+- This preserves confirmed checkout behavior while the source parser is validated against real YOOtheme storage.
+
+Handling:
+
+- Watch checkout-debug for `product catalog fallback used`.
+- Check order meta `product_catalog_status` and `product_catalog_summary` after test orders.
+- After live validation confirms all active product cards resolve as `trusted`, a later phase can make unknown/ambiguous products fail closed.
+
 ### Western Bid card payment needs live provider testing
 
 Status: fixed and live-tested after v4.0.50.

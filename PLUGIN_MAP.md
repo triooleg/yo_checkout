@@ -23,7 +23,10 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.51`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.52`.
+
+- `includes/class-yo-checkout-product-catalog.php`
+  Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics.
 
 - `includes/class-yo-checkout-sold-items.php`
   Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
@@ -56,7 +59,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.51`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.52`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
@@ -68,7 +71,7 @@ Rules for future work:
   Staged implementation map based on the 2026-06-03 holistic audit. Defines the required security, payment-integrity, state-management, privacy, maintainability, and test-hardening phases that should be completed before adding unrelated new functionality. Its primary rule is to preserve confirmed working checkout behavior while improving internal authority and reliability.
 
 - `REGRESSION_BASELINE.md`
-  Phase 0 baseline for regression checks. Documents the current v4.0.51 stable checkout endpoints, request/response fields, expected card/bank invoice flows, totals behavior, live-test matrix, and release criteria before later audit remediation phases change runtime logic.
+  Phase 0 baseline for regression checks. Documents the stable v4.0.51 checkout endpoints, request/response fields, expected card/bank invoice flows, totals behavior, live-test matrix, and release criteria before later audit remediation phases change runtime logic.
 
 - `PROJECT_MANAGER_START_GUIDE.md`
   Process template for onboarding a new manager or starting a similar plugin project. Defines how to structure project documents, development plans, task sequencing, verification, versioning, live testing, archives, and repository rollback points.
@@ -180,7 +183,7 @@ Line numbers are approximate and should be refreshed after larger edits.
 - Promo-code helpers and AJAX: delegated to `includes/class-yo-checkout-promo.php` through wrapper methods around lines 1109-1123 and AJAX action `ajax_apply_promo_code()`.
 - Product reservation helpers and AJAX: lines 1114-1221.
 - Cart availability AJAX: lines 1223-1271.
-- Order creation AJAX: lines 1318-1508.
+- Order creation AJAX: stores an order snapshot after `sanitize_order_input()` applies the server-side product catalog to cart items when possible. Product price/title/discount/weight browser fields remain accepted only as compatibility fallback during Phase 1.
 - Shipping option update AJAX: lines 1510-1530.
 - Payability checks and card-payment start: lines 1532-1636.
 - Bank invoice creation AJAX: validates payable items, writes checkout-debug trace lines, removes invalid/expired promo data from stale local orders, recalculates bank totals, then generates or reuses the bank invoice by cart hash.
@@ -189,7 +192,7 @@ Line numbers are approximate and should be refreshed after larger edits.
 - WayForPay helpers: lines 1964-2100.
 - Checkout input sanitization and order data helpers: lines 2102-2315.
 - KeyCRM marker/reuse/deduplication lookup logic: lines 2318-2755.
-- KeyCRM create/update/request/product sync logic: lines 2757-3295.
+- Product catalog, KeyCRM wrappers, create/update/request/product sync logic: order input now delegates product resolution to `includes/class-yo-checkout-product-catalog.php`; KeyCRM sync continues to read the stored order/cart snapshot.
 - Country normalization and shipping calculations: lines 3304-3770.
 - Shipping, bank total, and card fee data: lines 3770-3859.
 - KeyCRM payment/comment updates: lines 3861-3884.

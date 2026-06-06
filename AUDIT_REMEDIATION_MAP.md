@@ -43,7 +43,7 @@ The following confirmed working behavior must remain unchanged unless a phase ex
 Audit baseline:
 
 - Stable GitHub version: `4.0.51`
-- Current local worktree version: `4.0.51`
+- Current local worktree version: `4.0.52`
 - Disabled shipping total persistence was live-tested successfully on 2026-06-03
 - PHP syntax checks passed
 - JavaScript syntax check passed
@@ -113,7 +113,7 @@ Create a repeatable safety baseline before changing payment or order authority l
 
 ## Phase 1 - Trusted Server-Side Product Catalog
 
-Status: next planned runtime implementation phase.
+Status: implemented locally as v4.0.52 test candidate on 2026-06-06; live checkout validation is still required before marking it stable.
 
 ### Objective
 
@@ -143,6 +143,14 @@ Suggested responsibility:
 - Keep the current browser payload fields temporarily so old cached JavaScript does not fail immediately.
 - Log mismatches between browser values and server values during the transition.
 - Do not reject a valid cart only because a display title differs in punctuation or quote encoding when `product_id` resolves correctly.
+
+### v4.0.52 Implementation Note
+
+- Added `includes/class-yo-checkout-product-catalog.php`.
+- `sanitize_cart_items_json()` now attempts to resolve each cart item by `product_id` from the configured YOOtheme product source page.
+- When resolved, the stored checkout item uses server-side title, current price, original price, product discount, weight, and image.
+- When not resolved, the existing sanitized browser payload remains as a compatibility fallback and the order stores `product_catalog_status` / `product_catalog_summary`.
+- Promo discounts still run after catalog resolution through the existing promo service.
 
 ### Must Not Change
 

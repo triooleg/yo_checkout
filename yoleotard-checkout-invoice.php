@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.51. Keeps disabled shipping out of payment, KeyCRM, and email totals.
- * Version: 4.0.51
+ * Description: v4.0.52. Adds a server-side product catalog authority for checkout order snapshots.
+ * Version: 4.0.52
  * Author: YOleotard / ChatGPT
  */
 
@@ -36,6 +36,7 @@ if (!function_exists('mb_convert_encoding')) {
 }
 
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-product-identity.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-product-catalog.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-sold-items.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-promo.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-google-reviews.php';
@@ -50,6 +51,7 @@ class YO_Checkout_Invoice_Plugin {
     const CPT = 'yo_invoice_order';
     const NS  = 'yoleotard/v1';
     private $sold_items_service = null;
+    private $product_catalog_service = null;
     private $promo_service = null;
     private $google_reviews_service = null;
     private $monobank_service = null;
@@ -115,6 +117,18 @@ class YO_Checkout_Invoice_Plugin {
             $this->sold_items_service = new YO_Checkout_Sold_Items_Service();
         }
         return $this->sold_items_service;
+    }
+
+    private function product_catalog_service() {
+        if (!$this->product_catalog_service instanceof YO_Checkout_Product_Catalog_Service) {
+            $this->product_catalog_service = new YO_Checkout_Product_Catalog_Service([
+                'settings' => function() { return self::settings(); },
+                'clean_product_title_for_display' => function($title) { return $this->clean_product_title_for_display($title); },
+                'canonical_product_id' => function($value, $title = '') { return $this->canonical_product_id($value, $title); },
+                'sanitize_product_id' => function($value) { return $this->sanitize_product_id($value); },
+            ]);
+        }
+        return $this->product_catalog_service;
     }
 
     private function promo_service() {
@@ -1393,6 +1407,12 @@ EUR=1',
             $this->append_checkout_debug_log($debug_id, 'create_order sanitize failed', ['error' => $data->get_error_message()]);
             wp_send_json_error(['message' => $data->get_error_message(), 'debugId' => $debug_id]);
         }
+        if (!empty($data['product_catalog_status']) && $data['product_catalog_status'] !== 'trusted') {
+            $this->append_checkout_debug_log($debug_id, 'product catalog fallback used', [
+                'status' => $data['product_catalog_status'],
+                'summary' => $data['product_catalog_summary'] ?? '',
+            ]);
+        }
         // This is the browser reservation/customer marker from localStorage, not the KeyCRM buyer ID.
         // Store it separately so we can find the same unpaid checkout draft even after the customer
         // returns from the card payment screen, refreshes the page, or the frontend loses local_id.
@@ -2481,6 +2501,7 @@ EUR=1',
             'promo_code_applied'=>sanitize_text_field($_POST['promo_code_applied'] ?? ''),
             'created_at'=>current_time('timestamp'),
         ];
+        $data = $this->apply_trusted_catalog_to_order_data($data);
         foreach (['title','full_name','phone','email','address','city','zip_code','country'] as $k) if (!$data[$k]) return new WP_Error('missing', 'Required fields are missing');
         if ($data['price_eur'] <= 0) return new WP_Error('price', 'Product price is missing');
         if ($data['original_price_eur'] <= 0) $data['original_price_eur'] = $data['price_eur'];
@@ -2505,6 +2526,87 @@ EUR=1',
             }
         }
         if ($data['shipping_weight_kg'] <= 0) $data['shipping_weight_kg'] = max(0.1, floatval(str_replace(',', '.', (string)(self::settings()['nova_post_weight_kg'] ?? 2))));
+        return $data;
+    }
+
+    private function apply_trusted_catalog_to_order_data(array $data) {
+        $items = [];
+        if (!empty($data['cart_items_json'])) {
+            $decoded = json_decode((string)$data['cart_items_json'], true);
+            if (is_array($decoded)) $items = array_values(array_filter($decoded, 'is_array'));
+        }
+
+        if ($items) {
+            $total_price = 0;
+            $total_original = 0;
+            $total_discount = 0;
+            $total_weight = 0;
+            $trusted = 0;
+            $fallback = 0;
+            $first_image = '';
+            foreach ($items as $item) {
+                $price = round(floatval($item['price_eur'] ?? 0), 2);
+                $original = round(floatval($item['original_price_eur'] ?? $price), 2);
+                if ($original < $price) $original = $price;
+                $discount = round(floatval($item['product_discount_eur'] ?? ($item['discount_eur'] ?? max(0, $original - $price))), 2);
+                $weight = str_replace(',', '.', (string)($item['weight_kg'] ?? ($item['product_weight_kg'] ?? ($item['weight'] ?? 0))));
+                $weight = is_numeric($weight) ? max(0, floatval($weight)) : 0;
+                $total_price += $price;
+                $total_original += $original;
+                $total_discount += max(0, $discount);
+                $total_weight += $weight;
+                if ($first_image === '' && !empty($item['image_url'])) $first_image = esc_url_raw($item['image_url']);
+                if (($item['catalog_status'] ?? '') === 'trusted') $trusted++;
+                else $fallback++;
+            }
+
+            $data['cart_items_count'] = count($items);
+            $data['price_eur'] = round($total_price, 2);
+            $data['original_price_eur'] = round($total_original > 0 ? $total_original : $total_price, 2);
+            $data['discount_eur'] = round($total_discount, 2);
+            if ($total_weight > 0) $data['shipping_weight_kg'] = round($total_weight, 3);
+            if ($first_image !== '' && empty($data['image_url'])) $data['image_url'] = $first_image;
+            if (count($items) === 1) {
+                $data['title'] = $items[0]['title'] ?? $data['title'];
+                $data['product_id'] = $items[0]['product_id'] ?? $data['product_id'];
+                if (!empty($items[0]['image_url'])) $data['image_url'] = esc_url_raw($items[0]['image_url']);
+            } elseif (trim((string)$data['title']) === '') {
+                $data['title'] = 'custom leotard x' . count($items);
+            }
+            $data['product_catalog_status'] = $fallback > 0 ? 'partial_fallback' : 'trusted';
+            $data['product_catalog_summary'] = wp_json_encode([
+                'items' => count($items),
+                'trusted' => $trusted,
+                'fallback' => $fallback,
+            ]);
+            return $data;
+        }
+
+        $resolved = $this->product_catalog_service()->trusted_cart_item([
+            'title' => $data['title'] ?? '',
+            'product_id' => $data['product_id'] ?? '',
+            'price_eur' => $data['price_eur'] ?? 0,
+            'original_price_eur' => $data['original_price_eur'] ?? ($data['price_eur'] ?? 0),
+            'discount_eur' => $data['discount_eur'] ?? 0,
+            'product_discount_eur' => $data['discount_eur'] ?? 0,
+            'weight_kg' => $data['shipping_weight_kg'] ?? 0,
+            'image_url' => $data['image_url'] ?? '',
+        ]);
+        if ($resolved) {
+            $data['title'] = $resolved['title'] ?? $data['title'];
+            $data['product_id'] = $resolved['product_id'] ?? $data['product_id'];
+            $data['price_eur'] = round(floatval($resolved['price_eur'] ?? $data['price_eur']), 2);
+            $data['original_price_eur'] = round(floatval($resolved['original_price_eur'] ?? $data['original_price_eur']), 2);
+            $data['discount_eur'] = round(floatval($resolved['product_discount_eur'] ?? $resolved['discount_eur'] ?? $data['discount_eur']), 2);
+            if (!empty($resolved['weight_kg'])) $data['shipping_weight_kg'] = round(floatval($resolved['weight_kg']), 3);
+            if (!empty($resolved['image_url'])) $data['image_url'] = esc_url_raw($resolved['image_url']);
+            $data['product_catalog_status'] = $resolved['catalog_status'] ?? 'fallback';
+            $data['product_catalog_summary'] = wp_json_encode([
+                'items' => 1,
+                'trusted' => (($resolved['catalog_status'] ?? '') === 'trusted') ? 1 : 0,
+                'fallback' => (($resolved['catalog_status'] ?? '') === 'trusted') ? 0 : 1,
+            ]);
+        }
         return $data;
     }
 
@@ -2692,20 +2794,22 @@ EUR=1',
         $seen_titles = [];
         foreach ($items as $item) {
             if (!is_array($item)) continue;
-            $title = $this->clean_product_title_for_display(sanitize_text_field($item['title'] ?? ''));
-            $product_id = $this->canonical_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''), $title);
-            $price = round(floatval($item['price_eur'] ?? 0), 2);
+            $trusted_item = $this->product_catalog_service()->trusted_cart_item($item);
+            if (!$trusted_item) continue;
+            $title = $this->clean_product_title_for_display(sanitize_text_field($trusted_item['title'] ?? ''));
+            $product_id = $this->canonical_product_id($trusted_item['product_id'] ?? ($trusted_item['feed_id'] ?? ''), $title);
+            $price = round(floatval($trusted_item['price_eur'] ?? 0), 2);
             if ($title === '' || $price <= 0) continue;
             $title_key = strtolower(trim(preg_replace('/\s+/', ' ', str_replace(['“','”','«','»','"',"'"], '', $title))));
             if ($product_id !== '') $title_key = 'id:' . strtolower($product_id);
             if ($title_key !== '' && isset($seen_titles[$title_key])) continue;
             if ($title_key !== '') $seen_titles[$title_key] = true;
-            $original = round(floatval($item['original_price_eur'] ?? $price), 2);
+            $original = round(floatval($trusted_item['original_price_eur'] ?? $price), 2);
             if ($original < $price) $original = $price;
-            $product_discount = round(floatval($item['product_discount_eur'] ?? 0), 2);
-            $promo_discount = round(floatval($item['promo_discount_eur'] ?? 0), 2);
-            $total_discount = round(floatval($item['discount_eur'] ?? ($product_discount + $promo_discount)), 2);
-            $weight = str_replace(',', '.', (string)($item['weight_kg'] ?? ($item['product_weight_kg'] ?? ($item['weight'] ?? 0))));
+            $product_discount = round(floatval($trusted_item['product_discount_eur'] ?? 0), 2);
+            $promo_discount = round(floatval($trusted_item['promo_discount_eur'] ?? 0), 2);
+            $total_discount = round(floatval($trusted_item['discount_eur'] ?? ($product_discount + $promo_discount)), 2);
+            $weight = str_replace(',', '.', (string)($trusted_item['weight_kg'] ?? ($trusted_item['product_weight_kg'] ?? ($trusted_item['weight'] ?? 0))));
             $weight = is_numeric($weight) ? max(0, round(floatval($weight), 3)) : 0;
             if ($product_discount < 0) $product_discount = 0;
             if ($promo_discount < 0) $promo_discount = 0;
@@ -2721,7 +2825,9 @@ EUR=1',
                 'product_discount_eur' => number_format($product_discount, 2, '.', ''),
                 'promo_discount_eur' => number_format($promo_discount, 2, '.', ''),
                 'weight_kg' => $weight > 0 ? number_format($weight, 3, '.', '') : '',
-                'image_url' => esc_url_raw($item['image_url'] ?? ''),
+                'image_url' => esc_url_raw($trusted_item['image_url'] ?? ''),
+                'catalog_status' => sanitize_text_field($trusted_item['catalog_status'] ?? ''),
+                'catalog_source' => sanitize_text_field($trusted_item['catalog_source'] ?? ''),
             ];
         }
         return $clean ? wp_json_encode($clean) : '';
@@ -2750,7 +2856,7 @@ EUR=1',
     }
 
     private function get_order_data($local_id) {
-        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','western_bid_invoice','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id'];
+        $keys = ['title','price_eur','original_price_eur','discount_eur','image_url','product_id','full_name','phone','email','address','additional_address','city','zip_code','country','created_at','buyer_id','order_id','mono_invoice_id','western_bid_invoice','wayforpay_order_reference','payment_provider','payment_type','card_fee_percent','card_fee_amount','card_total_amount','shipping_cost_eur','shipping_source','shipping_weight_kg','bank_total_amount','promo_code_applied','promo_discount_type','promo_discount_value','cart_items_count','cart_items_json','checkout_session_id','browser_buyer_id','product_catalog_status','product_catalog_summary'];
         $out=[]; foreach($keys as $k) $out[$k]=get_post_meta($local_id,$k,true); return $out;
     }
 

@@ -660,6 +660,48 @@ Repository rollback point:
 
 - Documentation commit pushed to GitHub: `ba7603e` (`Add phase 0 regression baseline`).
 
+## 2026-06-06 - Phase 1 Trusted Server-Side Product Catalog v4.0.52
+
+User request:
+
+- Start the next implementation point from the development plan after Phase 0.
+- Implement Phase 1 without breaking confirmed Monobank, Western Bid, bank invoice, KeyCRM, email, shipping, reservation, and sold-item auto-hide behavior.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-product-catalog.php`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `KNOWN_ISSUES.md`
+- `CHANGELOG.txt`
+- `DEVELOPMENT_LOG.md`
+
+Implementation:
+
+- Added `YO_Checkout_Product_Catalog_Service` in a separate include file.
+- Connected the service through a thin wrapper in the main plugin class.
+- `sanitize_cart_items_json()` now attempts to resolve each cart item by stable `product_id` from the configured YOOtheme product source page.
+- When a product resolves, the stored order item uses server-side title, current price, original price, product discount, weight, and image.
+- `sanitize_order_input()` now recalculates the order snapshot totals from the sanitized/trusted cart items before promo logic runs.
+- Promo-code logic still runs after catalog resolution in the existing promo service.
+- If a product cannot be resolved during this transition phase, checkout keeps the sanitized browser values for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`, including the new product catalog service.
+- Payment provider classes, KeyCRM service, email service, promo service, and sold-item service were not edited.
+
+Live test status:
+
+- Not live-tested yet. Treat v4.0.52 as a Phase 1 test candidate until a site checkout confirms catalog resolution and all protected payment flows still work.
+
+Repository rollback point:
+
+- Pending until final verification and commit/push.
+
 ## 2026-05-31 - Repository Documentation Baseline
 
 User request:
