@@ -1565,6 +1565,52 @@ Repository rollback point:
 
 - Pending.
 
+## 2026-06-11 - Purchases Report And Checkout Snapshots v4.0.58
+
+User request:
+
+- Add a purchases report table.
+- Save all customer/cart data filled in the checkout when moving toward Step 3 and choosing a payment method.
+- Use the Quick Pay plugin payment logs as the basis for the admin report style.
+- Move the plugin out of WordPress Settings into the general admin menu like Yo Quick Pay.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-purchase-report.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.58`.
+- The plugin now registers a top-level `YOleotard Checkout` admin menu instead of living only under Settings.
+- A `Purchases Report` submenu displays recent local checkout orders with customer, contacts, products, totals, payment status, provider IDs, invoice link, and expandable saved snapshot data.
+- A new purchase report service saves structured snapshots when order details are saved and when the customer starts card payment or bank invoice creation.
+- Frontend payment requests now send `payment_method_choice` and `terms_confirmed` before Step 3 starts.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed during implementation.
+- `php -l includes/class-yo-checkout-purchase-report.php` passed during implementation.
+- `php -l` passed for every PHP file under `includes/` during implementation.
+- `node --check assets/yo-checkout.js` passed during implementation.
+- Full verification will be run before commit.
+
+Live test status:
+
+- Not live-tested yet. v4.0.58 should be tested in the admin menu and with one card checkout plus one bank invoice checkout.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-06 - Confirm Monobank Webhook Signature Verification v4.0.56
 
 User request:

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.57. Adds per-order guest access tokens for protected checkout order AJAX actions.
- * Version: 4.0.57
+ * Description: v4.0.58. Adds a purchases report and saves checkout snapshots before payment.
+ * Version: 4.0.58
  * Author: YOleotard / ChatGPT
  */
 
@@ -45,6 +45,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-keycrm.php'
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-email.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-western-bid.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-order-access.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-purchase-report.php';
 
 
 class YO_Checkout_Invoice_Plugin {
@@ -60,6 +61,7 @@ class YO_Checkout_Invoice_Plugin {
     private $email_service = null;
     private $western_bid_service = null;
     private $order_access_service = null;
+    private $purchase_report_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -175,6 +177,20 @@ class YO_Checkout_Invoice_Plugin {
             'local_id' => $local_id,
             'access_token' => $fields['accessToken'],
         ];
+    }
+
+    private function purchase_report_service() {
+        if (!$this->purchase_report_service instanceof YO_Checkout_Purchase_Report_Service) {
+            $this->purchase_report_service = new YO_Checkout_Purchase_Report_Service([
+                'get_order_data' => function($local_id) { return $this->get_order_data($local_id); },
+                'cart_items_from_order_data' => function($data) { return $this->cart_items_from_order_data($data); },
+            ]);
+        }
+        return $this->purchase_report_service;
+    }
+
+    private function save_purchase_snapshot($local_id, $stage, array $extra = []) {
+        $this->purchase_report_service()->save_snapshot($local_id, $stage, $extra);
     }
 
     private function google_reviews_service() {
@@ -416,7 +432,13 @@ EUR=1',
     }
 
     public function admin_menu() {
-        add_options_page('YOleotard Checkout', 'YOleotard Checkout', 'manage_options', 'yo-checkout-invoice', [$this, 'settings_page']);
+        add_menu_page('YOleotard Checkout', 'YOleotard Checkout', 'manage_options', 'yo-checkout-invoice', [$this, 'settings_page'], 'dashicons-cart', 56);
+        add_submenu_page('yo-checkout-invoice', 'Checkout Settings', 'Settings', 'manage_options', 'yo-checkout-invoice', [$this, 'settings_page']);
+        add_submenu_page('yo-checkout-invoice', 'Purchases Report', 'Purchases Report', 'manage_options', 'yo-checkout-purchases', [$this, 'purchase_report_page']);
+    }
+
+    public function purchase_report_page() {
+        $this->purchase_report_service()->render_page(self::CPT);
     }
 
     private function shipping_rates_table_name() {
@@ -634,7 +656,7 @@ EUR=1',
             'shipping_zone_imported'=>$inserted,
             'shipping_zones_count'=>count($zone_map),
             'shipping_rate_groups'=>count($rate_map),
-        ], admin_url('options-general.php')));
+        ], admin_url('admin.php')));
         exit;
     }
 
@@ -658,7 +680,7 @@ EUR=1',
             $ok = $wpdb->insert($table, $row, ['%s','%s','%s','%s','%s','%f','%f','%s','%s','%s']);
             if ($ok) $inserted++;
         }
-        wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','tab'=>'shipping','shipping_imported'=>$inserted], admin_url('options-general.php')));
+        wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','tab'=>'shipping','shipping_imported'=>$inserted], admin_url('admin.php')));
         exit;
     }
 
@@ -669,7 +691,7 @@ EUR=1',
         global $wpdb;
         $table = $this->shipping_rates_table_name();
         $wpdb->query("TRUNCATE TABLE {$table}");
-        wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','tab'=>'shipping','shipping_cleared'=>'1'], admin_url('options-general.php')));
+        wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','tab'=>'shipping','shipping_cleared'=>'1'], admin_url('admin.php')));
         exit;
     }
 
@@ -692,7 +714,7 @@ EUR=1',
         wp_mkdir_p($base_dir);
         $tmp = download_url('https://downloads.sourceforge.net/project/dompdf.mirror/v3.1.5/dompdf-3.1.5.zip', 60);
         if (is_wp_error($tmp)) {
-            wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','yo_dompdf'=>'download_error'], admin_url('options-general.php')));
+            wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','yo_dompdf'=>'download_error'], admin_url('admin.php')));
             exit;
         }
 
@@ -703,7 +725,7 @@ EUR=1',
         @unlink($tmp);
 
         if (is_wp_error($result)) {
-            wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','yo_dompdf'=>'unzip_error'], admin_url('options-general.php')));
+            wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','yo_dompdf'=>'unzip_error'], admin_url('admin.php')));
             exit;
         }
 
@@ -714,7 +736,7 @@ EUR=1',
         rename($source, $target);
         if (file_exists($unzip_dir)) $this->rrmdir($unzip_dir);
 
-        wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','yo_dompdf'=>'installed'], admin_url('options-general.php')));
+        wp_safe_redirect(add_query_arg(['page'=>'yo-checkout-invoice','yo_dompdf'=>'installed'], admin_url('admin.php')));
         exit;
     }
 
@@ -795,7 +817,7 @@ EUR=1',
 
             <h2 class="nav-tab-wrapper">
                 <?php foreach ($tabs as $key => $label): ?>
-                    <a class="nav-tab <?php echo $tab === $key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg(['page'=>'yo-checkout-invoice','tab'=>$key], admin_url('options-general.php'))); ?>"><?php echo esc_html($label); ?></a>
+                    <a class="nav-tab <?php echo $tab === $key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg(['page'=>'yo-checkout-invoice','tab'=>$key], admin_url('admin.php'))); ?>"><?php echo esc_html($label); ?></a>
                 <?php endforeach; ?>
             </h2>
 
@@ -1037,7 +1059,7 @@ EUR=1',
         </form>
 
         <h3>Test calculator</h3>
-        <form method="get" action="<?php echo esc_url(admin_url('options-general.php')); ?>" style="background:#fff;border:1px solid #ccd0d4;padding:15px;max-width:960px;">
+        <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>" style="background:#fff;border:1px solid #ccd0d4;padding:15px;max-width:960px;">
             <input type="hidden" name="page" value="yo-checkout-invoice">
             <input type="hidden" name="tab" value="shipping">
             <p>
@@ -1657,6 +1679,7 @@ EUR=1',
         $provider_preview = $this->card_provider_for_order($local_id);
         $shipping_preview = $this->shipping_data($local_id);
         $fee_preview = $this->card_fee_data($local_id, $provider_preview);
+        $this->save_purchase_snapshot($local_id, 'order_details_saved');
         $this->append_checkout_debug_log($debug_id, 'create_order success', [
             'local_id' => $local_id,
             'order_id' => get_post_meta($local_id, 'order_id', true),
@@ -1753,6 +1776,10 @@ EUR=1',
         update_post_meta($local_id, 'card_fee_percent', $fee['percent']);
         update_post_meta($local_id, 'card_fee_amount', $fee['fee']);
         update_post_meta($local_id, 'card_total_amount', $fee['total']);
+        $this->save_purchase_snapshot($local_id, 'card_payment_selected', [
+            'payment_method_choice' => sanitize_text_field(wp_unslash($_POST['payment_method_choice'] ?? 'card')),
+            'terms_confirmed' => !empty($_POST['terms_confirmed']),
+        ]);
         // Card payments must not create a KeyCRM order before the payment is actually successful.
         // A local checkout draft is enough for Monobank/Western Bid. The real KeyCRM buyer/order
         // is created later in process_successful_card_payment().
@@ -1866,6 +1893,10 @@ EUR=1',
         }
         update_post_meta($local_id, 'payment_type', 'bank');
         update_post_meta($local_id, 'payment_provider', 'bank');
+        $this->save_purchase_snapshot($local_id, 'bank_invoice_selected', [
+            'payment_method_choice' => sanitize_text_field(wp_unslash($_POST['payment_method_choice'] ?? 'bank_invoice')),
+            'terms_confirmed' => !empty($_POST['terms_confirmed']),
+        ]);
         if (!empty($_POST['ignore_stale_keycrm_marker'])) {
             delete_post_meta($local_id, 'order_id');
             delete_post_meta($local_id, 'buyer_id');

@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.57`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.58`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
@@ -55,14 +55,17 @@ Rules for future work:
 - `includes/class-yo-checkout-order-access.php`
   Guest order-access service. Owns local checkout access-token generation, server-side token hashing, posted-token reading, legacy no-token compatibility, and reusable response fields for protected public AJAX order actions.
 
+- `includes/class-yo-checkout-purchase-report.php`
+  Admin purchase report service. Owns checkout snapshot persistence and the WordPress admin purchases table. The report reads local `yo_invoice_order` posts, shows customer/cart/payment/provider/order data, and keeps expandable JSON snapshots for the data saved before payment.
+
 - `assets/yo-checkout.js`
-  Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, stores local order access tokens, sends protected AJAX order tokens, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
+  Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, stores local order access tokens, sends protected AJAX order tokens, product reservations, customer form flow, promo code application, shipping option selection, card/bank payment actions, passes selected payment method and terms confirmation before Step 3, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
 
 - `assets/yo-checkout.css`
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, notifications, and related UI.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.57`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.58`.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents.
@@ -120,7 +123,7 @@ Registered in `__construct()` near the top of `yoleotard-checkout-invoice.php`.
 Admin and setup:
 
 - `init` -> `register_cpt()`
-- `admin_menu` -> `admin_menu()`
+- `admin_menu` -> `admin_menu()` registers the top-level `YOleotard Checkout` menu, `Settings` submenu, and `Purchases Report` submenu.
 - `admin_init` -> `register_settings()`
 - `admin_init` -> `ensure_shipping_tables()`
 - `admin_post_yo_shipping_import_csv` -> `admin_import_shipping_csv()`
@@ -128,6 +131,11 @@ Admin and setup:
 - `admin_post_yo_shipping_clear_rates` -> `admin_clear_shipping_rates()`
 - `admin_notices` -> `dompdf_admin_notice()`
 - `admin_post_yo_checkout_install_dompdf` -> `install_dompdf()`
+
+Admin pages:
+
+- `settings_page()` -> top-level checkout settings page with existing tabs.
+- `purchase_report_page()` -> delegates the purchases table to `includes/class-yo-checkout-purchase-report.php`.
 
 Frontend:
 

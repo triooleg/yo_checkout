@@ -390,3 +390,10 @@ YOleotard Checkout v4.0.57
 - Stores only a server-side token hash and sends the raw token only to the originating checkout browser state.
 - Protects order update, shipping update, existing-order promo update, card-payment start, bank-invoice creation, payment polling, and final status polling.
 - Keeps Monobank and Western Bid provider webhooks authenticated by provider-level signature/hash logic instead of guest tokens.
+
+YOleotard Checkout v4.0.58
+
+- Moves the plugin from the WordPress Settings menu into a top-level `YOleotard Checkout` admin menu.
+- Adds a `Purchases Report` admin table for saved checkout orders, customer details, products, totals, payment status, provider IDs, and saved snapshots.
+- Saves a structured checkout snapshot after order details are saved and when the customer chooses card or bank invoice payment before Step 3.
+- Sends the selected payment method and terms confirmation from the frontend before starting card payment or bank invoice creation.

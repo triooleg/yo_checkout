@@ -1554,6 +1554,8 @@
       if(v && v.removed > 0){ closePaymentWindow(paymentWindow); setStep(1); return; }
       const fd=new FormData(); fd.append('local_id', current.localId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId());
       appendOrderAccessToken(fd);
+      fd.append('payment_method_choice', 'card');
+      fd.append('terms_confirmed', byId('yo-accept-terms')?.checked ? '1' : '0');
       setStep('loading');
       post('yo_checkout_start_card_payment', fd).then(function(data){
         if(data.success && data.data.pageUrl){
@@ -1624,7 +1626,7 @@
       }).catch(function(err){ bankInvoiceInProgress = false; if(bankBtn) bankBtn.disabled = false; alert(checkoutAjaxErrorMessage('yo_checkout_create_order', err, {debugId: bankDebugId, localId: draftLocalId, orderId: storedKeycrmOrderId, cartItems: cartItems.length})); setStep(2); });
       function submitBankInvoice(attempt){
         attempt = attempt || 0;
-        const fd=new FormData(); fd.append('local_id', current.localId); appendOrderAccessToken(fd); fd.append('yo_checkout_debug_id', bankDebugId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); fd.append('ignore_stale_keycrm_marker', '1');
+        const fd=new FormData(); fd.append('local_id', current.localId); appendOrderAccessToken(fd); fd.append('payment_method_choice', 'bank_invoice'); fd.append('terms_confirmed', byId('yo-accept-terms')?.checked ? '1' : '0'); fd.append('yo_checkout_debug_id', bankDebugId); fd.append('checkout_session_id', checkoutSessionId()); fd.append('buyer_id', buyerId()); fd.append('ignore_stale_keycrm_marker', '1');
         setStep('loading');
         post('yo_checkout_create_bank_invoice', fd).then(function(data){
           if(data.success && data.data && data.data.preparing && attempt < 60){

@@ -6,6 +6,22 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Purchases report and checkout snapshot live validation
+
+Status: v4.0.58 test candidate requires live validation.
+
+Details:
+
+- v4.0.58 moves YOleotard Checkout out of WordPress Settings into a top-level admin menu.
+- It adds a Purchases Report table based on local `yo_invoice_order` records.
+- It saves a checkout snapshot when order details are saved and again when the customer selects card or bank invoice payment before Step 3.
+
+Handling:
+
+- Live-test opening the new `YOleotard Checkout` admin menu and `Purchases Report` submenu.
+- Create one card checkout and one bank invoice checkout, then confirm the report shows customer, contact, products, totals, payment method, provider IDs, and saved snapshot data.
+- Confirm the old settings tabs, shipping import, and Dompdf install redirects still return to the settings page under the new top-level menu.
+
 ### Per-order guest access token live validation
 
 Status: v4.0.57 test candidate requires live validation.
