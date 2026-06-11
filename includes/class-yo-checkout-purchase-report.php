@@ -75,18 +75,28 @@ class YO_Checkout_Purchase_Report_Service {
     public function render_page($order_post_type) {
         if (!current_user_can('manage_options')) wp_die('Access denied');
 
-        $status = sanitize_key($_GET['status'] ?? 'all');
-        $orders = get_posts([
+        $status = $this->current_status_filter();
+        $per_page = $this->current_per_page();
+        $current_page = max(1, absint($_GET['purchase_page'] ?? 1));
+        $query_args = [
             'post_type' => $order_post_type,
             'post_status' => 'publish',
-            'numberposts' => 100,
+            'posts_per_page' => $per_page,
+            'paged' => $current_page,
             'orderby' => 'date',
             'order' => 'DESC',
-        ]);
+        ];
+        $meta_query = $this->status_meta_query($status);
+        if ($meta_query) $query_args['meta_query'] = $meta_query;
+        $orders_query = new WP_Query($query_args);
+        $orders = $orders_query->posts;
+        $total_pages = max(1, (int)$orders_query->max_num_pages);
+        $current_page = min($current_page, $total_pages);
 
         echo '<div class="wrap yo-purchase-report"><h1>YOleotard Purchases Report</h1>';
         echo '<p>This table shows checkout drafts, invoice orders, and paid card orders saved by the checkout plugin.</p>';
         echo '<p><a class="button" href="' . esc_url(admin_url('admin.php?page=yo-checkout-invoice')) . '">Checkout settings</a></p>';
+        $this->render_controls($status, $per_page, $current_page, $total_pages, (int)$orders_query->found_posts);
         echo '<table class="widefat striped"><thead><tr>';
         foreach (['Created','Updated','Order','Status','Payment','Customer','Contacts','Products','Totals','Shipping','Provider IDs','Saved data'] as $head) {
             echo '<th>' . esc_html($head) . '</th>';
@@ -96,7 +106,6 @@ class YO_Checkout_Purchase_Report_Service {
         $shown = 0;
         foreach ($orders as $order) {
             $row = $this->row_data($order);
-            if (!$this->matches_status($row, $status)) continue;
             $shown++;
             echo '<tr>';
             echo '<td>' . esc_html($order->post_date) . '</td>';
@@ -115,7 +124,91 @@ class YO_Checkout_Purchase_Report_Service {
         }
 
         if (!$shown) echo '<tr><td colspan="12">No purchases found.</td></tr>';
-        echo '</tbody></table></div>';
+        echo '</tbody></table>';
+        $this->render_controls($status, $per_page, $current_page, $total_pages, (int)$orders_query->found_posts);
+        echo '</div>';
+        wp_reset_postdata();
+    }
+
+    private function current_status_filter() {
+        $status = sanitize_key($_GET['status'] ?? 'all');
+        return in_array($status, ['all', 'paid', 'invoice', 'draft'], true) ? $status : 'all';
+    }
+
+    private function current_per_page() {
+        $per_page = absint($_GET['per_page'] ?? 10);
+        return in_array($per_page, [10, 20, 50], true) ? $per_page : 10;
+    }
+
+    private function status_meta_query($status) {
+        if ($status === 'paid') {
+            return [['key' => 'paid', 'value' => '1']];
+        }
+        if ($status === 'invoice') {
+            return [
+                'relation' => 'AND',
+                ['key' => 'bank_invoice_created', 'value' => '1'],
+                [
+                    'relation' => 'OR',
+                    ['key' => 'paid', 'compare' => 'NOT EXISTS'],
+                    ['key' => 'paid', 'value' => '1', 'compare' => '!='],
+                ],
+            ];
+        }
+        if ($status === 'draft') {
+            return [
+                'relation' => 'AND',
+                [
+                    'relation' => 'OR',
+                    ['key' => 'paid', 'compare' => 'NOT EXISTS'],
+                    ['key' => 'paid', 'value' => '1', 'compare' => '!='],
+                ],
+                [
+                    'relation' => 'OR',
+                    ['key' => 'bank_invoice_created', 'compare' => 'NOT EXISTS'],
+                    ['key' => 'bank_invoice_created', 'value' => '1', 'compare' => '!='],
+                ],
+            ];
+        }
+        return [];
+    }
+
+    private function render_controls($status, $per_page, $current_page, $total_pages, $total_items) {
+        $base_args = [
+            'page' => 'yo-checkout-purchases',
+            'status' => $status,
+            'per_page' => $per_page,
+        ];
+        echo '<div class="tablenav top" style="display:flex;gap:16px;align-items:center;justify-content:space-between;margin:12px 0;">';
+        echo '<div class="alignleft actions">';
+        echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="display:flex;gap:8px;align-items:center;">';
+        echo '<input type="hidden" name="page" value="yo-checkout-purchases">';
+        echo '<label>Status <select name="status">';
+        foreach (['all' => 'All', 'paid' => 'Paid', 'invoice' => 'Invoice', 'draft' => 'Draft'] as $value => $label) {
+            echo '<option value="' . esc_attr($value) . '" ' . selected($status, $value, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<label>Per page <select name="per_page">';
+        foreach ([10, 20, 50] as $value) {
+            echo '<option value="' . esc_attr($value) . '" ' . selected($per_page, $value, false) . '>' . esc_html((string)$value) . '</option>';
+        }
+        echo '</select></label>';
+        submit_button('Apply', 'secondary', '', false);
+        echo '</form>';
+        echo '</div>';
+
+        echo '<div class="tablenav-pages">';
+        echo '<span class="displaying-num">' . esc_html(number_format_i18n($total_items)) . ' items</span> ';
+        if ($total_pages > 1) {
+            $prev_url = $current_page > 1 ? add_query_arg(array_merge($base_args, ['purchase_page' => $current_page - 1]), admin_url('admin.php')) : '';
+            $next_url = $current_page < $total_pages ? add_query_arg(array_merge($base_args, ['purchase_page' => $current_page + 1]), admin_url('admin.php')) : '';
+            echo $prev_url ? '<a class="button" href="' . esc_url($prev_url) . '">&lsaquo;</a> ' : '<span class="button disabled">&lsaquo;</span> ';
+            echo '<span class="paging-input">' . esc_html($current_page) . ' of ' . esc_html($total_pages) . '</span> ';
+            echo $next_url ? '<a class="button" href="' . esc_url($next_url) . '">&rsaquo;</a>' : '<span class="button disabled">&rsaquo;</span>';
+        } else {
+            echo '<span class="paging-input">1 of 1</span>';
+        }
+        echo '</div></div>';
     }
 
     private function row_data($order) {
@@ -162,13 +255,6 @@ class YO_Checkout_Purchase_Report_Service {
             ];
         }
         return $out;
-    }
-
-    private function matches_status($row, $status) {
-        if ($status === 'paid') return $row['status'] === 'paid';
-        if ($status === 'invoice') return $row['status'] === 'invoice';
-        if ($status === 'draft') return $row['status'] === 'draft';
-        return true;
     }
 
     private function status_badge($status) {

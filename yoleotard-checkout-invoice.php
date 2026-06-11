@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.58. Adds a purchases report and saves checkout snapshots before payment.
- * Version: 4.0.58
+ * Description: v4.0.59. Adds pagination controls to the purchases report.
+ * Version: 4.0.59
  * Author: YOleotard / ChatGPT
  */
 

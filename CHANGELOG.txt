@@ -397,3 +397,9 @@ YOleotard Checkout v4.0.58
 - Adds a `Purchases Report` admin table for saved checkout orders, customer details, products, totals, payment status, provider IDs, and saved snapshots.
 - Saves a structured checkout snapshot after order details are saved and when the customer chooses card or bank invoice payment before Step 3.
 - Sends the selected payment method and terms confirmation from the frontend before starting card payment or bank invoice creation.
+
+YOleotard Checkout v4.0.59
+
+- Adds pagination to the Purchases Report admin table.
+- Adds records-per-page controls for 10, 20, and 50 rows.
+- Keeps selected report status and page-size filters when moving between report pages.

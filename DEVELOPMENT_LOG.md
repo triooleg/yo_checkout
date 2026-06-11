@@ -1565,6 +1565,46 @@ Repository rollback point:
 
 - Pending.
 
+## 2026-06-11 - Paginated Purchases Report v4.0.59
+
+User request:
+
+- Add paginated purchases output with a 10, 20, and 50 records-per-page switch.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-purchase-report.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.59`.
+- Purchases Report now uses `WP_Query` pagination instead of loading a fixed 100 records.
+- Admin can switch report page size between 10, 20, and 50 rows.
+- Previous/next pagination keeps the selected status and per-page filters.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Live test status:
+
+- Not live-tested yet. Check the report controls in WordPress admin after installing the test build.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-11 - Purchases Report And Checkout Snapshots v4.0.58
 
 User request:
