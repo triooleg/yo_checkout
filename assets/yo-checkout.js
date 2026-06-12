@@ -262,6 +262,38 @@
         opacity: String(Math.max(0, Math.min(100, parseFloat(cfg.promoBadgeOpacity || 100))) / 100)
       };
     }
+    function promoTooltipGifUrl(){
+      return String(window.YOCheckout?.promoTooltipGifUrl || '').trim();
+    }
+    function initPromoTooltip(button){
+      if(!button || !window.UIkit || typeof window.UIkit.tooltip !== 'function') return;
+      try{ window.UIkit.tooltip(button); }catch(e){}
+    }
+    function createPromoTooltipButton(){
+      const url = promoTooltipGifUrl();
+      if(!url) return null;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'yo-promo-tooltip-button';
+      button.setAttribute('aria-label', 'How to apply the promo code');
+      button.setAttribute('title', '<img class="yo-promo-tooltip-gif" src="'+escHtml(url)+'" alt="How to apply the promo code">');
+      button.setAttribute('uk-tooltip', 'cls: yo-promo-gif-tooltip; pos: top; delay: 120');
+      button.textContent = '?';
+      button.addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      return button;
+    }
+    function updatePromoBadgeTooltip(badge){
+      if(!badge) return;
+      badge.querySelectorAll('.yo-promo-tooltip-button').forEach(function(el){ el.remove(); });
+      const button = createPromoTooltipButton();
+      if(button){
+        badge.appendChild(button);
+        initPromoTooltip(button);
+      }
+    }
     function findMeasurementsBlock(card){
       // Find the first visible measurement line and place the promo badge
       // immediately before it. Important: do not return a large YOOtheme
@@ -374,10 +406,11 @@
       if(hasActiveSaleDiscount(card)) { removePromoBadge(card); return; }
       const existingBadge = card.querySelector('.yo-promo-badge');
       const measurements = findMeasurementsBlock(card);
-      if(existingBadge){ normalizePromoBadgeSpace(existingBadge, card, measurements); return; }
+      if(existingBadge){ updatePromoBadgeTooltip(existingBadge); normalizePromoBadgeSpace(existingBadge, card, measurements); return; }
       const badge = document.createElement('div');
       badge.className = 'yo-promo-badge uk-label yo-promo-badge-before-measurements';
-      badge.textContent = window.YOCheckout?.promoBadgeText || 'Discount by promo code';
+      badge.appendChild(document.createTextNode(window.YOCheckout?.promoBadgeText || 'Discount by promo code'));
+      updatePromoBadgeTooltip(badge);
       const styles = getPromoBadgeStyles();
       Object.keys(styles).forEach(function(k){ badge.style[k] = styles[k]; });
 

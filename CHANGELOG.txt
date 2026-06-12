@@ -403,3 +403,10 @@ YOleotard Checkout v4.0.59
 - Adds pagination to the Purchases Report admin table.
 - Adds records-per-page controls for 10, 20, and 50 rows.
 - Keeps selected report status and page-size filters when moving between report pages.
+
+YOleotard Checkout v4.0.60
+
+- Adds a Promo tab Media Library URL field for a GIF that explains how to apply the promo code.
+- Shows a small green help icon inside active promo badges when a GIF is configured.
+- Uses the current template UIkit tooltip utility to display the configured GIF on hover/focus/tap.
+- Keeps promo-code calculation, sale-product exclusion, cart flow, and payment logic unchanged.

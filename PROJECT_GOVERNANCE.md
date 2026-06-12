@@ -372,7 +372,7 @@ Current status:
 - Stable runtime version: `4.0.56`
 - Current branch: `main`
 - Current next planned work: `Phase 4 - Invoice Access Hardening`
-- Runtime work in progress: `v4.0.59` paginated purchases report test candidate
+- Runtime work in progress: `v4.0.60` promo badge GIF tooltip test candidate
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule

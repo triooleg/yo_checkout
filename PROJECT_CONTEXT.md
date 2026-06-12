@@ -39,7 +39,7 @@ Plugin name:
 
 Current plugin version in the main PHP header:
 
-- `4.0.59`
+- `4.0.60`
 
 Main business goal:
 

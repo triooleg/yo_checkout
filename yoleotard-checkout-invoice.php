@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.59. Adds pagination controls to the purchases report.
- * Version: 4.0.59
+ * Description: v4.0.60. Adds a UIkit GIF tooltip for promo discount badges.
+ * Version: 4.0.60
  * Author: YOleotard / ChatGPT
  */
 
@@ -66,6 +66,7 @@ class YO_Checkout_Invoice_Plugin {
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
         add_action('admin_menu', [$this, 'admin_menu']);
+        add_action('admin_enqueue_scripts', [$this, 'admin_enqueue']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_init', [$this, 'ensure_shipping_tables']);
         add_action('admin_post_yo_shipping_import_csv', [$this, 'admin_import_shipping_csv']);
@@ -400,6 +401,7 @@ EUR=1',
             'promo_badge_font_size' => '12',
             'promo_badge_bg_color' => '#0b8f2f',
             'promo_badge_opacity' => '100',
+            'promo_tooltip_gif_url' => '',
             'google_reviews_optin_enabled' => '0',
             'google_reviews_merchant_id' => '5085053718',
             'google_reviews_delivery_days' => '14',
@@ -783,6 +785,10 @@ EUR=1',
 
         foreach ($input as $key => $value) {
             if (!array_key_exists($key, $defaults)) continue;
+            if ($key === 'promo_tooltip_gif_url') {
+                $out[$key] = is_string($value) ? esc_url_raw(trim($value)) : '';
+                continue;
+            }
             $out[$key] = is_string($value) ? wp_kses_post(trim($value)) : $value;
         }
 
@@ -927,8 +933,9 @@ EUR=1',
                         <?php $this->field('promo_badge_font_size', 'Badge text size, px', 'number'); ?>
                         <?php $this->field('promo_badge_bg_color', 'Badge background color', 'color'); ?>
                         <?php $this->field('promo_badge_opacity', 'Badge opacity, %', 'number'); ?>
+                        <?php $this->media_url_field('promo_tooltip_gif_url', 'Promo tooltip GIF'); ?>
                     </table>
-                    <p class="description">If the promo code field is empty, the product badge and promo code field in checkout are hidden. The discount applies only before the expiration date. Products that already have a red sale discount do not accept an additional promo code.</p>
+                    <p class="description">If the promo code field is empty, the product badge and promo code field in checkout are hidden. The discount applies only before the expiration date. Products that already have a red sale discount do not accept an additional promo code. If a tooltip GIF is selected, a small green help icon is shown inside the promo badge and displays the GIF through the current UIkit tooltip utility.</p>
                 <?php elseif ($tab === 'google_reviews'): ?>
                     <h2>Google Customer Reviews</h2>
                     <p class="description">These settings add the Google Customer Reviews survey opt-in on the final successful card-payment page. The merchant badge is optional and can be shown on the site if Google approves the account for the program.</p>
@@ -1109,6 +1116,25 @@ EUR=1',
         echo '</select></td></tr>';
     }
 
+    private function media_url_field($key, $label) {
+        $s = self::settings();
+        printf(
+            '<tr><th scope="row"><label for="%1$s">%2$s</label></th><td><input name="%3$s[%1$s]" id="%1$s" type="url" value="%4$s" class="regular-text yo-media-url-field" autocomplete="off"> <button type="button" class="button yo-media-picker" data-target="%1$s">Choose GIF</button><p class="description">Select or paste a GIF URL from the WordPress Media Library. Leave empty to hide the tooltip icon.</p></td></tr>',
+            esc_attr($key),
+            esc_html($label),
+            esc_attr(self::OPT),
+            esc_url($s[$key] ?? '')
+        );
+    }
+
+    public function admin_enqueue($hook) {
+        $page = sanitize_key($_GET['page'] ?? '');
+        if ($page !== 'yo-checkout-invoice') return;
+
+        wp_enqueue_media();
+        wp_add_inline_script('jquery-core', "(function(\$){\$(document).on('click','.yo-media-picker',function(e){e.preventDefault();var button=\$(this);var target=\$('#'+button.data('target'));var frame=wp.media({title:'Select promo tooltip GIF',button:{text:'Use this GIF'},library:{type:'image'},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();if(attachment&&attachment.url){target.val(attachment.url).trigger('change');}});frame.open();});})(jQuery);");
+    }
+
     public function enqueue() {
         $s = self::settings();
         $js_path = plugin_dir_path(__FILE__) . 'assets/yo-checkout.js';
@@ -1125,6 +1151,7 @@ EUR=1',
             'promoBadgeFontSize' => max(8, min(30, floatval(str_replace(',', '.', (string)($s['promo_badge_font_size'] ?? 12))))),
             'promoBadgeBgColor' => sanitize_text_field($s['promo_badge_bg_color'] ?? '#0b8f2f'),
             'promoBadgeOpacity' => max(0, min(100, floatval(str_replace(',', '.', (string)($s['promo_badge_opacity'] ?? 100))))),
+            'promoTooltipGifUrl' => esc_url($s['promo_tooltip_gif_url'] ?? ''),
             'reservationMinutes' => max(1, min(1440, absint($s['reservation_minutes'] ?? 30))),
             'reservationBadgeText' => sanitize_text_field($s['reservation_badge_text'] ?? 'Reserved'),
             'cartAddedNotificationEnabled' => (string)($s['cart_added_notification_enabled'] ?? '1') === '1',

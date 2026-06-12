@@ -16,6 +16,54 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Promo Badge GIF Tooltip v4.0.60
+
+User request:
+
+- Use the current template UIkit tooltip utility to show a GIF explaining how to apply the promo discount.
+- Add an admin Promo tab field where the manager can choose/paste the GIF from the WordPress Media Library.
+- Show the GIF when hovering or tapping the green discount icon/badge on the product card.
+- Verify the plugin and create a test archive.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `docs/superpowers/plans/2026-06-12-promo-gif-tooltip.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.60`.
+- Promo settings now include `promo_tooltip_gif_url`, saved as a sanitized URL.
+- The Promo tab includes a Media Library picker button for selecting the tooltip GIF.
+- Frontend config exposes `promoTooltipGifUrl` to `assets/yo-checkout.js`.
+- When a promo badge is active and a GIF URL is configured, the badge shows a small focusable help icon that uses UIkit tooltip markup to display the GIF.
+- Promo-code calculation, sale-product exclusion, cart behavior, payment providers, KeyCRM, email, and sold-item hiding were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for `plugin-archives/yoleotard-checkout-invoice.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, and real `assets/` / `includes/` directories after extraction.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.60 test archive, choose a GIF in the Promo tab, then verify the tooltip on a live product card.
+
+Repository rollback point:
+
+- Pending commit in this task.
+
 ## 2026-06-02 - Western Bid Card Payment Integration v4.0.44
 
 User request:

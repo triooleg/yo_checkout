@@ -232,6 +232,7 @@
 .yo-promo-badge{
   display:inline-flex;
   align-items:center;
+  gap:6px;
   width:max-content;
   max-width:100%;
   margin:0;
@@ -243,6 +244,42 @@
   color:#fff;
   box-shadow:0 8px 18px rgba(7,25,75,.18);
   white-space:normal;
+}
+.yo-promo-tooltip-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  width:18px;
+  height:18px;
+  min-width:18px;
+  padding:0;
+  border:1px solid rgba(255,255,255,.78);
+  border-radius:50%;
+  background:rgba(255,255,255,.18);
+  color:inherit;
+  font:700 12px/1 Arial,sans-serif;
+  cursor:pointer;
+}
+.yo-promo-tooltip-button:focus{
+  outline:2px solid rgba(255,255,255,.85);
+  outline-offset:2px;
+}
+.yo-promo-gif-tooltip{
+  max-width:min(320px,92vw);
+}
+.yo-promo-gif-tooltip .uk-tooltip-inner{
+  padding:6px;
+  max-width:min(320px,92vw);
+  background:#102018;
+  border-radius:8px;
+}
+.yo-promo-tooltip-gif{
+  display:block;
+  width:100%;
+  max-width:300px;
+  height:auto;
+  border-radius:6px;
 }
 .yo-promo-box{
   margin:12px 0;
