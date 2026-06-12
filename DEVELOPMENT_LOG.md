@@ -65,7 +65,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending.
+- Local git checkpoint commit: `a14a673` (`Show promo GIF in notification popup`).
 
 ## 2026-06-12 - Whole-Badge UIkit Promo GIF Tooltip v4.0.61
 
