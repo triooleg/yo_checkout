@@ -65,7 +65,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending.
+- Local git checkpoint commit: `98c5d31` (`Render promo GIF through UIkit tooltip API`).
 
 ## 2026-06-12 - Preserve Versioned Test Archives Before Rebuild
 
