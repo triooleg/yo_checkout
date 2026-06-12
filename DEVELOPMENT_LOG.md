@@ -61,7 +61,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending.
+- Local git checkpoint commit: `d998312` (`Make promo GIF tooltip use whole badge`).
 
 ## 2026-06-12 - Promo Badge GIF Tooltip v4.0.60
 
