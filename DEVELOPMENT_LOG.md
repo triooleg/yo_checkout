@@ -16,6 +16,37 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Preserve Versioned Test Archives Before Rebuild
+
+User request:
+
+- Before generating a new test plugin archive, preserve the old archive as the version it contains.
+- The goal is to avoid overwriting the previous plugin test package when `plugin-archives/yoleotard-checkout-invoice.zip` is rebuilt.
+
+Files changed:
+
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime plugin behavior changed.
+- Project rules now require preserving an existing exact-name test ZIP as a local versioned archive, for example `plugin-archives/yoleotard-checkout-invoice-v4.0.62.zip`, before a newer `plugin-archives/yoleotard-checkout-invoice.zip` is generated.
+- The host upload/install archive filename remains exactly `yoleotard-checkout-invoice.zip`.
+
+Verification performed:
+
+- Current test archive was preserved as `plugin-archives/yoleotard-checkout-invoice-v4.0.62.zip`.
+- `plugin-archives/yoleotard-checkout-invoice.zip` remains available as the installable test archive.
+- Pending documentation commit in this task.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-12 - Promo GIF Notification Popup v4.0.62
 
 User request:

@@ -323,6 +323,7 @@ Installable archive rule for this project:
 - internal paths use `/`
 - archive stored in `plugin-archives/`
 - `plugin-archives/` is not committed
+- before generating a new exact-name ZIP, preserve the existing exact-name ZIP as a versioned local archive, for example `yoleotard-checkout-invoice-v4.0.62.zip`, so the previous test package is not overwritten
 - verify extraction before handoff
 
 ## Git Governance

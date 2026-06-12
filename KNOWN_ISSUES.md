@@ -222,6 +222,7 @@ Details:
 Handling:
 
 - Installable ZIP must be named exactly `yoleotard-checkout-invoice.zip`.
+- Before generating a newer exact-name ZIP, preserve the existing exact-name ZIP as the version it contains, for example `yoleotard-checkout-invoice-v4.0.62.zip`, so previous test packages remain available locally.
 - ZIP entries must use forward slashes and start with `yoleotard-checkout-invoice/`.
 - Verify no entry contains `\` before giving the archive to the user.
 - Do not use PowerShell `Compress-Archive` directly for this plugin package.
