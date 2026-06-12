@@ -16,6 +16,35 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Build v4.0.63 Test Archive
+
+User request:
+
+- Create a test archive for the current plugin version.
+
+Files changed:
+
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime plugin behavior changed.
+- Existing exact-name archive was preserved as `plugin-archives/yoleotard-checkout-invoice-v4.0.62.zip` before rebuilding the installable ZIP.
+- New installable archive was created as `plugin-archives/yoleotard-checkout-invoice.zip`.
+- A local versioned copy was also saved as `plugin-archives/yoleotard-checkout-invoice-v4.0.63.zip`.
+
+Verification performed:
+
+- Archive build used Python `zipfile` with explicit forward-slash archive names.
+- Verified `plugin-archives/yoleotard-checkout-invoice-v4.0.62.zip` exists before rebuilding.
+- Verified both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.63.zip` contain one top-level `yoleotard-checkout-invoice/` folder.
+- Verified no ZIP entry contains `\`.
+- Verified local extraction of the exact-name ZIP creates real `assets/` and `includes/` directories and contains `yoleotard-checkout-invoice.php`.
+
+Repository rollback point:
+
+- Pending documentation commit in this task.
+
 ## 2026-06-12 - Promo GIF Tooltip via UIkit JavaScript API v4.0.63
 
 User request:
