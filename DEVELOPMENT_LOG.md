@@ -45,7 +45,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Pending.
+- Documentation commit: `2a72901` (`Document versioned archive preservation`).
 
 ## 2026-06-12 - Promo GIF Notification Popup v4.0.62
 
