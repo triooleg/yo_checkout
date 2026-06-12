@@ -62,7 +62,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending commit in this task.
+- Local git checkpoint commit: `f91a034` (`Add promo badge GIF tooltip`).
 
 ## 2026-06-02 - Western Bid Card Payment Integration v4.0.44
 
