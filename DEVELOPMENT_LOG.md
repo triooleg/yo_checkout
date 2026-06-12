@@ -69,7 +69,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending.
+- Local git checkpoint commit: `6aa0950` (`Create promo tooltip from badge events`).
 
 ## 2026-06-12 - Build v4.0.64 Test Archive
 
