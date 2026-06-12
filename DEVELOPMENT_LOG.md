@@ -16,6 +16,53 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Whole-Badge UIkit Promo GIF Tooltip v4.0.61
+
+User request:
+
+- Review the official UIkit tooltip documentation at `https://getuikit.com/docs/tooltip`.
+- Use that implementation for the GIF tooltip.
+- Make the whole green promo badge trigger the tooltip.
+- Remove the separate question-mark help icon.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.61`.
+- The configured promo GIF remains managed through the Promo tab Media Library URL field.
+- The frontend now applies `uk-tooltip` and the GIF HTML title directly to `.yo-promo-badge`.
+- The full green promo badge is focusable and acts as the hover/tap target.
+- The separate question-mark tooltip button from v4.0.60 was removed.
+- Promo-code calculation, sale-product exclusion, cart behavior, payment providers, KeyCRM, email, and sold-item hiding were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for `plugin-archives/yoleotard-checkout-invoice.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, and real `assets/` / `includes/` directories after extraction.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.61 test archive, choose a GIF in the Promo tab, then hover/tap the whole green badge on a live product card.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-12 - Promo Badge GIF Tooltip v4.0.60
 
 User request:

@@ -410,3 +410,9 @@ YOleotard Checkout v4.0.60
 - Shows a small green help icon inside active promo badges when a GIF is configured.
 - Uses the current template UIkit tooltip utility to display the configured GIF on hover/focus/tap.
 - Keeps promo-code calculation, sale-product exclusion, cart flow, and payment logic unchanged.
+
+YOleotard Checkout v4.0.61
+
+- Applies the UIkit GIF tooltip directly to the whole green promo badge instead of adding a separate help icon.
+- Uses the documented `uk-tooltip` attribute with HTML tooltip content on the badge element.
+- Keeps the Promo tab GIF Media Library setting and promo discount behavior unchanged.
