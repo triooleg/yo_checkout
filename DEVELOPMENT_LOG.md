@@ -16,6 +16,57 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Promo GIF Notification Popup v4.0.62
+
+User request:
+
+- The UIkit tooltip currently shows the GIF `<img>` markup as text.
+- Make the result look like the existing popup notification shown after clicking Buy now / Added to cart.
+- Use JavaScript if needed.
+
+Root cause:
+
+- The current theme/UIkit tooltip behavior rendered the HTML image markup as visible text in the tooltip.
+- The existing cart-added popup already uses `UIkit.notification()` with an HTML message, which is the working pattern for a rich popup in this checkout frontend.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.62`.
+- The configured promo GIF remains managed through the Promo tab Media Library URL field.
+- The frontend no longer uses `uk-tooltip` for the GIF popup.
+- The whole green promo badge now opens a UIkit notification-style popup on hover, focus, or tap.
+- The popup message renders the configured GIF as an actual image and uses the existing cart notification styling variables.
+- Promo-code calculation, sale-product exclusion, cart behavior, payment providers, KeyCRM, email, and sold-item hiding were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Host-safe archive verification passed for `plugin-archives/yoleotard-checkout-invoice.zip`: forward-slash paths only, one top-level `yoleotard-checkout-invoice/` folder, main plugin file present, and real `assets/` / `includes/` directories after extraction.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.62 test archive, choose a GIF in the Promo tab, then hover/tap the whole green badge on a live product card and confirm the GIF appears as an animated image inside a notification-style popup.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-12 - Whole-Badge UIkit Promo GIF Tooltip v4.0.61
 
 User request:

@@ -245,28 +245,35 @@
   box-shadow:0 8px 18px rgba(7,25,75,.18);
   white-space:normal;
 }
-.yo-promo-badge[uk-tooltip]{
+.yo-promo-badge.yo-promo-notification-ready{
   cursor:pointer;
 }
-.yo-promo-badge[uk-tooltip]:focus{
+.yo-promo-badge.yo-promo-notification-ready:focus{
   outline:2px solid rgba(255,255,255,.85);
   outline-offset:2px;
 }
-.yo-promo-gif-tooltip{
-  max-width:min(320px,92vw);
+.yo-promo-gif-notice{
+  width:min(360px,92vw);
+  background:var(--yo-cart-notice-bg, #07194b) !important;
+  color:var(--yo-cart-notice-text, #ffffff) !important;
+  border:2px solid var(--yo-cart-notice-border, #1e87f0) !important;
+  border-radius:var(--yo-cart-notice-radius, 14px) !important;
+  box-shadow:0 16px 38px rgba(7,25,75,var(--yo-cart-notice-shadow-opacity, .34)) !important;
+  padding:10px !important;
 }
-.yo-promo-gif-tooltip .uk-tooltip-inner{
-  padding:6px;
-  max-width:min(320px,92vw);
-  background:#102018;
-  border-radius:8px;
-}
-.yo-promo-tooltip-gif{
+.yo-promo-notification-gif{
   display:block;
   width:100%;
-  max-width:300px;
+  max-width:340px;
   height:auto;
-  border-radius:6px;
+  border-radius:10px;
+}
+.uk-notification-message:has(.yo-promo-gif-notice),
+.uk-notification-message-primary:has(.yo-promo-gif-notice){
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  padding:0 !important;
 }
 .yo-promo-box{
   margin:12px 0;

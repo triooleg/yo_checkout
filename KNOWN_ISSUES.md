@@ -8,18 +8,20 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Promo badge GIF tooltip live validation
 
-Status: v4.0.61 test candidate requires live validation.
+Status: v4.0.62 test candidate requires live validation.
 
 Details:
 
 - v4.0.60 adds a Media Library URL setting in the Promo tab for a GIF explaining how to apply the promo code.
-- v4.0.61 applies the UIkit tooltip directly to the whole green promo badge instead of adding a separate help icon.
-- When the setting is filled and the promo badge is active, the full product-card promo badge displays the configured GIF on hover/focus/tap.
+- v4.0.61 applied the UIkit tooltip directly to the whole green promo badge instead of adding a separate help icon.
+- Live inspection showed UIkit tooltip rendered the GIF `<img>` markup as visible text in the current theme.
+- v4.0.62 uses the same UIkit notification pattern as the `Added to cart` popup so the configured GIF renders as an actual image.
+- When the setting is filled and the promo badge is active, hovering, focusing, or tapping the full product-card promo badge opens a notification-style GIF popup.
 
 Handling:
 
 - In WordPress admin, open `YOleotard Checkout > Settings > Promo code`, choose a GIF from the Media Library, save settings, and verify the URL remains saved.
-- On a product without an existing sale discount, hover and tap the green promo badge and confirm the GIF appears in the UIkit tooltip.
+- On a product without an existing sale discount, hover and tap the green promo badge and confirm the GIF appears as an animated image in a UIkit notification-style popup.
 - Confirm regular promo badge placement, Buy button behavior, cart opening, and promo-code application are unchanged.
 
 ### Purchases report and checkout snapshot live validation

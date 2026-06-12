@@ -416,3 +416,10 @@ YOleotard Checkout v4.0.61
 - Applies the UIkit GIF tooltip directly to the whole green promo badge instead of adding a separate help icon.
 - Uses the documented `uk-tooltip` attribute with HTML tooltip content on the badge element.
 - Keeps the Promo tab GIF Media Library setting and promo discount behavior unchanged.
+
+YOleotard Checkout v4.0.62
+
+- Replaces the promo GIF tooltip popup with a UIkit notification-style popup, matching the existing Added to cart notification behavior.
+- Makes the whole green promo badge open the GIF popup on hover, focus, or tap.
+- Fixes the live behavior where the tooltip displayed the `<img>` markup as text instead of rendering the GIF.
+- Keeps the Promo tab GIF Media Library setting and promo discount behavior unchanged.

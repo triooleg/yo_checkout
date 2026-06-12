@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.61. Makes the whole promo badge show the UIkit GIF tooltip.
- * Version: 4.0.61
+ * Description: v4.0.62. Shows promo GIF help through UIkit notifications.
+ * Version: 4.0.62
  * Author: YOleotard / ChatGPT
  */
 

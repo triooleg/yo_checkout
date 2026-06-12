@@ -265,25 +265,45 @@
     function promoTooltipGifUrl(){
       return String(window.YOCheckout?.promoTooltipGifUrl || '').trim();
     }
-    function promoTooltipTitle(){
+    let lastPromoGifNoticeAt = 0;
+    function showPromoGifNotification(force){
       const url = promoTooltipGifUrl();
-      return url ? '<img class="yo-promo-tooltip-gif" src="'+escHtml(url)+'" alt="How to apply the promo code">' : '';
+      if(!url) return;
+      const now = Date.now();
+      if(!force && now - lastPromoGifNoticeAt < 2200) return;
+      lastPromoGifNoticeAt = now;
+      const htmlMessage = '<div class="yo-promo-gif-notice" style="'+cartNoticeStyleVars('#27c970')+'"><img class="yo-promo-notification-gif" src="'+escHtml(url)+'" alt="How to apply the promo code"></div>';
+      if(window.UIkit && typeof window.UIkit.notification === 'function'){
+        window.UIkit.notification({
+          message: htmlMessage,
+          status: 'primary',
+          pos: window.YOCheckout?.cartAddedNotificationPosition || 'top-center',
+          timeout: 6200
+        });
+      }
     }
-    function applyPromoBadgeTooltip(badge){
+    function applyPromoBadgeNotification(badge){
       if(!badge) return;
-      const title = promoTooltipTitle();
-      if(title){
-        badge.setAttribute('title', title);
+      if(promoTooltipGifUrl()){
         badge.setAttribute('tabindex', '0');
         badge.setAttribute('role', 'button');
         badge.setAttribute('aria-label', (window.YOCheckout?.promoBadgeText || 'Discount by promo code') + '. How to apply the promo code.');
-        badge.setAttribute('uk-tooltip', 'title: '+title+'; cls: yo-promo-gif-tooltip; pos: top; delay: 120');
+        badge.classList.add('yo-promo-notification-ready');
+        if(!badge.dataset.yoPromoNoticeBound){
+          badge.dataset.yoPromoNoticeBound = '1';
+          badge.addEventListener('mouseenter', function(){ showPromoGifNotification(false); });
+          badge.addEventListener('focus', function(){ showPromoGifNotification(false); });
+          badge.addEventListener('click', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+            showPromoGifNotification(true);
+          });
+        }
       } else {
-        badge.removeAttribute('title');
         badge.removeAttribute('tabindex');
         badge.removeAttribute('role');
         badge.removeAttribute('aria-label');
-        badge.removeAttribute('uk-tooltip');
+        badge.classList.remove('yo-promo-notification-ready');
       }
     }
     function findMeasurementsBlock(card){
@@ -398,11 +418,11 @@
       if(hasActiveSaleDiscount(card)) { removePromoBadge(card); return; }
       const existingBadge = card.querySelector('.yo-promo-badge');
       const measurements = findMeasurementsBlock(card);
-      if(existingBadge){ applyPromoBadgeTooltip(existingBadge); normalizePromoBadgeSpace(existingBadge, card, measurements); return; }
+      if(existingBadge){ applyPromoBadgeNotification(existingBadge); normalizePromoBadgeSpace(existingBadge, card, measurements); return; }
       const badge = document.createElement('div');
       badge.className = 'yo-promo-badge uk-label yo-promo-badge-before-measurements';
       badge.appendChild(document.createTextNode(window.YOCheckout?.promoBadgeText || 'Discount by promo code'));
-      applyPromoBadgeTooltip(badge);
+      applyPromoBadgeNotification(badge);
       const styles = getPromoBadgeStyles();
       Object.keys(styles).forEach(function(k){ badge.style[k] = styles[k]; });
 
