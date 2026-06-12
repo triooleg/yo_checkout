@@ -275,6 +275,9 @@
       const html = promoTooltipHtml();
       if(!html) return;
       try{
+        if(badge._yoPromoTooltip && typeof badge._yoPromoTooltip.$destroy === 'function'){
+          badge._yoPromoTooltip.$destroy();
+        }
         badge._yoPromoTooltip = window.UIkit.tooltip(badge, {
           title: html,
           cls: 'yo-promo-gif-tooltip',
@@ -291,6 +294,18 @@
         try{ badge._yoPromoTooltip.show(); }catch(e){}
       }
     }
+    function schedulePromoBadgeTooltipInit(badge, attempts){
+      attempts = attempts == null ? 8 : attempts;
+      if(!badge || !promoTooltipGifUrl()) return;
+      requestAnimationFrame(function(){
+        if(!document.body.contains(badge)) return;
+        if(window.UIkit && typeof window.UIkit.tooltip === 'function'){
+          initPromoBadgeTooltip(badge);
+          return;
+        }
+        if(attempts > 0) setTimeout(function(){ schedulePromoBadgeTooltipInit(badge, attempts - 1); }, 250);
+      });
+    }
     function applyPromoBadgeTooltip(badge){
       if(!badge) return;
       if(promoTooltipGifUrl()){
@@ -306,7 +321,7 @@
             showPromoBadgeTooltip(badge);
           });
         }
-        initPromoBadgeTooltip(badge);
+        schedulePromoBadgeTooltipInit(badge);
       } else {
         badge.removeAttribute('tabindex');
         badge.removeAttribute('role');
@@ -430,17 +445,18 @@
       const badge = document.createElement('div');
       badge.className = 'yo-promo-badge uk-label yo-promo-badge-before-measurements';
       badge.appendChild(document.createTextNode(window.YOCheckout?.promoBadgeText || 'Discount by promo code'));
-      applyPromoBadgeTooltip(badge);
       const styles = getPromoBadgeStyles();
       Object.keys(styles).forEach(function(k){ badge.style[k] = styles[k]; });
 
       if(measurements){
         card.appendChild(badge);
+        applyPromoBadgeTooltip(badge);
         normalizePromoBadgeSpace(badge, card, measurements);
         return;
       }
       const units = findUnitsBlock(card);
       card.appendChild(badge);
+      applyPromoBadgeTooltip(badge);
       normalizePromoBadgeSpace(badge, card, units || null);
     }
     function titleFromCard(card){

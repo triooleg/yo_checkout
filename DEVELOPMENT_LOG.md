@@ -16,6 +16,57 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Promo Tooltip DOM Insertion Timing v4.0.64
+
+User request:
+
+- Tooltip still does not work.
+- Investigate the reason.
+- User suggested the tooltip may need to start only after the badge has already been generated.
+
+Root cause:
+
+- For newly created promo badges, v4.0.63 called `applyPromoBadgeTooltip(badge)` before `card.appendChild(badge)`.
+- That meant `UIkit.tooltip(badge, options)` could be initialized while the badge was still detached from the DOM.
+- In that state, UIkit may not connect the tooltip hover/focus behavior to the live page element.
+- The code also had no retry path if the promo badge pass ran before `window.UIkit.tooltip` was available.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.64`.
+- New promo badges are appended to the product card before tooltip initialization.
+- Tooltip initialization now runs through `requestAnimationFrame()` and checks that the badge is in `document.body`.
+- If UIkit is not ready yet, initialization retries briefly.
+- The tooltip still uses the UIkit JavaScript API and the full green badge remains the target.
+- Promo-code calculation, sale-product exclusion, cart behavior, payment providers, KeyCRM, email, and sold-item hiding were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Live test status:
+
+- Not live-tested yet. Install a v4.0.64 test archive when requested, then hover/tap the whole green promo badge and confirm the GIF appears in a UIkit tooltip.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-12 - Build v4.0.63 Test Archive
 
 User request:

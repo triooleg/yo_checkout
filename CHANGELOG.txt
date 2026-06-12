@@ -430,3 +430,10 @@ YOleotard Checkout v4.0.63
 - Initializes the tooltip through the UIkit JavaScript API and passes a JS-built HTML wrapper containing the GIF.
 - Keeps the whole green promo badge as the hover/focus/tap target.
 - Keeps the Promo tab GIF Media Library setting and promo discount behavior unchanged.
+
+YOleotard Checkout v4.0.64
+
+- Fixes promo GIF tooltip initialization timing for newly created promo badges.
+- Initializes the UIkit tooltip only after the green promo badge is inserted into the DOM.
+- Adds a short retry path when UIkit is not available at the first badge pass.
+- Keeps the whole green promo badge as the tooltip target and keeps promo discount behavior unchanged.
