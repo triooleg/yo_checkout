@@ -43,7 +43,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Pending documentation commit in this task.
+- Documentation commit: `f57cf19` (`Record v4.0.63 test archive build`).
 
 ## 2026-06-12 - Promo GIF Tooltip via UIkit JavaScript API v4.0.63
 
