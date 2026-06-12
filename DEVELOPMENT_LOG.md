@@ -47,7 +47,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Pending documentation commit in this task.
+- Documentation commit: `33a3b1a` (`Record v4.0.64 test archive build`).
 
 ## 2026-06-12 - Promo Tooltip DOM Insertion Timing v4.0.64
 
