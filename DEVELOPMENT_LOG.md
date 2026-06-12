@@ -16,6 +16,57 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Promo GIF Tooltip via UIkit JavaScript API v4.0.63
+
+User request:
+
+- The GIF helper must be a tooltip like in the UIkit documentation, not a notification popup.
+- Use JavaScript functions to add an HTML wrapper so the GIF animation plays inside the tooltip.
+
+Root cause:
+
+- The first whole-badge tooltip version used a string attribute, which the live UIkit/theme setup rendered as raw `<img>` text.
+- v4.0.62 switched to notification as a workaround, but the requested UI is specifically a tooltip.
+- The UIkit JavaScript API supports initializing a tooltip with options, so the frontend can build sanitized HTML and pass it as the tooltip `title` option instead of embedding raw HTML inside a DOM attribute.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.63`.
+- The configured promo GIF remains managed through the Promo tab Media Library URL field.
+- The frontend now initializes the full green promo badge with `UIkit.tooltip(badge, options)`.
+- The tooltip `title` option is a JS-built HTML wrapper containing the configured GIF image.
+- The whole green promo badge remains the hover/focus/tap target.
+- Promo-code calculation, sale-product exclusion, cart behavior, payment providers, KeyCRM, email, and sold-item hiding were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Test archive rebuild is pending because sandbox approval for `plugin-archives/` access timed out twice during this task.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.63 test archive, choose a GIF in the Promo tab, then hover/tap the whole green badge on a live product card and confirm the GIF appears as an animated image inside a UIkit tooltip, not as raw HTML text.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-12 - Preserve Versioned Test Archives Before Rebuild
 
 User request:

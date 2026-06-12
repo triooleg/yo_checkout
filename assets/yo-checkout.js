@@ -265,45 +265,53 @@
     function promoTooltipGifUrl(){
       return String(window.YOCheckout?.promoTooltipGifUrl || '').trim();
     }
-    let lastPromoGifNoticeAt = 0;
-    function showPromoGifNotification(force){
+    function promoTooltipHtml(){
       const url = promoTooltipGifUrl();
-      if(!url) return;
-      const now = Date.now();
-      if(!force && now - lastPromoGifNoticeAt < 2200) return;
-      lastPromoGifNoticeAt = now;
-      const htmlMessage = '<div class="yo-promo-gif-notice" style="'+cartNoticeStyleVars('#27c970')+'"><img class="yo-promo-notification-gif" src="'+escHtml(url)+'" alt="How to apply the promo code"></div>';
-      if(window.UIkit && typeof window.UIkit.notification === 'function'){
-        window.UIkit.notification({
-          message: htmlMessage,
-          status: 'primary',
-          pos: window.YOCheckout?.cartAddedNotificationPosition || 'top-center',
-          timeout: 6200
+      if(!url) return '';
+      return '<div class="yo-promo-tooltip-html"><img class="yo-promo-tooltip-gif" src="'+escHtml(url)+'" alt="How to apply the promo code"></div>';
+    }
+    function initPromoBadgeTooltip(badge){
+      if(!badge || !window.UIkit || typeof window.UIkit.tooltip !== 'function') return;
+      const html = promoTooltipHtml();
+      if(!html) return;
+      try{
+        badge._yoPromoTooltip = window.UIkit.tooltip(badge, {
+          title: html,
+          cls: 'yo-promo-gif-tooltip',
+          pos: 'top',
+          delay: 120,
+          duration: 100
         });
+      }catch(e){}
+    }
+    function showPromoBadgeTooltip(badge){
+      if(!badge) return;
+      if(!badge._yoPromoTooltip) initPromoBadgeTooltip(badge);
+      if(badge._yoPromoTooltip && typeof badge._yoPromoTooltip.show === 'function'){
+        try{ badge._yoPromoTooltip.show(); }catch(e){}
       }
     }
-    function applyPromoBadgeNotification(badge){
+    function applyPromoBadgeTooltip(badge){
       if(!badge) return;
       if(promoTooltipGifUrl()){
         badge.setAttribute('tabindex', '0');
         badge.setAttribute('role', 'button');
         badge.setAttribute('aria-label', (window.YOCheckout?.promoBadgeText || 'Discount by promo code') + '. How to apply the promo code.');
-        badge.classList.add('yo-promo-notification-ready');
-        if(!badge.dataset.yoPromoNoticeBound){
-          badge.dataset.yoPromoNoticeBound = '1';
-          badge.addEventListener('mouseenter', function(){ showPromoGifNotification(false); });
-          badge.addEventListener('focus', function(){ showPromoGifNotification(false); });
+        badge.classList.add('yo-promo-tooltip-ready');
+        if(!badge.dataset.yoPromoTooltipBound){
+          badge.dataset.yoPromoTooltipBound = '1';
           badge.addEventListener('click', function(e){
             e.preventDefault();
             e.stopPropagation();
-            showPromoGifNotification(true);
+            showPromoBadgeTooltip(badge);
           });
         }
+        initPromoBadgeTooltip(badge);
       } else {
         badge.removeAttribute('tabindex');
         badge.removeAttribute('role');
         badge.removeAttribute('aria-label');
-        badge.classList.remove('yo-promo-notification-ready');
+        badge.classList.remove('yo-promo-tooltip-ready');
       }
     }
     function findMeasurementsBlock(card){
@@ -418,11 +426,11 @@
       if(hasActiveSaleDiscount(card)) { removePromoBadge(card); return; }
       const existingBadge = card.querySelector('.yo-promo-badge');
       const measurements = findMeasurementsBlock(card);
-      if(existingBadge){ applyPromoBadgeNotification(existingBadge); normalizePromoBadgeSpace(existingBadge, card, measurements); return; }
+      if(existingBadge){ applyPromoBadgeTooltip(existingBadge); normalizePromoBadgeSpace(existingBadge, card, measurements); return; }
       const badge = document.createElement('div');
       badge.className = 'yo-promo-badge uk-label yo-promo-badge-before-measurements';
       badge.appendChild(document.createTextNode(window.YOCheckout?.promoBadgeText || 'Discount by promo code'));
-      applyPromoBadgeNotification(badge);
+      applyPromoBadgeTooltip(badge);
       const styles = getPromoBadgeStyles();
       Object.keys(styles).forEach(function(k){ badge.style[k] = styles[k]; });
 

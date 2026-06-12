@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.62. Shows promo GIF help through UIkit notifications.
- * Version: 4.0.62
+ * Description: v4.0.63. Shows promo GIF help through UIkit tooltip JavaScript API.
+ * Version: 4.0.63
  * Author: YOleotard / ChatGPT
  */
 
@@ -935,7 +935,7 @@ EUR=1',
                         <?php $this->field('promo_badge_opacity', 'Badge opacity, %', 'number'); ?>
                         <?php $this->media_url_field('promo_tooltip_gif_url', 'Promo tooltip GIF'); ?>
                     </table>
-                    <p class="description">If the promo code field is empty, the product badge and promo code field in checkout are hidden. The discount applies only before the expiration date. Products that already have a red sale discount do not accept an additional promo code. If a tooltip GIF is selected, a small green help icon is shown inside the promo badge and displays the GIF through the current UIkit tooltip utility.</p>
+                    <p class="description">If the promo code field is empty, the product badge and promo code field in checkout are hidden. The discount applies only before the expiration date. Products that already have a red sale discount do not accept an additional promo code. If a tooltip GIF is selected, the whole green promo badge displays the GIF through the current UIkit tooltip utility.</p>
                 <?php elseif ($tab === 'google_reviews'): ?>
                     <h2>Google Customer Reviews</h2>
                     <p class="description">These settings add the Google Customer Reviews survey opt-in on the final successful card-payment page. The merchant badge is optional and can be shown on the site if Google approves the account for the program.</p>

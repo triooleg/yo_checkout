@@ -423,3 +423,10 @@ YOleotard Checkout v4.0.62
 - Makes the whole green promo badge open the GIF popup on hover, focus, or tap.
 - Fixes the live behavior where the tooltip displayed the `<img>` markup as text instead of rendering the GIF.
 - Keeps the Promo tab GIF Media Library setting and promo discount behavior unchanged.
+
+YOleotard Checkout v4.0.63
+
+- Restores the promo GIF helper to a real UIkit Tooltip instead of a notification popup.
+- Initializes the tooltip through the UIkit JavaScript API and passes a JS-built HTML wrapper containing the GIF.
+- Keeps the whole green promo badge as the hover/focus/tap target.
+- Keeps the Promo tab GIF Media Library setting and promo discount behavior unchanged.
