@@ -437,3 +437,9 @@ YOleotard Checkout v4.0.64
 - Initializes the UIkit tooltip only after the green promo badge is inserted into the DOM.
 - Adds a short retry path when UIkit is not available at the first badge pass.
 - Keeps the whole green promo badge as the tooltip target and keeps promo discount behavior unchanged.
+
+YOleotard Checkout v4.0.65
+
+- Creates and shows the promo GIF UIkit tooltip directly from badge hover, focus, tap, and click events.
+- Retries event-triggered tooltip creation briefly if UIkit is not ready when the customer first interacts with the badge.
+- Keeps the full green promo badge as the tooltip target and keeps promo discount behavior unchanged.

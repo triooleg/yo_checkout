@@ -16,6 +16,61 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-12 - Event-Triggered Promo GIF Tooltip v4.0.65
+
+User request:
+
+- Tooltip still does not work.
+- Add an event on click or hover that starts tooltip creation.
+- Create a test archive.
+
+Root cause:
+
+- Pre-initializing the tooltip during badge rendering can still miss the live UIkit state or attach too early for the user interaction.
+- Creating and showing the tooltip from the actual badge interaction is safer for dynamically generated product badges.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.65`.
+- Promo badges now listen for `mouseenter`, `focus`, `touchstart`, and `click`.
+- Those events create the UIkit tooltip through the JavaScript API if needed and call `show()` immediately.
+- Event-triggered creation retries briefly if UIkit is not ready on the first customer interaction.
+- Promo-code calculation, sale-product exclusion, cart behavior, payment providers, KeyCRM, email, and sold-item hiding were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Existing exact-name archive was preserved as `plugin-archives/yoleotard-checkout-invoice-v4.0.64.zip` before rebuilding the installable ZIP.
+- New installable archive was created as `plugin-archives/yoleotard-checkout-invoice.zip`.
+- A local versioned copy was also saved as `plugin-archives/yoleotard-checkout-invoice-v4.0.65.zip`.
+- Archive build used Python `zipfile` with explicit forward-slash archive names.
+- Verified both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.65.zip` contain one top-level `yoleotard-checkout-invoice/` folder.
+- Verified no ZIP entry contains `\`.
+- Verified local extraction of the exact-name ZIP creates real `assets/` and `includes/` directories and contains `yoleotard-checkout-invoice.php`.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.65 test archive, then hover/tap the whole green promo badge and confirm the GIF appears in a UIkit tooltip.
+
+Repository rollback point:
+
+- Pending.
+
 ## 2026-06-12 - Build v4.0.64 Test Archive
 
 User request:

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.64. Initializes promo GIF tooltips after badge insertion.
- * Version: 4.0.64
+ * Description: v4.0.65. Creates promo GIF tooltips from badge hover and tap events.
+ * Version: 4.0.65
  * Author: YOleotard / ChatGPT
  */
 

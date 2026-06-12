@@ -271,13 +271,12 @@
       return '<div class="yo-promo-tooltip-html"><img class="yo-promo-tooltip-gif" src="'+escHtml(url)+'" alt="How to apply the promo code"></div>';
     }
     function initPromoBadgeTooltip(badge){
-      if(!badge || !window.UIkit || typeof window.UIkit.tooltip !== 'function') return;
+      if(!badge) return false;
+      if(badge._yoPromoTooltip) return true;
+      if(!window.UIkit || typeof window.UIkit.tooltip !== 'function') return false;
       const html = promoTooltipHtml();
-      if(!html) return;
+      if(!html) return false;
       try{
-        if(badge._yoPromoTooltip && typeof badge._yoPromoTooltip.$destroy === 'function'){
-          badge._yoPromoTooltip.$destroy();
-        }
         badge._yoPromoTooltip = window.UIkit.tooltip(badge, {
           title: html,
           cls: 'yo-promo-gif-tooltip',
@@ -285,11 +284,17 @@
           delay: 120,
           duration: 100
         });
+        return !!badge._yoPromoTooltip;
       }catch(e){}
+      return false;
     }
-    function showPromoBadgeTooltip(badge){
+    function showPromoBadgeTooltip(badge, attempts){
       if(!badge) return;
-      if(!badge._yoPromoTooltip) initPromoBadgeTooltip(badge);
+      attempts = attempts == null ? 8 : attempts;
+      if(!badge._yoPromoTooltip && !initPromoBadgeTooltip(badge)){
+        if(attempts > 0) setTimeout(function(){ showPromoBadgeTooltip(badge, attempts - 1); }, 180);
+        return;
+      }
       if(badge._yoPromoTooltip && typeof badge._yoPromoTooltip.show === 'function'){
         try{ badge._yoPromoTooltip.show(); }catch(e){}
       }
@@ -315,6 +320,9 @@
         badge.classList.add('yo-promo-tooltip-ready');
         if(!badge.dataset.yoPromoTooltipBound){
           badge.dataset.yoPromoTooltipBound = '1';
+          badge.addEventListener('mouseenter', function(){ showPromoBadgeTooltip(badge); });
+          badge.addEventListener('focus', function(){ showPromoBadgeTooltip(badge); });
+          badge.addEventListener('touchstart', function(){ showPromoBadgeTooltip(badge); }, {passive: true});
           badge.addEventListener('click', function(e){
             e.preventDefault();
             e.stopPropagation();

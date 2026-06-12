@@ -8,7 +8,7 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Promo badge GIF tooltip live validation
 
-Status: v4.0.64 test candidate requires live validation.
+Status: v4.0.65 test candidate requires live validation.
 
 Details:
 
@@ -18,6 +18,7 @@ Details:
 - v4.0.62 used a UIkit notification popup as a workaround, but the desired UI is specifically UIkit Tooltip.
 - v4.0.63 initializes the tooltip through the UIkit JavaScript API and passes a JS-built HTML wrapper containing the GIF.
 - v4.0.64 initializes the UIkit tooltip only after a new promo badge is inserted into the DOM and retries briefly if UIkit is not ready yet.
+- v4.0.65 creates and shows the UIkit tooltip directly from badge `mouseenter`, `focus`, `touchstart`, and `click` events, so initialization happens in response to the user action.
 - When the setting is filled and the promo badge is active, hovering, focusing, or tapping the full product-card promo badge should open a UIkit tooltip with the configured GIF.
 
 Handling:
