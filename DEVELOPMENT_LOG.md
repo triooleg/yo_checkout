@@ -66,7 +66,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending in this task.
+- Local git checkpoint commit: `b8a2dce` (`Add bank invoice card default reservation`).
 
 ## 2026-06-14 - Compact Desktop Height Filter v4.0.66
 
