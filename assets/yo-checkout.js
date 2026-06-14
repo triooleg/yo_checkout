@@ -521,6 +521,26 @@
         }
       });
     }
+    function isInvoiceReservedCard(card){
+      if(!card) return false;
+      if(card.classList.contains('yo-invoice-reserved-card')) return true;
+      if(card.classList.contains('uk-card-default')) return true;
+      return !!card.querySelector('.uk-card-default');
+    }
+    function clearInvoiceReservedState(card){
+      if(!card) return;
+      card.classList.remove('yo-invoice-reserved-card');
+      card.querySelectorAll('.yo-invoice-reserved-overlay-badge').forEach(function(el){ el.remove(); });
+      card.querySelectorAll('.yo-main-buy-btn').forEach(function(btn){
+        if(btn.dataset.yoInvoiceReservedDisabled){
+          btn.removeAttribute('aria-disabled');
+          btn.style.pointerEvents = '';
+          btn.style.cursor = '';
+          btn.dataset.yoInvoiceReservedDisabled = '';
+          btn.classList.remove('yo-invoice-reserved-buy-btn');
+        }
+      });
+    }
     function formatReservationCountdown(totalSeconds){
       totalSeconds = Math.max(0, Math.floor(totalSeconds || 0));
       const minutes = Math.floor(totalSeconds / 60);
@@ -563,6 +583,26 @@
         btn.style.cursor = 'not-allowed';
         btn.dataset.yoReservedDisabled = '1';
       });
+    }
+    function applyInvoiceReservedState(card){
+      if(!card) return;
+      card.classList.add('yo-invoice-reserved-card');
+      card.style.position = card.style.position || 'relative';
+      let badge = card.querySelector('.yo-invoice-reserved-overlay-badge');
+      if(!badge){
+        badge = document.createElement('div');
+        badge.className = 'yo-invoice-reserved-overlay-badge';
+        card.appendChild(badge);
+      }
+      badge.textContent = window.YOCheckout?.invoiceReservedBadgeText || window.YOCheckout?.reservationBadgeText || 'Reserved';
+      card.querySelectorAll('.yo-main-buy-btn, a.el-link.uk-button, a.uk-button, button.uk-button').forEach(function(btn){
+        btn.setAttribute('aria-disabled','true');
+        btn.style.pointerEvents = 'none';
+        btn.style.cursor = 'not-allowed';
+        btn.dataset.yoInvoiceReservedDisabled = '1';
+        btn.classList.add('yo-invoice-reserved-buy-btn');
+      });
+      removePromoBadge(card);
     }
     function refreshReservedCards(){
       const fd = new FormData();
@@ -645,6 +685,11 @@
       cleanupInvalidPromoBadges();
       document.querySelectorAll('.el-item').forEach(function(card){
         if(!isProductCard(card)) { removePromoBadge(card); return; }
+        if(isInvoiceReservedCard(card)){
+          applyInvoiceReservedState(card);
+          return;
+        }
+        clearInvoiceReservedState(card);
         const oldSaleButton = card.querySelector('.sale-old-btn');
         const saleButton = card.querySelector('.sale-new-btn, .yo-sale-new-btn, .yo-sale-btn, .uk-button-danger');
         const regularButton = card.querySelector('a.el-link.uk-button:not(.sale-old-btn):not(.sale-new-btn):not(.yo-sale-new-btn):not(.yo-sale-btn):not(.uk-button-danger)');
@@ -1494,6 +1539,7 @@
       const btn=e.target.closest('.yo-main-buy-btn'); if(!btn) return;
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       const card=closestProductCardFromNode(btn); if(!card) return;
+      if(isInvoiceReservedCard(card) || btn.dataset.yoInvoiceReservedDisabled === '1') return;
       const priceNode=btn.querySelector('.yo-price[data-eur]');
       const titleNode=card.querySelector('.el-title');
       const imgNode=card.querySelector('img');
@@ -1725,6 +1771,7 @@
             if(byId('yo-bank-invoice-html-link')) byId('yo-bank-invoice-html-link').href = data.data.htmlUrl || link;
             renderBankInvoiceConfirmation(data.data.orderId || current.orderId);
             setStep('bank');
+            markInvoiceReservedProductsForItems(cartItems);
             clearCartAfterInvoiceOrder();
             if(!data.data.invoiceUrl && data.data.pdfMessage){
               console.warn('YOleotard invoice PDF was not generated:', data.data.pdfMessage);
@@ -1752,6 +1799,28 @@
       const target = (wrapper && wrapper.querySelectorAll('.el-item').length === 1) ? wrapper : card;
       target.classList.add('yo-paid-card-hidden');
       target.style.display = 'none';
+    }
+    function markInvoiceReservedProductsForItems(items){
+      const seen = new Set();
+      const candidates = [];
+      productCardsOnPage().forEach(function(card){
+        if(card && !seen.has(card)){ seen.add(card); candidates.push(card); }
+      });
+      document.querySelectorAll('.el-item, .uk-card, li').forEach(function(card){
+        if(card && !seen.has(card) && isProductCard(card)){ seen.add(card); candidates.push(card); }
+      });
+      candidates.forEach(function(card){
+        const cardTitle = titleFromCard(card);
+        const cardProductId = sanitizeProductId(productIdFromCard(card)).toLowerCase();
+        for(const item of (items || [])){
+          const title = item && item.title ? String(item.title) : '';
+          const itemProductId = sanitizeProductId((item && (item.product_id || item.feed_id)) || '').toLowerCase();
+          if((itemProductId && cardProductId === itemProductId) || (!itemProductId && (sameProductTitle(cardTitle, title) || textMatchesTitle(cardTitle, title) || textMatchesTitle(title, cardTitle)))){
+            applyInvoiceReservedState(card);
+            break;
+          }
+        }
+      });
     }
     function hidePurchasedProductsForItems(items){
       const titles = (items || []).map(function(item){ return item && item.title ? String(item.title) : ''; }).filter(Boolean);

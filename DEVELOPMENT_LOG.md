@@ -16,6 +16,58 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - Bank Invoice Card Default Reservation v4.0.67
+
+User request:
+
+- After a successful bank invoice purchase, assign the purchased YOOtheme product items the `Card Default` style shown in Builder.
+- When a product card has that style, make its buy buttons grey and non-clickable.
+- Show a centered reservation label just like the cart reservation overlay, but without the countdown timer.
+- If the manager manually changes the item style back to `None`, the reservation state should disappear.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-sold-items.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.67`.
+- After a bank invoice is created and the customer invoice email is successfully sent, the purchased Builder item is matched using the existing sold-item title/product identity matching path and assigned YOOtheme style `default` (`Card Default` in Builder).
+- Existing bank invoice reuse paths also retry the Card Default marking when the matching invoice email hash is already present.
+- Frontend cards rendered with YOOtheme `Card Default` are treated as invoice-reserved: product card is greyed, buy buttons are disabled, and a centered reservation label is shown without a countdown timer.
+- The current storefront page also marks the just-invoiced cart items as invoice-reserved immediately after the successful bank invoice response, before a page reload.
+- Backend YOOtheme availability checks treat `Card Default` style as unavailable, protecting older open carts from paying for an invoice-reserved product.
+- Manually changing the Builder item style back to `None` removes the frontend invoice-reserved state after the page updates/reloads.
+- Card payment finalization, Western Bid, Monobank, paid email, KeyCRM paid status, and sold-item disabled-status auto-hide were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l includes\class-yo-checkout-sold-items.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Test archive was not created because this task did not request an archive.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.67 build, create a bank invoice, confirm the invoice email is sent, confirm the Builder item style becomes `Card Default`, confirm the storefront card is grey/non-clickable with the centered reservation label, then set the style back to `None` and confirm the card becomes purchasable again.
+
+Repository rollback point:
+
+- Pending in this task.
+
 ## 2026-06-14 - Compact Desktop Height Filter v4.0.66
 
 User request:

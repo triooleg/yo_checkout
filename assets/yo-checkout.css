@@ -480,14 +480,20 @@
 /* v3.3.31 reserved product state */
 .el-item.yo-reserved-card,
 .uk-card.yo-reserved-card,
-li.yo-reserved-card {
+li.yo-reserved-card,
+.el-item.yo-invoice-reserved-card,
+.uk-card.yo-invoice-reserved-card,
+li.yo-invoice-reserved-card {
   position: relative !important;
   filter: grayscale(100%) !important;
   opacity: .58 !important;
 }
 .el-item.yo-reserved-card::after,
 .uk-card.yo-reserved-card::after,
-li.yo-reserved-card::after {
+li.yo-reserved-card::after,
+.el-item.yo-invoice-reserved-card::after,
+.uk-card.yo-invoice-reserved-card::after,
+li.yo-invoice-reserved-card::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -496,7 +502,8 @@ li.yo-reserved-card::after {
   border-radius: inherit;
   pointer-events: none;
 }
-.yo-reserved-overlay-badge {
+.yo-reserved-overlay-badge,
+.yo-invoice-reserved-overlay-badge {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -520,8 +527,16 @@ li.yo-reserved-card::after {
   pointer-events: none;
   text-transform: none;
 }
-.yo-reserved-card .yo-main-buy-btn {
+.yo-reserved-card .yo-main-buy-btn,
+.yo-invoice-reserved-card .yo-main-buy-btn,
+.yo-invoice-reserved-card .yo-invoice-reserved-buy-btn {
   opacity: .52 !important;
+  background: #9ca3af !important;
+  border-color: #9ca3af !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
 }
 
 

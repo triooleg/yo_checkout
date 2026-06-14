@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.66. Makes the ready-to-ship height filter wider and more compact on desktop.
- * Version: 4.0.66
+ * Description: v4.0.67. Marks successful bank-invoice products as Card Default and disables their buy buttons.
+ * Version: 4.0.67
  * Author: YOleotard / ChatGPT
  */
 
@@ -1160,6 +1160,7 @@ EUR=1',
             'cartDuplicateNotificationTimeout' => max(500, min(20000, absint($s['cart_duplicate_notification_timeout'] ?? 4200))),
             'cartAddedNotificationTitle' => sanitize_text_field($s['cart_added_notification_title'] ?? 'Added to cart'),
             'cartDuplicateNotificationText' => sanitize_text_field($s['cart_duplicate_notification_text'] ?? 'This item is already in the cart. Only one copy of each product can be added.'),
+            'invoiceReservedBadgeText' => sanitize_text_field($s['reservation_badge_text'] ?? 'Reserved'),
             'cartNoticeBgColor' => sanitize_hex_color($s['cart_notice_bg_color'] ?? '#07194b') ?: '#07194b',
             'cartNoticeTextColor' => sanitize_hex_color($s['cart_notice_text_color'] ?? '#ffffff') ?: '#ffffff',
             'cartNoticeBorderColor' => sanitize_hex_color($s['cart_notice_border_color'] ?? '#1e87f0') ?: '#1e87f0',
@@ -1915,6 +1916,7 @@ EUR=1',
         if (get_post_meta($local_id, 'bank_invoice_created', true) === '1' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_cart_hash', true), $current_cart_hash)) {
             $existing_response = $this->bank_invoice_existing_response($local_id, false);
             if ($existing_response) {
+                $this->maybe_mark_bank_invoice_items_card_default($local_id, $current_cart_hash, $debug_id);
                 delete_post_meta($local_id, 'bank_invoice_lock');
                 $this->append_checkout_debug_log($debug_id, 'bank_invoice reused existing invoice before KeyCRM reset', ['local_id' => $local_id, 'cart_hash' => $current_cart_hash]);
                 wp_send_json_success($existing_response);
@@ -1946,6 +1948,7 @@ EUR=1',
         if (get_post_meta($local_id, 'bank_invoice_created', true) === '1' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_cart_hash', true), $cart_hash)) {
             $existing_response = $this->bank_invoice_existing_response($local_id, false);
             if ($existing_response) {
+                $this->maybe_mark_bank_invoice_items_card_default($local_id, $cart_hash, $debug_id);
                 delete_post_meta($local_id, 'bank_invoice_lock');
                 $this->append_checkout_debug_log($debug_id, 'bank_invoice reused existing invoice', ['local_id' => $local_id, 'cart_hash' => $cart_hash]);
                 wp_send_json_success($existing_response);
@@ -1993,6 +1996,7 @@ EUR=1',
                 $this->append_checkout_debug_log($debug_id, 'bank_invoice customer email failed', ['local_id' => $local_id, 'cart_hash' => $cart_hash]);
             }
         }
+        $this->maybe_mark_bank_invoice_items_card_default($local_id, $cart_hash, $debug_id);
         delete_post_meta($local_id, 'bank_invoice_lock');
         $this->append_checkout_debug_log($debug_id, 'bank_invoice success', ['local_id' => $local_id, 'order_id' => get_post_meta($local_id,'order_id',true), 'invoice_url' => $files['pdf_url'] ?? '', 'html_url' => $files['html_url'] ?? '']);
         $order_id = get_post_meta($local_id,'order_id',true);
@@ -3733,6 +3737,30 @@ EUR=1',
 
     private function auto_hide_sold_items_after_payment($local_id) {
         $this->sold_items_service()->auto_hide_sold_items_after_payment($local_id);
+    }
+
+    private function mark_bank_invoice_items_card_default($local_id, $cart_hash = '') {
+        return $this->sold_items_service()->mark_bank_invoice_items_card_default($local_id, $cart_hash);
+    }
+
+    private function maybe_mark_bank_invoice_items_card_default($local_id, $cart_hash, $debug_id = '') {
+        $cart_hash = (string)$cart_hash;
+        if ($cart_hash === '' || !hash_equals((string)get_post_meta($local_id, 'bank_invoice_email_sent_hash', true), $cart_hash)) {
+            return false;
+        }
+        try {
+            $done = $this->mark_bank_invoice_items_card_default($local_id, $cart_hash);
+            if ($debug_id !== '') {
+                $this->append_checkout_debug_log($debug_id, 'bank_invoice Card Default style update', ['local_id' => $local_id, 'cart_hash' => $cart_hash, 'done' => $done ? '1' : '0']);
+            }
+            return $done;
+        } catch (Throwable $e) {
+            update_post_meta($local_id, 'bank_invoice_card_default_error', $e->getMessage());
+            if ($debug_id !== '') {
+                $this->append_checkout_debug_log($debug_id, 'bank_invoice Card Default style error', ['local_id' => $local_id, 'error' => $e->getMessage()]);
+            }
+            return false;
+        }
     }
 
     private function append_auto_hide_log($entry) {

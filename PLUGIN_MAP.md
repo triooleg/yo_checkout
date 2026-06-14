@@ -23,13 +23,13 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.66`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.67`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
 
 - `includes/class-yo-checkout-sold-items.php`
-  Sold-item hiding service. Owns YOOtheme product availability checks, auto-hide after successful payment, sold-item admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status updates, safe page backup, and optional frontend fallback script rendering.
+  Sold-item hiding and invoice-reservation service. Owns YOOtheme product availability checks, auto-hide after successful card payment, bank-invoice Card Default style marking after successful invoice email, sold-item/admin log writing, KeyCRM-aware order labels in logs, YOOtheme Builder status/style updates, safe page backup, and optional frontend fallback script rendering.
 
 - `includes/class-yo-checkout-product-identity.php`
   Checkout-owned product identity service. Sanitizes provided DOM/feed product IDs and generates stable fallback product IDs from card titles when a YOOtheme card has no `id`, `data-feed-id`, or `data-product-id`. Fallback IDs follow the feed-style title slug and remove trailing `for height ...` text before slugging. Frontend checkout also mirrors `data-feed-id` into the card `id` when `id` is missing. Used by order sanitization, cart item storage, product-ID-aware reservation checks, availability checks, and sold-item matching.
@@ -59,13 +59,13 @@ Rules for future work:
   Admin purchase report service. Owns checkout snapshot persistence and the WordPress admin purchases table. The report reads local `yo_invoice_order` posts, shows customer/cart/payment/provider/order data, keeps expandable JSON snapshots for the data saved before payment, and supports status filtering plus 10/20/50 records per page pagination.
 
 - `assets/yo-checkout.js`
-  Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, stores local order access tokens, sends protected AJAX order tokens, product reservations, customer form flow, promo code application, whole-badge promo GIF tooltip created through the UIkit JavaScript API when the customer hovers, focuses, taps, or clicks the badge, shipping option selection, card/bank payment actions, passes selected payment method and terms confirmation before Step 3, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
+  Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, stores local order access tokens, sends protected AJAX order tokens, product reservations, permanent invoice-reserved card state for YOOtheme Card Default product cards, customer form flow, promo code application, whole-badge promo GIF tooltip created through the UIkit JavaScript API when the customer hovers, focuses, taps, or clicks the badge, shipping option selection, card/bank payment actions, passes selected payment method and terms confirmation before Step 3, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
 
 - `assets/yo-checkout.css`
-  Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, promo GIF tooltip display, notifications, related UI, and the v4.0.66 desktop override that widens and compacts the YOOtheme `body.home .yo-height-filter` Ready-to-Ship filter without changing mobile filter rules.
+  Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, invoice-reserved overlay badges, promo GIF tooltip display, notifications, related UI, and the v4.0.66 desktop override that widens and compacts the YOOtheme `body.home .yo-height-filter` Ready-to-Ship filter without changing mobile filter rules.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.66`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.67`.
 
 - `README.md`
   Russian-language public project overview. Describes what the plugin does, supported checkout flows, integrations, admin areas, protected working zones, test-candidate zones, verification commands, archive rules, and development rules.

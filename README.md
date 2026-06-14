@@ -2,7 +2,7 @@
 
 WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com), который добавляет полноценный checkout для продажи готовых купальников и платьев YOleotard напрямую с сайта.
 
-Текущая версия плагина: **4.0.66**.
+Текущая версия плагина: **4.0.67**.
 
 ## Что делает плагин
 
@@ -20,6 +20,7 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 - отправляет покупателю email с подтверждением или invoice;
 - после успешной оплаты переводит checkout на Step 4;
 - скрывает проданные товары на сайте;
+- помечает товары с успешным bank invoice как зарезервированные через стиль YOOtheme `Card Default`;
 - ведет админские отчеты и диагностические записи.
 
 ## Основные сценарии покупки
@@ -119,6 +120,17 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 - desktop sticky-состояние стало компактнее;
 - мобильная сетка фильтра не менялась.
 
+## Bank invoice reserve state
+
+В v4.0.67 после успешного создания bank invoice и отправки invoice email купленные через invoice товары получают в YOOtheme Builder стиль `Card Default`.
+
+На фронтенде такие карточки:
+
+- становятся серыми и некликабельными;
+- показывают по центру надпись резервирования так же, как обычный временный резерв при добавлении в корзину;
+- не показывают таймер обратного отсчета;
+- снова становятся покупаемыми, если в YOOtheme вручную вернуть стиль карточки на `None`.
+
 ## Отчет покупок
 
 Раздел **Purchases Report** показывает локальные checkout-заказы:
@@ -136,7 +148,7 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 ## Подтвержденные рабочие зоны
 
-На момент v4.0.66 защищенными рабочими зонами считаются:
+На момент v4.0.67 защищенными рабочими зонами считаются:
 
 - Monobank card payment;
 - Western Bid Stripe/PayPal payment;
@@ -160,6 +172,7 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 - Purchases Report и checkout snapshots;
 - promo badge GIF tooltip;
 - desktop Ready-to-Ship height filter spacing.
+- bank-invoice Card Default reservation state.
 
 ## Структура проекта
 

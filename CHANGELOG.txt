@@ -450,3 +450,11 @@ YOleotard Checkout v4.0.66
 - Reduces desktop filter outer margin, inner padding, row gap, and button padding for a more compact filter block.
 - Changes the frontend CSS enqueue version to use `filemtime()` so uploaded test builds receive the latest filter spacing without a stale CSS cache.
 - Keeps mobile filter rules, product cards, checkout, payment providers, KeyCRM, email, shipping, promo logic, and sold-item hiding unchanged.
+
+YOleotard Checkout v4.0.67
+
+- Marks products purchased through a successful bank invoice as YOOtheme `Card Default` style after the bank invoice email is sent.
+- Treats YOOtheme `Card Default` product cards as invoice-reserved on the frontend: buttons are grey/non-clickable and a centered reservation label is shown without a countdown timer.
+- Treats YOOtheme `Card Default` style as unavailable in backend product availability checks, so older open carts cannot proceed with an invoice-reserved product.
+- Lets a manager clear the reservation by manually changing the YOOtheme item style back to `None`.
+- Keeps Monobank, Western Bid, paid-card finalization, KeyCRM payment finalization, and sold-item auto-hide disabled-status behavior unchanged.

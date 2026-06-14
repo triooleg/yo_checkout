@@ -6,6 +6,25 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Bank-invoice Card Default reservation live validation
+
+Status: v4.0.67 test candidate requires live validation.
+
+Details:
+
+- v4.0.67 marks YOOtheme Builder items purchased through a successful bank invoice as `Card Default` style after the bank invoice email is successfully sent.
+- Product cards rendered with YOOtheme `Card Default` are treated as invoice-reserved on the frontend: buy buttons become grey/non-clickable and a centered reservation badge is shown without a countdown timer.
+- Server-side YOOtheme availability checks also treat `Card Default` style as unavailable, so an older open cart should not be able to pay for an invoice-reserved product.
+- If a manager manually changes the Builder item style back to `None`, the frontend invoice-reserved state should disappear after the page updates/reloads.
+
+Handling:
+
+- Install the v4.0.67 test build.
+- Create a bank invoice for one product and confirm the customer invoice email is sent.
+- In YOOtheme Builder, confirm the purchased item has `Card Default` style.
+- On the storefront, confirm the card is grey, shows the centered reservation label, and its buy button cannot be clicked.
+- Change the same Builder item style back to `None` and confirm the card becomes purchasable again.
+
 ### Desktop Ready-to-Ship height filter spacing live validation
 
 Status: v4.0.66 test candidate requires live validation.

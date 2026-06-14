@@ -6,6 +6,8 @@ class YO_Checkout_Sold_Items_Service {
     const CPT = 'yo_invoice_order';
     private $disabled_match_log = [];
     private $disabled_identity_keys = [];
+    private $card_default_match_log = [];
+    private $card_default_identity_keys = [];
 
     public function append_auto_hide_log($entry) {
         $saved = get_option(self::OPT, []);
@@ -128,6 +130,108 @@ class YO_Checkout_Sold_Items_Service {
         }
         $this->append_auto_hide_log($log);
         if (function_exists('clean_post_cache')) clean_post_cache($page_id);
+    }
+
+    public function mark_bank_invoice_items_card_default($local_id, $cart_hash = '') {
+        $local_id = absint($local_id);
+        $cart_hash = sanitize_text_field((string)$cart_hash);
+        if (!$local_id || get_post_type($local_id) !== self::CPT) return false;
+
+        if ($cart_hash !== '' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_card_default_hash', true), $cart_hash)) {
+            return true;
+        }
+
+        $s = self::settings();
+        $label = $this->order_label($local_id);
+        $d = $this->get_order_data($local_id);
+        $items = $this->cart_items_from_order_data($d);
+        $titles = [];
+        foreach ($items as $item) {
+            $title = trim(wp_strip_all_tags((string)($item['title'] ?? '')));
+            $product_id = $this->sanitize_product_id($item['product_id'] ?? ($item['feed_id'] ?? ''));
+            if ($title !== '') $titles[] = ['title' => $title, 'product_id' => $product_id];
+        }
+        $titles = $this->unique_sold_items($titles);
+        if (!$titles) {
+            $this->append_auto_hide_log('[' . current_time('mysql') . '] ' . $label . ": no product title found for bank invoice Card Default style. Builder style was not changed.\n");
+            return false;
+        }
+
+        $page_id = absint($s['auto_hide_sold_page_id'] ?? 0);
+        if (!$page_id) $page_id = absint(get_option('page_on_front'));
+        $log_titles = array_map(function($item) { return $this->clean_log_text($item['title']) . (!empty($item['product_id']) ? ' [' . $item['product_id'] . ']' : ''); }, $titles);
+        $log = '[' . current_time('mysql') . '] ' . $label . ' bank invoice Card Default style: ' . implode(' | ', $log_titles) . "\n";
+        if (!$page_id || get_post_type($page_id) === false) {
+            $this->append_auto_hide_log($log . "No valid YOOtheme page ID. Builder style was not changed.\n");
+            return false;
+        }
+
+        $this->ensure_page_backup($page_id, $local_id);
+        $this->card_default_match_log = [];
+        $this->card_default_identity_keys = [];
+
+        $changed_any = false;
+        $post = get_post($page_id);
+        if ($post) {
+            $content = (string)$post->post_content;
+            $new_content = $content;
+            $changed_content = false;
+            foreach ($titles as $sold_item) {
+                $item_changed = false;
+                $candidate_content = $this->set_card_default_titles_in_yootheme_storage_string($new_content, [$sold_item], $item_changed);
+                if ($item_changed && $candidate_content !== $new_content) {
+                    $new_content = $candidate_content;
+                    $changed_content = true;
+                }
+            }
+            if ($changed_content && $new_content !== $content) {
+                wp_update_post(wp_slash(['ID' => $page_id, 'post_content' => $new_content]));
+                $changed_any = true;
+                $log .= "Updated post_content.\n";
+            }
+        }
+
+        $meta = get_post_meta($page_id);
+        foreach ($meta as $meta_key => $values) {
+            $meta_key = (string)$meta_key;
+            if (strpos($meta_key, '_yo_checkout_autohide_backup_') === 0) continue;
+            foreach ((array)$values as $value) {
+                $changed_meta = false;
+                $new_value = $value;
+                foreach ($titles as $sold_item) {
+                    $item_changed = false;
+                    $candidate_value = $this->set_card_default_titles_in_yootheme_storage_mixed($new_value, [$sold_item], $item_changed);
+                    if ($item_changed && $candidate_value !== $new_value) {
+                        $new_value = $candidate_value;
+                        $changed_meta = true;
+                    }
+                }
+                if ($changed_meta && $new_value !== $value) {
+                    update_post_meta($page_id, $meta_key, $new_value);
+                    $changed_any = true;
+                    $log .= "Updated meta: " . $meta_key . "\n";
+                    break;
+                }
+            }
+        }
+
+        if (!$changed_any) {
+            update_post_meta($local_id, 'bank_invoice_card_default_error', 'YOOtheme Builder JSON grid item was not found.');
+            $log .= "YOOtheme Builder JSON grid item was not found. Builder style was not changed.\n";
+        } else {
+            update_post_meta($local_id, 'bank_invoice_card_default_done', '1');
+            if ($cart_hash !== '') update_post_meta($local_id, 'bank_invoice_card_default_hash', $cart_hash);
+            delete_post_meta($local_id, 'bank_invoice_card_default_error');
+            if ($this->card_default_match_log) {
+                foreach (array_values(array_unique($this->card_default_match_log)) as $match_line) {
+                    $log .= "Card Default matched item: " . $match_line . "\n";
+                }
+            }
+        }
+
+        $this->append_auto_hide_log($log);
+        if (function_exists('clean_post_cache')) clean_post_cache($page_id);
+        return $changed_any;
     }
 
     public function is_yootheme_product_title_available($page_id, $title) {
@@ -584,6 +688,26 @@ class YO_Checkout_Sold_Items_Service {
         return $value;
     }
 
+    private function set_card_default_titles_in_yootheme_storage_mixed($value, $titles, &$changed = false) {
+        $changed = false;
+        if (is_array($value)) {
+            $copy = $value;
+            $this->set_card_default_titles_in_yootheme_node($copy, $titles, $changed);
+            return $changed ? $copy : $value;
+        }
+        if (is_object($value)) {
+            $arr = json_decode(wp_json_encode($value), true);
+            if (is_array($arr)) {
+                $this->set_card_default_titles_in_yootheme_node($arr, $titles, $changed);
+                return $changed ? $arr : $value;
+            }
+        }
+        if (is_string($value) && strlen($value) >= 2) {
+            return $this->set_card_default_titles_in_yootheme_storage_string($value, $titles, $changed);
+        }
+        return $value;
+    }
+
     private function disable_titles_in_yootheme_storage_string($value, $titles, &$changed = false) {
         $changed = false;
         $raw = (string)$value;
@@ -608,6 +732,34 @@ class YO_Checkout_Sold_Items_Service {
         }
 
         $new = $this->disable_titles_in_yootheme_builder_comment($raw, $titles, $changed);
+
+        return $changed ? $new : $value;
+    }
+
+    private function set_card_default_titles_in_yootheme_storage_string($value, $titles, &$changed = false) {
+        $changed = false;
+        $raw = (string)$value;
+        $trim = trim($raw);
+        if ($trim === '') return $value;
+
+        if ($trim[0] === '{' || $trim[0] === '[') {
+            $decoded = json_decode($trim, true);
+            if (is_array($decoded)) {
+                $this->set_card_default_titles_in_yootheme_node($decoded, $titles, $changed);
+                if ($changed) return wp_json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+
+            $unslashed = wp_unslash($trim);
+            if ($unslashed !== $trim) {
+                $decoded = json_decode($unslashed, true);
+                if (is_array($decoded)) {
+                    $this->set_card_default_titles_in_yootheme_node($decoded, $titles, $changed);
+                    if ($changed) return wp_json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
+            }
+        }
+
+        $new = $this->set_card_default_titles_in_yootheme_builder_comment($raw, $titles, $changed);
 
         return $changed ? $new : $value;
     }
@@ -730,8 +882,75 @@ class YO_Checkout_Sold_Items_Service {
         return substr($content, 0, $inner_start) . ' ' . $new_json . ' ' . substr($content, $end);
     }
 
+    private function set_card_default_titles_in_yootheme_builder_comment($content, $titles, &$changed = false) {
+        $changed = false;
+        $content = (string)$content;
+
+        $segment = $this->find_yootheme_layout_json_segment($content);
+        if ($segment && !empty($segment['json'])) {
+            $json = trim($segment['json']);
+            $decoded = json_decode($json, true);
+            $used_unslashed = false;
+            if (!is_array($decoded)) {
+                $unslashed = wp_unslash($json);
+                if ($unslashed !== $json) {
+                    $decoded = json_decode($unslashed, true);
+                    $used_unslashed = is_array($decoded);
+                }
+            }
+            if (is_array($decoded)) {
+                $local_changed = false;
+                $this->set_card_default_titles_in_yootheme_node($decoded, $titles, $local_changed);
+                if ($local_changed) {
+                    $changed = true;
+                    $new_json = wp_json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    if ($used_unslashed) $new_json = wp_slash($new_json);
+                    return substr($content, 0, $segment['start']) . $new_json . substr($content, $segment['end']);
+                }
+            }
+        }
+
+        $start = false;
+        if (preg_match('/<!--\s*\{\\?"type\\?"\s*:\s*\\?"layout\\?"/s', $content, $m, PREG_OFFSET_CAPTURE)) {
+            $start = $m[0][1];
+        }
+        if ($start === false) return $content;
+
+        $end = strrpos($content, '-->');
+        if ($end === false || $end <= $start) return $content;
+
+        $comment_open_end = strpos($content, '<!--', $start);
+        if ($comment_open_end === false) return $content;
+        $inner_start = $comment_open_end + 4;
+        $inner = trim(substr($content, $inner_start, $end - $inner_start));
+
+        $decoded = json_decode($inner, true);
+        $used_unslashed = false;
+        if (!is_array($decoded)) {
+            $unslashed = wp_unslash($inner);
+            if ($unslashed !== $inner) {
+                $decoded = json_decode($unslashed, true);
+                $used_unslashed = is_array($decoded);
+            }
+        }
+        if (!is_array($decoded)) return $content;
+
+        $local_changed = false;
+        $this->set_card_default_titles_in_yootheme_node($decoded, $titles, $local_changed);
+        if (!$local_changed) return $content;
+
+        $changed = true;
+        $new_json = wp_json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($used_unslashed) $new_json = wp_slash($new_json);
+        return substr($content, 0, $inner_start) . ' ' . $new_json . ' ' . substr($content, $end);
+    }
+
     private function disable_titles_in_yootheme_node(&$node, $titles, &$changed) {
         $this->disable_titles_in_yootheme_node_deep($node, $titles, $changed, 0);
+    }
+
+    private function set_card_default_titles_in_yootheme_node(&$node, $titles, &$changed) {
+        $this->set_card_default_titles_in_yootheme_node_deep($node, $titles, $changed, 0);
     }
 
     private function is_yootheme_root_or_layout_node($node) {
@@ -756,6 +975,14 @@ class YO_Checkout_Sold_Items_Service {
 
         $node['props']['status'] = 'disabled';
         $node['props']['_yo_checkout_auto_hidden'] = current_time('mysql');
+    }
+
+    private function apply_yootheme_card_default_style(&$node) {
+        if (!is_array($node)) return;
+        if (!isset($node['props']) || !is_array($node['props'])) $node['props'] = [];
+
+        $node['props']['style'] = 'default';
+        $node['props']['_yo_checkout_bank_invoice_reserved'] = current_time('mysql');
     }
 
     private function yootheme_node_display_title($node) {
@@ -826,6 +1053,38 @@ class YO_Checkout_Sold_Items_Service {
         return $matches;
     }
 
+    private function set_card_default_titles_in_yootheme_node_deep(&$node, $titles, &$changed, $depth = 0) {
+        if (!is_array($node)) return false;
+
+        $self_match = $this->yootheme_node_self_matches_title($node, $titles);
+        $child_match = false;
+
+        foreach ($node as &$child) {
+            if (!is_array($child)) continue;
+            if ($this->set_card_default_titles_in_yootheme_node_deep($child, $titles, $changed, $depth + 1)) {
+                $child_match = true;
+            }
+        }
+        unset($child);
+
+        $matches = $self_match || $child_match;
+        if ($matches && $this->is_yootheme_disable_candidate($node, $depth)) {
+            $display_title = $this->yootheme_node_display_title($node);
+            $match_text = $display_title !== '' ? $display_title : wp_json_encode($node);
+            $identity_key = $this->matched_sold_item_identity_key($match_text, $titles);
+            if ($identity_key !== '' && isset($this->card_default_identity_keys[$identity_key])) {
+                return true;
+            }
+            $this->apply_yootheme_card_default_style($node);
+            if ($identity_key !== '') $this->card_default_identity_keys[$identity_key] = true;
+            if ($display_title !== '') $this->card_default_match_log[] = $display_title;
+            $changed = true;
+            return true;
+        }
+
+        return $matches;
+    }
+
     private function is_yootheme_node_disabled($node) {
         if (!is_array($node)) return false;
         $status = '';
@@ -834,7 +1093,15 @@ class YO_Checkout_Sold_Items_Service {
         } elseif (isset($node['status'])) {
             $status = strtolower(trim((string)$node['status']));
         }
-        return in_array($status, ['disabled','disable','0','false','hidden'], true);
+        if (in_array($status, ['disabled','disable','0','false','hidden'], true)) return true;
+
+        $style = '';
+        if (isset($node['props']) && is_array($node['props']) && isset($node['props']['style'])) {
+            $style = strtolower(trim((string)$node['props']['style']));
+        } elseif (isset($node['style'])) {
+            $style = strtolower(trim((string)$node['style']));
+        }
+        return in_array($style, ['card-default','default'], true);
     }
 
     private function yootheme_product_availability_from_node($node, $title, $product_id = '') {
