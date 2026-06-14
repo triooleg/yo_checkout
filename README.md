@@ -2,7 +2,7 @@
 
 WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com), который добавляет полноценный checkout для продажи готовых купальников и платьев YOleotard напрямую с сайта.
 
-Текущая версия плагина: **4.0.67**.
+Текущая версия плагина: **4.0.68**.
 
 ## Что делает плагин
 
@@ -122,7 +122,7 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 ## Bank invoice reserve state
 
-В v4.0.67 после успешного создания bank invoice и отправки invoice email купленные через invoice товары получают в YOOtheme Builder стиль `Card Default`.
+В v4.0.67 после успешного создания bank invoice и отправки invoice email купленные через invoice товары получают в YOOtheme Builder стиль `Card Default`. В v4.0.68 витрина дополнительно сверяет видимые карточки с серверной проверкой доступности и оставляет invoice-reserved товары серыми и неактивными даже после повторного рендера/обновления DOM темы.
 
 На фронтенде такие карточки:
 
@@ -148,7 +148,7 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 ## Подтвержденные рабочие зоны
 
-На момент v4.0.67 защищенными рабочими зонами считаются:
+На момент v4.0.68 защищенными рабочими зонами считаются:
 
 - Monobank card payment;
 - Western Bid Stripe/PayPal payment;

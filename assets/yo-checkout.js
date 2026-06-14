@@ -1053,6 +1053,66 @@
         return {removed: removed};
       }).catch(function(){ return {removed:0}; });
     }
+    function applyServerAvailabilityRowsToProductCards(rows, badgeText){
+      if(!Array.isArray(rows) || !rows.length) return;
+      const byProductId = {};
+      const byTitleKey = {};
+      rows.forEach(function(row){
+        if(!row) return;
+        const available = !!row.available;
+        const productId = sanitizeProductId(row.product_id || row.feed_id || '').toLowerCase();
+        if(productId) byProductId[productId] = available;
+        if(row.title) byTitleKey[productIdentityKey(row.title)] = available;
+      });
+      productCardsOnPage().forEach(function(card){
+        const cardProductId = sanitizeProductId(productIdFromCard(card)).toLowerCase();
+        const cardTitleKey = productIdentityKey(titleFromCard(card));
+        let hasResult = false;
+        let available = true;
+        if(cardProductId && Object.prototype.hasOwnProperty.call(byProductId, cardProductId)){
+          available = !!byProductId[cardProductId];
+          hasResult = true;
+        } else if(cardTitleKey && Object.prototype.hasOwnProperty.call(byTitleKey, cardTitleKey)){
+          available = !!byTitleKey[cardTitleKey];
+          hasResult = true;
+        }
+        if(!hasResult) return;
+        if(available){
+          if(card.dataset.yoServerUnavailable === '1'){
+            delete card.dataset.yoServerUnavailable;
+            if(!card.classList.contains('uk-card-default') && !card.querySelector('.uk-card-default')) clearInvoiceReservedState(card);
+          }
+          return;
+        }
+        card.dataset.yoServerUnavailable = '1';
+        applyInvoiceReservedState(card);
+        const badge = card.querySelector('.yo-invoice-reserved-overlay-badge');
+        if(badge) badge.textContent = badgeText || window.YOCheckout?.invoiceReservedBadgeText || window.YOCheckout?.reservationBadgeText || 'Reserved';
+      });
+    }
+    function refreshProductCardAvailability(){
+      const cards = productCardsOnPage();
+      if(!cards.length) return Promise.resolve({checked:0});
+      const items = [];
+      const seen = {};
+      cards.forEach(function(card){
+        const title = titleFromCard(card);
+        const productId = productIdFromCard(card);
+        const key = normalizeCartItemKey({title:title, product_id:productId});
+        if(!title || !key || seen[key]) return;
+        seen[key] = true;
+        items.push({title:title, product_id:productId || ''});
+      });
+      if(!items.length) return Promise.resolve({checked:0});
+      const fd = new FormData();
+      fd.append('cart_items_json', JSON.stringify(items));
+      fd.append('buyer_id', buyerId());
+      return post('yo_checkout_validate_cart_items', fd).then(function(data){
+        const rows = data && data.success && data.data && Array.isArray(data.data.items) ? data.data.items : [];
+        applyServerAvailabilityRowsToProductCards(rows, data && data.data ? data.data.badgeText : '');
+        return {checked:rows.length};
+      }).catch(function(){ return {checked:0}; });
+    }
 
     function ensureFloatingCart(){
       let btn = byId('yo-floating-cart');
@@ -2088,6 +2148,6 @@
       });
     }
     initCountryAutocomplete(); loadCart();
-    ensureFloatingCart(); updateFloatingCart(); renderCartSummary(); validateCartAvailability(true); addPayButtons(); refreshReservedCards(); setInterval(updateReservedCountdowns, 1000); setInterval(refreshReservedCards, 60000); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },500); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },1500); setTimeout(function(){ addPayButtons(); refreshReservedCards(); },3000);
+    ensureFloatingCart(); updateFloatingCart(); renderCartSummary(); validateCartAvailability(true); addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); setInterval(updateReservedCountdowns, 1000); setInterval(refreshReservedCards, 60000); setInterval(refreshProductCardAvailability, 60000); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },500); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },1500); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },3000); setTimeout(refreshProductCardAvailability, 10000);
   });
 })();

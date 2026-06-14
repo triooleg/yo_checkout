@@ -16,6 +16,64 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - Server-Synced Invoice Reserved Cards v4.0.68
+
+User request:
+
+- Live test confirmed that bank-invoice `Card Default` style was applied, but after some time the product card visually returned to an active Buy button.
+- The same product was still blocked by the server when adding to cart with the message that it was no longer available.
+- Fix the mismatch and create a test archive.
+
+Root cause:
+
+- v4.0.67 frontend reserved-card state depended mainly on the rendered YOOtheme `uk-card-default` class.
+- The backend availability check still treated the product as unavailable from Builder state, but the storefront DOM could later be refreshed/re-rendered without exposing the `uk-card-default` marker on the product card.
+- That made the card look purchasable until the server-side reserve/add-to-cart request rejected it.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.68`.
+- The existing `yo_checkout_validate_cart_items` AJAX response now includes the configured reservation badge text.
+- The frontend now sends visible product cards through the existing server availability check on page load, delayed YOOtheme render retries, and every 60 seconds.
+- Product cards that the backend reports as unavailable are marked with the same grey invoice-reserved state and centered reserved label before the customer clicks Buy.
+- If the backend later reports the card available again, the frontend removes only the server-applied unavailable state, while preserving real `uk-card-default` invoice-reserved state when present.
+- Bank invoice creation, KeyCRM order creation, customer emails, payment providers, regular reservations, and paid-card sold-item auto-hide were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Existing exact-name archive was preserved as `plugin-archives/yoleotard-checkout-invoice-v4.0.67.zip` before rebuilding the installable ZIP.
+- New installable archive was created as `plugin-archives/yoleotard-checkout-invoice.zip`.
+- A local versioned copy was also saved as `plugin-archives/yoleotard-checkout-invoice-v4.0.68.zip`.
+- Archive build used Python `zipfile` with explicit forward-slash archive names.
+- Verified both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.68.zip` contain one top-level `yoleotard-checkout-invoice/` folder.
+- Verified no ZIP entry contains `\`.
+- Verified local extraction of the exact-name ZIP creates real `assets/` and `includes/` directories and contains `yoleotard-checkout-invoice.php`.
+
+Live test status:
+
+- Pending. Install the v4.0.68 test archive, wait/refresh after a bank-invoice reservation, and confirm the card stays grey/non-clickable while the server considers it unavailable.
+
+Repository rollback point:
+
+- Pending in this task.
+
 ## 2026-06-14 - Build v4.0.67 Test Archive
 
 User request:

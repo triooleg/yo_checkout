@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.67. Marks successful bank-invoice products as Card Default and disables their buy buttons.
- * Version: 4.0.67
+ * Description: v4.0.68. Keeps invoice-reserved product cards disabled from server availability checks.
+ * Version: 4.0.68
  * Author: YOleotard / ChatGPT
  */
 
@@ -1447,7 +1447,7 @@ EUR=1',
         }
 
         if (!$items) {
-            wp_send_json_success(['items' => [], 'removed' => []]);
+            wp_send_json_success(['items' => [], 'removed' => [], 'badgeText' => sanitize_text_field(self::settings()['reservation_badge_text'] ?? 'Reserved')]);
         }
 
         $s = self::settings();
@@ -1476,6 +1476,7 @@ EUR=1',
         wp_send_json_success([
             'items' => $result,
             'removed' => $removed,
+            'badgeText' => sanitize_text_field($s['reservation_badge_text'] ?? 'Reserved'),
         ]);
     }
 

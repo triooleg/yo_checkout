@@ -458,3 +458,10 @@ YOleotard Checkout v4.0.67
 - Treats YOOtheme `Card Default` style as unavailable in backend product availability checks, so older open carts cannot proceed with an invoice-reserved product.
 - Lets a manager clear the reservation by manually changing the YOOtheme item style back to `None`.
 - Keeps Monobank, Western Bid, paid-card finalization, KeyCRM payment finalization, and sold-item auto-hide disabled-status behavior unchanged.
+
+YOleotard Checkout v4.0.68
+
+- Fixes a live mismatch where an invoice-reserved product could visually return to an active buy button after the storefront was refreshed or re-rendered, while the server still blocked it as unavailable.
+- The storefront now asks the existing server cart-availability endpoint about visible product cards and applies the same grey reserved state before the customer clicks Buy.
+- The server availability response now includes the configured reservation badge text for this frontend card-state synchronization.
+- Keeps bank invoice creation, KeyCRM, customer email, payment providers, product reservations, and paid-card sold-item auto-hide unchanged.
