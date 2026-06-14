@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.70. Uses the valid YOOtheme Card Default panel style value for invoice reservations.
- * Version: 4.0.70
+ * Description: v4.0.71. Keeps completed bank invoice records from being reused as checkout drafts.
+ * Version: 4.0.71
  * Author: YOleotard / ChatGPT
  */
 
@@ -1484,6 +1484,14 @@ EUR=1',
         $this->promo_service()->ajax_apply_promo_code(self::CPT);
     }
 
+    private function is_reusable_checkout_draft($local_id) {
+        $local_id = absint($local_id);
+        if (!$local_id || get_post_type($local_id) !== self::CPT) return false;
+        if (get_post_meta($local_id, 'paid', true) === '1') return false;
+        if (get_post_meta($local_id, 'bank_invoice_created', true) === '1') return false;
+        return true;
+    }
+
     public function ajax_create_order() {
         $this->verify_nonce();
         $debug_id = $this->checkout_debug_id();
@@ -1539,12 +1547,12 @@ EUR=1',
         // v3.3.65: hard fallback. If this customer/browser already has an unpaid KeyCRM order,
         // reuse that local draft before any new local/KeyCRM order can be created.
         $hard_reuse_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_hard_reusable_keycrm_local_id($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id);
-        if ($hard_reuse_local_id) $existing_keycrm_checkout_local_id = $hard_reuse_local_id;
+        if ($this->is_reusable_checkout_draft($hard_reuse_local_id)) $existing_keycrm_checkout_local_id = $hard_reuse_local_id;
         // Last-resort server memory: if Step 3 already created an unpaid KeyCRM order for this
         // same customer in the last 48h, reuse that local draft even when the browser did not send
         // the marker from localStorage. This prevents duplicate KeyCRM orders after cart edits.
         $contact_reuse_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_latest_unpaid_keycrm_order_by_contact($data, 0);
-        if ($contact_reuse_local_id) $existing_keycrm_checkout_local_id = $contact_reuse_local_id;
+        if ($this->is_reusable_checkout_draft($contact_reuse_local_id)) $existing_keycrm_checkout_local_id = $contact_reuse_local_id;
 
         // Prevent checkout with stale localStorage cart items. If a model was disabled
         // in YOOtheme after the customer added it to the cart, stop checkout and force
@@ -1581,17 +1589,17 @@ EUR=1',
         // If the customer goes back from Step 2 and edits the form, update the same unpaid draft instead
         // of creating duplicate checkout drafts.
         $incoming_local_id = absint($_POST['local_id'] ?? 0);
-        if ($existing_keycrm_checkout_local_id) {
+        if ($this->is_reusable_checkout_draft($existing_keycrm_checkout_local_id)) {
             $incoming_local_id = $existing_keycrm_checkout_local_id;
         }
         // Strongest cart marker rule: if the browser/cart marker knows the local draft already
         // linked to KeyCRM, always reuse it and overwrite its cart contents below.
-        if (!$incoming_local_id && $posted_cart_marker_local_id && get_post_type($posted_cart_marker_local_id) === self::CPT && get_post_meta($posted_cart_marker_local_id, 'paid', true) !== '1') {
+        if (!$incoming_local_id && $this->is_reusable_checkout_draft($posted_cart_marker_local_id)) {
             $incoming_local_id = $posted_cart_marker_local_id;
         }
         if (!$incoming_local_id && $posted_keycrm_order_id !== '') {
             $by_keycrm = $this->find_local_order_by_keycrm_order_id($posted_keycrm_order_id);
-            if ($by_keycrm && get_post_meta($by_keycrm, 'paid', true) !== '1') $incoming_local_id = $by_keycrm;
+            if ($this->is_reusable_checkout_draft($by_keycrm)) $incoming_local_id = $by_keycrm;
         }
         if (!$incoming_local_id) {
             $existing = [];
@@ -1625,7 +1633,7 @@ EUR=1',
             }
             foreach ((array)$existing as $maybe_id) {
                 $maybe_id = absint($maybe_id);
-                if ($maybe_id && get_post_meta($maybe_id, 'paid', true) !== '1') {
+                if ($this->is_reusable_checkout_draft($maybe_id)) {
                     $incoming_local_id = $maybe_id;
                     break;
                 }
@@ -1634,14 +1642,14 @@ EUR=1',
         // Server-side persistent marker lookup: if this customer/browser/email already has an unpaid
         // KeyCRM order from this checkout flow, always reuse that local draft and update KeyCRM.
         $active_marker_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_local_order_by_active_marker($data, $checkout_session_id, $browser_buyer_id, $posted_keycrm_order_id);
-        if ($active_marker_local_id) {
+        if ($this->is_reusable_checkout_draft($active_marker_local_id)) {
             $incoming_local_id = $active_marker_local_id;
         }
 
         // Extra-safe fallback: for the same customer in the same short checkout window, reuse
         // the latest unpaid website KeyCRM order and overwrite it with the edited cart.
         $broad_contact_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_recent_unpaid_keycrm_order_for_customer_broad($data, $incoming_local_id);
-        if ($broad_contact_local_id) {
+        if ($this->is_reusable_checkout_draft($broad_contact_local_id)) {
             $incoming_local_id = $broad_contact_local_id;
         }
 
@@ -1649,7 +1657,7 @@ EUR=1',
         // bind the current edited cart back to that same local draft/order first.
         if ($posted_keycrm_order_id !== '') {
             $existing_by_keycrm_order = $this->find_local_order_by_keycrm_order_id($posted_keycrm_order_id);
-            if ($existing_by_keycrm_order && get_post_meta($existing_by_keycrm_order, 'paid', true) !== '1') {
+            if ($this->is_reusable_checkout_draft($existing_by_keycrm_order)) {
                 $incoming_local_id = $existing_by_keycrm_order;
             }
         }
@@ -1659,15 +1667,15 @@ EUR=1',
         // This is the critical cart marker -> KeyCRM order link: edit the existing KeyCRM order,
         // do not create a duplicate when the customer returns and changes the cart.
         $reusable_keycrm_local_id = $ignore_stale_keycrm_marker ? 0 : $this->find_reusable_unpaid_keycrm_local_id($data, $checkout_session_id, $browser_buyer_id, $incoming_local_id, $posted_keycrm_order_id);
-        if ($reusable_keycrm_local_id) {
+        if ($this->is_reusable_checkout_draft($reusable_keycrm_local_id)) {
             $incoming_local_id = $reusable_keycrm_local_id;
         }
 
-        if ($absolute_marker_reuse_local_id && get_post_type($absolute_marker_reuse_local_id) === self::CPT && get_post_meta($absolute_marker_reuse_local_id, 'paid', true) !== '1') {
+        if ($this->is_reusable_checkout_draft($absolute_marker_reuse_local_id)) {
             $incoming_local_id = $absolute_marker_reuse_local_id;
         }
         $local_id = 0;
-        if ($incoming_local_id && get_post_type($incoming_local_id) === self::CPT && get_post_meta($incoming_local_id, 'paid', true) !== '1') {
+        if ($this->is_reusable_checkout_draft($incoming_local_id)) {
             // Keep the same local checkout draft for the whole browser session, even if a KeyCRM
             // order has already been created. This prevents duplicate KeyCRM orders when the
             // customer goes back, changes the cart, and starts payment again.

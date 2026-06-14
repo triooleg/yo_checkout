@@ -16,6 +16,63 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - Preserve Purchases Report Invoice Rows v4.0.71
+
+User request:
+
+- Purchases Report should create a new row for a new purchase in the same browser/session.
+- Current live behavior overwrites the previous invoice row when another purchase is made in the same session.
+- Create a test archive after the fix.
+
+Root cause:
+
+- `ajax_create_order()` reused local checkout records when `paid != 1`.
+- A bank invoice order is not paid yet, but it is already a completed invoice record because `bank_invoice_created = 1`.
+- Therefore the next same-session purchase could reuse and overwrite the previous invoice local order instead of creating a fresh `yo_invoice_order` row.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.71`.
+- Added `is_reusable_checkout_draft()` so only true unpaid drafts can be reused by `ajax_create_order()`.
+- Local orders with `paid = 1` or `bank_invoice_created = 1` are no longer reused as editable drafts.
+- A new purchase after a bank invoice in the same browser/session creates a new local order and a new Purchases Report row.
+- Existing unpaid non-invoice drafts remain reusable so the customer can still go back and edit the same checkout before payment/invoice creation.
+- Monobank, Western Bid, KeyCRM, invoice email sending, sold-item hiding, and checkout totals were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `git diff --check` passed with only Git line-ending warnings.
+- `node --check assets/yo-checkout.js` was not required because JavaScript was not changed.
+- Existing exact-name archive was preserved as `plugin-archives/yoleotard-checkout-invoice-v4.0.70.zip` before rebuilding the installable ZIP.
+- New installable archive was created as `plugin-archives/yoleotard-checkout-invoice.zip`.
+- A local versioned copy was also saved as `plugin-archives/yoleotard-checkout-invoice-v4.0.71.zip`.
+- Archive build used Python `zipfile` with explicit forward-slash archive names.
+- Verified both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.71.zip` contain one top-level `yoleotard-checkout-invoice/` folder.
+- Verified no ZIP entry contains `\`.
+- Verified local extraction of the exact-name ZIP creates real `assets/` and `includes/` directories and contains `yoleotard-checkout-invoice.php`.
+
+Live test status:
+
+- Pending. Install the v4.0.71 archive, create one bank invoice, then without clearing the browser/session create another purchase and confirm Purchases Report shows two separate rows.
+
+Repository rollback point:
+
+- Pending commit.
+
 ## 2026-06-14 - Correct YOOtheme Card Default Value v4.0.70
 
 User request:

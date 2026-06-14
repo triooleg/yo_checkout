@@ -478,3 +478,9 @@ YOleotard Checkout v4.0.70
 - Corrects the YOOtheme Card Default value to `panel_style = card-default` so the Builder select chooses `Card Default` and the rendered product card can receive `uk-card-default`.
 - Backend availability checks now require `panel_style = card-default` for invoice-reserved Card Default state and do not block cards only because the invalid v4.0.69 value `panel_style = default` remains.
 - Uses a new panel-style value hash marker so orders already processed by v4.0.69 can be processed again with the valid YOOtheme value.
+
+YOleotard Checkout v4.0.71
+
+- Prevents completed bank invoice local orders from being reused as editable checkout drafts when the customer makes another purchase in the same browser/session.
+- New purchases after an invoice order now create a new `yo_invoice_order` record for the Purchases Report instead of overwriting the previous invoice row.
+- Keeps unpaid non-invoice drafts reusable so customers can still go back, edit the cart, and continue the same checkout before invoice/payment creation.

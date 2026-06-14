@@ -8,7 +8,7 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Bank-invoice YOOtheme Panel Style reservation live validation
 
-Status: v4.0.70 test candidate requires live validation.
+Status: v4.0.71 test candidate requires live validation.
 
 Details:
 
@@ -24,7 +24,7 @@ Details:
 
 Handling:
 
-- Install the v4.0.70 test build.
+- Install the v4.0.71 test build.
 - Create a bank invoice for one product and confirm the customer invoice email is sent.
 - In YOOtheme Builder, confirm the purchased item has the `Card Default` option selected in `Panel > Style`, not an empty/red select.
 - On the storefront, confirm the rendered product card receives the YOOtheme `uk-card-default` class in addition to the plugin's reserved state.
