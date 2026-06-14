@@ -16,6 +16,58 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - YOOtheme Panel Style Invoice Reservation v4.0.69
+
+User request:
+
+- Clarified that invoice reservation must not be a frontend script-only state.
+- The plugin must change the actual YOOtheme Builder card configuration stored in the database, the same way sold-item hiding changes Builder data.
+- The card's default configuration is `None`; after a successful invoice reservation it must become `Card Default`.
+- Cards that were reserved through the previous approach could not be returned because the visible Builder style was not the field being changed.
+
+Root cause:
+
+- v4.0.67/v4.0.68 wrote `props.style = default` when marking a bank-invoice item.
+- The visible YOOtheme `Panel > Style` control uses the Builder panel style field, not that hidden generic `style` value.
+- Backend availability checks also treated `props.style = default` as unavailable, so a product could remain blocked even when the visible Builder setting was `None`.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-sold-items.php`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.69`.
+- Bank-invoice reservation now writes the YOOtheme Builder Panel Style field as `props.panel_style = default`, which corresponds to visible `Panel > Style > Card Default`.
+- When a matched invoice item is processed again, the previous erroneous hidden `props.style = default` value is removed from that item.
+- Backend availability checks now treat `props.panel_style = default` / `card-default` as unavailable, and no longer block a product only because the old hidden `props.style = default` value exists.
+- A new `bank_invoice_panel_style_hash` marker lets existing invoice orders from v4.0.67/v4.0.68 be reprocessed with the corrected Builder field instead of being skipped by the old hash.
+- Monobank, Western Bid, KeyCRM, invoice email sending, paid-card sold-item hiding, frontend tooltip behavior, and checkout totals were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `git diff --check` passed with only Git line-ending warnings.
+- `node --check assets/yo-checkout.js` was not required because JavaScript was not changed.
+
+Live test status:
+
+- Pending. Install the next test build, create/reuse a bank invoice, confirm the Builder item changes from `None` to `Card Default`, then manually set it back to `None` and confirm the product becomes purchasable again.
+
+Repository rollback point:
+
+- Local git checkpoint commit: `47d63a8` (`Fix invoice reservation panel style`).
+
 ## 2026-06-14 - Server-Synced Invoice Reserved Cards v4.0.68
 
 User request:

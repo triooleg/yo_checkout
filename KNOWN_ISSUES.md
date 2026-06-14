@@ -6,22 +6,24 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
-### Bank-invoice reserved-card storefront sync live validation
+### Bank-invoice YOOtheme Panel Style reservation live validation
 
-Status: v4.0.68 test candidate requires live validation.
+Status: v4.0.69 test candidate requires live validation.
 
 Details:
 
-- v4.0.67 marks YOOtheme Builder items purchased through a successful bank invoice as `Card Default` style after the bank invoice email is successfully sent.
+- v4.0.67 attempted to mark YOOtheme Builder items purchased through a successful bank invoice as `Card Default` style after the bank invoice email was successfully sent.
 - Product cards rendered with YOOtheme `Card Default` are treated as invoice-reserved on the frontend: buy buttons become grey/non-clickable and a centered reservation badge is shown without a countdown timer.
 - Server-side YOOtheme availability checks also treat `Card Default` style as unavailable, so an older open cart should not be able to pay for an invoice-reserved product.
 - If a manager manually changes the Builder item style back to `None`, the frontend invoice-reserved state should disappear after the page updates/reloads.
 - Live v4.0.67 testing confirmed that the Builder style was applied, but after some time the storefront card visually returned to an active Buy button while the server still rejected add-to-cart as unavailable.
 - v4.0.68 adds a frontend server-availability sync for visible product cards, so cards that the backend already reports as unavailable are greyed and non-clickable before the customer clicks Buy, even if the current rendered DOM no longer exposes `uk-card-default`.
+- Later inspection showed that v4.0.67/v4.0.68 wrote the hidden Builder value `props.style = default` instead of the visible YOOtheme `Panel > Style` field. This could leave the admin field at `None` while the backend still treated the card as unavailable.
+- v4.0.69 writes `props.panel_style = default`, clears the old erroneous `props.style = default` value on matched invoice items, and no longer treats that legacy hidden value as unavailable.
 
 Handling:
 
-- Install the v4.0.68 test build.
+- Install the v4.0.69 test build.
 - Create a bank invoice for one product and confirm the customer invoice email is sent.
 - In YOOtheme Builder, confirm the purchased item has `Card Default` style.
 - On the storefront, confirm the card is grey, shows the centered reservation label, and its buy button cannot be clicked immediately and after waiting/refreshing.

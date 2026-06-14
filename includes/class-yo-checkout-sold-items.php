@@ -137,7 +137,7 @@ class YO_Checkout_Sold_Items_Service {
         $cart_hash = sanitize_text_field((string)$cart_hash);
         if (!$local_id || get_post_type($local_id) !== self::CPT) return false;
 
-        if ($cart_hash !== '' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_card_default_hash', true), $cart_hash)) {
+        if ($cart_hash !== '' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_panel_style_hash', true), $cart_hash)) {
             return true;
         }
 
@@ -220,7 +220,11 @@ class YO_Checkout_Sold_Items_Service {
             $log .= "YOOtheme Builder JSON grid item was not found. Builder style was not changed.\n";
         } else {
             update_post_meta($local_id, 'bank_invoice_card_default_done', '1');
-            if ($cart_hash !== '') update_post_meta($local_id, 'bank_invoice_card_default_hash', $cart_hash);
+            update_post_meta($local_id, 'bank_invoice_panel_style_done', '1');
+            if ($cart_hash !== '') {
+                update_post_meta($local_id, 'bank_invoice_card_default_hash', $cart_hash);
+                update_post_meta($local_id, 'bank_invoice_panel_style_hash', $cart_hash);
+            }
             delete_post_meta($local_id, 'bank_invoice_card_default_error');
             if ($this->card_default_match_log) {
                 foreach (array_values(array_unique($this->card_default_match_log)) as $match_line) {
@@ -981,7 +985,13 @@ class YO_Checkout_Sold_Items_Service {
         if (!is_array($node)) return;
         if (!isset($node['props']) || !is_array($node['props'])) $node['props'] = [];
 
-        $node['props']['style'] = 'default';
+        $node['props']['panel_style'] = 'default';
+        if (isset($node['props']['style'])) {
+            $legacy_style = strtolower(trim((string)$node['props']['style']));
+            if (in_array($legacy_style, ['card-default','default'], true)) {
+                unset($node['props']['style']);
+            }
+        }
         $node['props']['_yo_checkout_bank_invoice_reserved'] = current_time('mysql');
     }
 
@@ -1095,13 +1105,13 @@ class YO_Checkout_Sold_Items_Service {
         }
         if (in_array($status, ['disabled','disable','0','false','hidden'], true)) return true;
 
-        $style = '';
-        if (isset($node['props']) && is_array($node['props']) && isset($node['props']['style'])) {
-            $style = strtolower(trim((string)$node['props']['style']));
-        } elseif (isset($node['style'])) {
-            $style = strtolower(trim((string)$node['style']));
+        $panel_style = '';
+        if (isset($node['props']) && is_array($node['props']) && isset($node['props']['panel_style'])) {
+            $panel_style = strtolower(trim((string)$node['props']['panel_style']));
+        } elseif (isset($node['panel_style'])) {
+            $panel_style = strtolower(trim((string)$node['panel_style']));
         }
-        return in_array($style, ['card-default','default'], true);
+        return in_array($panel_style, ['card-default','default'], true);
     }
 
     private function yootheme_product_availability_from_node($node, $title, $product_id = '') {

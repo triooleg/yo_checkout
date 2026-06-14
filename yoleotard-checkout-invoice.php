@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.68. Keeps invoice-reserved product cards disabled from server availability checks.
- * Version: 4.0.68
+ * Description: v4.0.69. Writes bank-invoice reservation to the YOOtheme Panel Style field.
+ * Version: 4.0.69
  * Author: YOleotard / ChatGPT
  */
 

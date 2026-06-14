@@ -373,7 +373,7 @@ Current status:
 - Stable runtime version: `4.0.56`
 - Current branch: `main`
 - Current next planned work: `Phase 4 - Invoice Access Hardening`
-- Runtime work in progress: `v4.0.68` bank-invoice reserved-card storefront sync test candidate
+- Runtime work in progress: `v4.0.69` bank-invoice YOOtheme Panel Style reservation test candidate
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule

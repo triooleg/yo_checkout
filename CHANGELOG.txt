@@ -465,3 +465,10 @@ YOleotard Checkout v4.0.68
 - The storefront now asks the existing server cart-availability endpoint about visible product cards and applies the same grey reserved state before the customer clicks Buy.
 - The server availability response now includes the configured reservation badge text for this frontend card-state synchronization.
 - Keeps bank invoice creation, KeyCRM, customer email, payment providers, product reservations, and paid-card sold-item auto-hide unchanged.
+
+YOleotard Checkout v4.0.69
+
+- Fixes bank-invoice reservation so the plugin writes YOOtheme Builder `Panel > Style` as `Card Default` through `panel_style = default` instead of the hidden legacy `style = default` value.
+- Clears the old erroneous hidden `style = default` value when a matched invoice item is updated again.
+- Backend availability checks now use the visible `panel_style` field for Card Default reservations and no longer block products only because the old hidden `style` value is present.
+- Uses a new panel-style hash marker so existing invoice orders from v4.0.67/v4.0.68 can be processed again with the corrected Builder field.
