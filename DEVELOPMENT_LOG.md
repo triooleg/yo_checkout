@@ -16,6 +16,38 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - Build v4.0.67 Test Archive
+
+User request:
+
+- Create a test archive for the current plugin version.
+
+Files changed:
+
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime plugin behavior changed.
+- Existing exact-name archive was preserved as `plugin-archives/yoleotard-checkout-invoice-v4.0.66.zip` before rebuilding the installable ZIP.
+- New installable archive was created as `plugin-archives/yoleotard-checkout-invoice.zip`.
+- A local versioned copy was also saved as `plugin-archives/yoleotard-checkout-invoice-v4.0.67.zip`.
+
+Verification performed:
+
+- Archive build used Python `zipfile` with explicit forward-slash archive names.
+- Verified both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.67.zip` contain one top-level `yoleotard-checkout-invoice/` folder.
+- Verified no ZIP entry contains `\`.
+- Verified local extraction of the exact-name ZIP creates real `assets/` and `includes/` directories and contains `yoleotard-checkout-invoice.php`.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.67 test archive, create a bank invoice, and confirm the Card Default reservation behavior on the storefront and in YOOtheme Builder.
+
+Repository rollback point:
+
+- Pending in this task: documentation commit for the archive build.
+
 ## 2026-06-14 - Bank Invoice Card Default Reservation v4.0.67
 
 User request:
