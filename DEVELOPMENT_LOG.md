@@ -16,6 +16,40 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - Build v4.0.69 Test Archive
+
+User request:
+
+- Create a test archive after the YOOtheme Panel Style invoice-reservation fix.
+
+Files changed:
+
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- No runtime plugin behavior changed after the v4.0.69 code commit.
+- Existing exact-name archive was preserved before rebuilding the installable ZIP.
+- New installable archive was created as `plugin-archives/yoleotard-checkout-invoice.zip`.
+- A local versioned copy was also saved as `plugin-archives/yoleotard-checkout-invoice-v4.0.69.zip`.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed before archive build.
+- `php -l` passed for every PHP file under `includes/` before archive build.
+- Archive build used Python `zipfile` with explicit forward-slash archive names.
+- Verified both `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.69.zip` contain one top-level `yoleotard-checkout-invoice/` folder.
+- Verified no ZIP entry contains `\`.
+- Verified local extraction of the exact-name ZIP creates real `assets/` and `includes/` directories and contains `yoleotard-checkout-invoice.php`.
+
+Live test status:
+
+- Pending. Install the v4.0.69 test archive, confirm invoice-reserved cards use visible YOOtheme `Panel > Style > Card Default`, then set the same style back to `None` and confirm the product is no longer reserved.
+
+Repository rollback point:
+
+- Pending commit.
+
 ## 2026-06-14 - YOOtheme Panel Style Invoice Reservation v4.0.69
 
 User request:
