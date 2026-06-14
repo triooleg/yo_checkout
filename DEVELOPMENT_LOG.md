@@ -46,7 +46,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending in this task: documentation commit for the archive build.
+- Documentation commit: `c40fcec` (`Record v4.0.67 test archive build`).
 
 ## 2026-06-14 - Bank Invoice Card Default Reservation v4.0.67
 
