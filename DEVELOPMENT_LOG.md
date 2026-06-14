@@ -72,7 +72,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending in this task.
+- Local git checkpoint commit: `73071cf` (`Sync invoice reserved cards with server availability`).
 
 ## 2026-06-14 - Build v4.0.67 Test Archive
 
