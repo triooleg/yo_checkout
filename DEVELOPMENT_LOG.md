@@ -66,7 +66,7 @@ Live test status:
 
 Repository rollback point:
 
-- Local git checkpoint commit: `d8a5ba8` (`Compact desktop height filter`).
+- Local git checkpoint commit: `0f0d3e7` (`Compact desktop height filter`).
 
 ## 2026-06-12 - Event-Triggered Promo GIF Tooltip v4.0.65
 
