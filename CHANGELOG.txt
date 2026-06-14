@@ -443,3 +443,10 @@ YOleotard Checkout v4.0.65
 - Creates and shows the promo GIF UIkit tooltip directly from badge hover, focus, tap, and click events.
 - Retries event-triggered tooltip creation briefly if UIkit is not ready when the customer first interacts with the badge.
 - Keeps the full green promo badge as the tooltip target and keeps promo discount behavior unchanged.
+
+YOleotard Checkout v4.0.66
+
+- Makes the Ready-to-Ship height filter wider on desktop so it aligns closer to the main site content width.
+- Reduces desktop filter outer margin, inner padding, row gap, and button padding for a more compact filter block.
+- Changes the frontend CSS enqueue version to use `filemtime()` so uploaded test builds receive the latest filter spacing without a stale CSS cache.
+- Keeps mobile filter rules, product cards, checkout, payment providers, KeyCRM, email, shipping, promo logic, and sold-item hiding unchanged.

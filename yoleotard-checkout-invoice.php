@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.65. Creates promo GIF tooltips from badge hover and tap events.
- * Version: 4.0.65
+ * Description: v4.0.66. Makes the ready-to-ship height filter wider and more compact on desktop.
+ * Version: 4.0.66
  * Author: YOleotard / ChatGPT
  */
 
@@ -1170,7 +1170,9 @@ EUR=1',
             'googleReviewsMerchantId' => sanitize_text_field($s['google_reviews_merchant_id'] ?? ''),
             'googleReviewsDeliveryDays' => max(0, absint($s['google_reviews_delivery_days'] ?? 14)),
         ]);
-        wp_enqueue_style('yo-checkout-invoice', plugin_dir_url(__FILE__) . 'assets/yo-checkout.css', [], '3.3.88');
+        $css_path = plugin_dir_path(__FILE__) . 'assets/yo-checkout.css';
+        $css_version = file_exists($css_path) ? (string)filemtime($css_path) : '4.0.66';
+        wp_enqueue_style('yo-checkout-invoice', plugin_dir_url(__FILE__) . 'assets/yo-checkout.css', [], $css_version);
     }
 
 

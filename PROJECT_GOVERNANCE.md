@@ -373,7 +373,7 @@ Current status:
 - Stable runtime version: `4.0.56`
 - Current branch: `main`
 - Current next planned work: `Phase 4 - Invoice Access Hardening`
-- Runtime work in progress: `v4.0.65` event-triggered promo GIF tooltip test candidate
+- Runtime work in progress: `v4.0.66` desktop Ready-to-Ship height filter spacing test candidate
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule

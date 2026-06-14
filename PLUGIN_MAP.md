@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.65`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.66`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
@@ -62,10 +62,13 @@ Rules for future work:
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, stores local order access tokens, sends protected AJAX order tokens, product reservations, customer form flow, promo code application, whole-badge promo GIF tooltip created through the UIkit JavaScript API when the customer hovers, focuses, taps, or clicks the badge, shipping option selection, card/bank payment actions, passes selected payment method and terms confirmation before Step 3, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
 
 - `assets/yo-checkout.css`
-  Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, promo GIF tooltip display, notifications, and related UI.
+  Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, promo GIF tooltip display, notifications, related UI, and the v4.0.66 desktop override that widens and compacts the YOOtheme `body.home .yo-height-filter` Ready-to-Ship filter without changing mobile filter rules.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.65`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.66`.
+
+- `README.md`
+  Russian-language public project overview. Describes what the plugin does, supported checkout flows, integrations, admin areas, protected working zones, test-candidate zones, verification commands, archive rules, and development rules.
 
 - `plugin-archives/`
   Local ignored folder for generated plugin ZIP files. Do not commit this folder or its contents. Keep `yoleotard-checkout-invoice.zip` as the upload/install filename, and keep versioned local history copies such as `yoleotard-checkout-invoice-v4.0.62.zip` before overwriting the exact-name ZIP with a newer build.

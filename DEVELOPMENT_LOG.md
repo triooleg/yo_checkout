@@ -16,6 +16,58 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - Compact Desktop Height Filter v4.0.66
+
+User request:
+
+- Adjust the inner and outer spacing of the Ready-to-Ship height filter on desktop so it matches the main site width and looks more compact.
+- Create a plugin archive for testing.
+- Add a Russian README with a full description of what the plugin does and push the update to GitHub.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.css`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.66`.
+- Desktop `body.home .yo-height-filter` now uses a wider `1200px` max width, smaller outer margins, smaller inner padding, tighter gaps, and smaller button padding.
+- Desktop sticky filter spacing was tightened to match the compact filter state.
+- Frontend CSS is now enqueued with `filemtime()` so the uploaded test build can receive the latest spacing CSS without a stale asset version.
+- Mobile filter layout, product cards, checkout flow, payment providers, KeyCRM, email, shipping, promo logic, and sold-item hiding were not changed.
+- Added `README.md` in Russian with plugin purpose, checkout flows, integrations, admin areas, protected working zones, test-candidate zones, verification commands, archive rules, and development rules.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+- Existing exact-name archive was preserved as `plugin-archives/yoleotard-checkout-invoice-v4.0.65.zip` before rebuilding the installable ZIP.
+- New installable archive was created as `plugin-archives/yoleotard-checkout-invoice.zip`.
+- A local versioned copy was also saved as `plugin-archives/yoleotard-checkout-invoice-v4.0.66.zip`.
+- Archive build used Python `zipfile` with explicit forward-slash archive names.
+- Verified `plugin-archives/yoleotard-checkout-invoice.zip` contains one top-level `yoleotard-checkout-invoice/` folder.
+- Verified no ZIP entry contains `\`.
+- Verified local extraction of the exact-name ZIP creates real `assets/` and `includes/` directories and contains `yoleotard-checkout-invoice.php`.
+
+Live test status:
+
+- Not live-tested yet. Install the v4.0.66 test archive, then check the Ready-to-Ship filter on desktop and confirm the mobile filter is unchanged.
+
+Repository rollback point:
+
+- Local git checkpoint commit: `d8a5ba8` (`Compact desktop height filter`).
+
 ## 2026-06-12 - Event-Triggered Promo GIF Tooltip v4.0.65
 
 User request:

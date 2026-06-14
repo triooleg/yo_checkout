@@ -6,6 +6,24 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Desktop Ready-to-Ship height filter spacing live validation
+
+Status: v4.0.66 test candidate requires live validation.
+
+Details:
+
+- v4.0.66 adds a plugin CSS override for the YOOtheme `body.home .yo-height-filter` block on desktop widths.
+- The filter should align closer to the main site content width and use smaller outer margin, inner padding, gaps, and button padding.
+- The plugin now versions `assets/yo-checkout.css` with `filemtime()` so the uploaded test build should not keep stale filter spacing from browser/cache layers.
+- Mobile filter rules are intentionally unchanged.
+
+Handling:
+
+- Install the v4.0.66 test archive and open the home page on desktop.
+- Confirm the Ready-to-Ship filter is wider, more compact, and visually aligned with the product grid/main site width.
+- Confirm the sticky filter state still remains usable on desktop.
+- Confirm mobile filter layout is unchanged.
+
 ### Promo badge GIF tooltip live validation
 
 Status: v4.0.65 test candidate requires live validation.

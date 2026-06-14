@@ -657,3 +657,44 @@ li.yo-reserved-card::after {
 .yo-shipping-option input{margin-right:4px}
 .yo-shipping-option span{flex:1;font-size:14px}
 .yo-shipping-option strong{white-space:nowrap}
+
+/* v4.0.66 desktop height filter spacing override */
+@media (min-width: 960px){
+  body.home .yo-height-filter{
+    width:calc(100% - 16px) !important;
+    max-width:1200px !important;
+    margin:16px auto 24px !important;
+    padding:14px 18px !important;
+    border-radius:24px !important;
+    gap:8px 10px !important;
+  }
+
+  body.home .yo-height-filter::before{
+    margin-bottom:10px !important;
+    font-size:15px !important;
+    line-height:1.2 !important;
+  }
+
+  body.home .yo-height-filter > * > a{
+    min-width:104px !important;
+    padding:8px 14px !important;
+    font-size:13.5px !important;
+  }
+
+  body.home .yo-filter-sticky-active{
+    width:100% !important;
+    max-width:1200px !important;
+    padding:8px 14px !important;
+    gap:7px 9px !important;
+  }
+
+  body.home .yo-filter-sticky-active::before{
+    margin-bottom:6px !important;
+  }
+
+  body.home .yo-filter-sticky-active > * > a{
+    min-width:88px !important;
+    padding:7px 11px !important;
+    font-size:13px !important;
+  }
+}
