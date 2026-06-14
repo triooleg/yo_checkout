@@ -66,7 +66,7 @@ Live test status:
 
 Repository rollback point:
 
-- Local git checkpoint commit: `47d63a8` (`Fix invoice reservation panel style`).
+- Local git checkpoint commit: `403f74a` (`Fix invoice reservation panel style`).
 
 ## 2026-06-14 - Server-Synced Invoice Reserved Cards v4.0.68
 
