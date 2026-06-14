@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.69. Writes bank-invoice reservation to the YOOtheme Panel Style field.
- * Version: 4.0.69
+ * Description: v4.0.70. Uses the valid YOOtheme Card Default panel style value for invoice reservations.
+ * Version: 4.0.70
  * Author: YOleotard / ChatGPT
  */
 

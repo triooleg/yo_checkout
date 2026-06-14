@@ -137,7 +137,7 @@ class YO_Checkout_Sold_Items_Service {
         $cart_hash = sanitize_text_field((string)$cart_hash);
         if (!$local_id || get_post_type($local_id) !== self::CPT) return false;
 
-        if ($cart_hash !== '' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_panel_style_hash', true), $cart_hash)) {
+        if ($cart_hash !== '' && hash_equals((string)get_post_meta($local_id, 'bank_invoice_panel_style_value_hash', true), $cart_hash)) {
             return true;
         }
 
@@ -224,6 +224,7 @@ class YO_Checkout_Sold_Items_Service {
             if ($cart_hash !== '') {
                 update_post_meta($local_id, 'bank_invoice_card_default_hash', $cart_hash);
                 update_post_meta($local_id, 'bank_invoice_panel_style_hash', $cart_hash);
+                update_post_meta($local_id, 'bank_invoice_panel_style_value_hash', $cart_hash);
             }
             delete_post_meta($local_id, 'bank_invoice_card_default_error');
             if ($this->card_default_match_log) {
@@ -985,7 +986,7 @@ class YO_Checkout_Sold_Items_Service {
         if (!is_array($node)) return;
         if (!isset($node['props']) || !is_array($node['props'])) $node['props'] = [];
 
-        $node['props']['panel_style'] = 'default';
+        $node['props']['panel_style'] = 'card-default';
         if (isset($node['props']['style'])) {
             $legacy_style = strtolower(trim((string)$node['props']['style']));
             if (in_array($legacy_style, ['card-default','default'], true)) {
@@ -1111,7 +1112,7 @@ class YO_Checkout_Sold_Items_Service {
         } elseif (isset($node['panel_style'])) {
             $panel_style = strtolower(trim((string)$node['panel_style']));
         }
-        return in_array($panel_style, ['card-default','default'], true);
+        return $panel_style === 'card-default';
     }
 
     private function yootheme_product_availability_from_node($node, $title, $product_id = '') {

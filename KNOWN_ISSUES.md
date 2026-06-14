@@ -8,7 +8,7 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Bank-invoice YOOtheme Panel Style reservation live validation
 
-Status: v4.0.69 test candidate requires live validation.
+Status: v4.0.70 test candidate requires live validation.
 
 Details:
 
@@ -19,13 +19,15 @@ Details:
 - Live v4.0.67 testing confirmed that the Builder style was applied, but after some time the storefront card visually returned to an active Buy button while the server still rejected add-to-cart as unavailable.
 - v4.0.68 adds a frontend server-availability sync for visible product cards, so cards that the backend already reports as unavailable are greyed and non-clickable before the customer clicks Buy, even if the current rendered DOM no longer exposes `uk-card-default`.
 - Later inspection showed that v4.0.67/v4.0.68 wrote the hidden Builder value `props.style = default` instead of the visible YOOtheme `Panel > Style` field. This could leave the admin field at `None` while the backend still treated the card as unavailable.
-- v4.0.69 writes `props.panel_style = default`, clears the old erroneous `props.style = default` value on matched invoice items, and no longer treats that legacy hidden value as unavailable.
+- v4.0.69 moved the write to `props.panel_style`, but used `default`; live testing showed YOOtheme left the select blank/red and did not add the frontend `uk-card-default` class.
+- v4.0.70 writes the valid YOOtheme value `props.panel_style = card-default`, clears the old erroneous `props.style = default` value on matched invoice items, and no longer treats legacy hidden/invalid values as unavailable.
 
 Handling:
 
-- Install the v4.0.69 test build.
+- Install the v4.0.70 test build.
 - Create a bank invoice for one product and confirm the customer invoice email is sent.
-- In YOOtheme Builder, confirm the purchased item has `Card Default` style.
+- In YOOtheme Builder, confirm the purchased item has the `Card Default` option selected in `Panel > Style`, not an empty/red select.
+- On the storefront, confirm the rendered product card receives the YOOtheme `uk-card-default` class in addition to the plugin's reserved state.
 - On the storefront, confirm the card is grey, shows the centered reservation label, and its buy button cannot be clicked immediately and after waiting/refreshing.
 - Change the same Builder item style back to `None` and confirm the card becomes purchasable again.
 

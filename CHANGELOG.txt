@@ -472,3 +472,9 @@ YOleotard Checkout v4.0.69
 - Clears the old erroneous hidden `style = default` value when a matched invoice item is updated again.
 - Backend availability checks now use the visible `panel_style` field for Card Default reservations and no longer block products only because the old hidden `style` value is present.
 - Uses a new panel-style hash marker so existing invoice orders from v4.0.67/v4.0.68 can be processed again with the corrected Builder field.
+
+YOleotard Checkout v4.0.70
+
+- Corrects the YOOtheme Card Default value to `panel_style = card-default` so the Builder select chooses `Card Default` and the rendered product card can receive `uk-card-default`.
+- Backend availability checks now require `panel_style = card-default` for invoice-reserved Card Default state and do not block cards only because the invalid v4.0.69 value `panel_style = default` remains.
+- Uses a new panel-style value hash marker so orders already processed by v4.0.69 can be processed again with the valid YOOtheme value.

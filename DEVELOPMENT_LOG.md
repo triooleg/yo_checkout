@@ -16,6 +16,56 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-06-14 - Correct YOOtheme Card Default Value v4.0.70
+
+User request:
+
+- Live admin inspection showed the YOOtheme `Panel > Style` select stayed empty/red after v4.0.69.
+- The product card received the plugin `yo-invoice-reserved-card` state but did not receive the YOOtheme `uk-card-default` class.
+- The selected Builder option must be `Card Default`, not a blank select.
+
+Root cause:
+
+- v4.0.69 wrote the right field name, `props.panel_style`, but used the wrong option value, `default`.
+- The actual YOOtheme select option for `Card Default` is `value="card-default"`.
+- Because `default` is not a valid option for this select, YOOtheme displayed the field as empty/invalid and did not render `uk-card-default`.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-sold-items.php`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.70`.
+- Bank-invoice reservation now writes `props.panel_style = card-default`, matching the actual YOOtheme `Card Default` option value.
+- Backend availability checks now require `panel_style = card-default` for invoice-reserved Card Default state and no longer block only because invalid v4.0.69 `panel_style = default` remains.
+- A new `bank_invoice_panel_style_value_hash` marker lets orders already processed by v4.0.69 be processed again with the valid YOOtheme value.
+- Monobank, Western Bid, KeyCRM, invoice email sending, paid-card sold-item hiding, frontend tooltip behavior, and checkout totals were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `git diff --check` passed with only Git line-ending warnings.
+- `node --check assets/yo-checkout.js` was not required because JavaScript was not changed.
+
+Live test status:
+
+- Pending. Install the next test build, create/reuse a bank invoice, confirm the Builder select shows `Card Default`, confirm the frontend card has `uk-card-default`, then manually set `Panel > Style` back to `None` and confirm the product is purchasable again.
+
+Repository rollback point:
+
+- Local documentation commit: `75ba585` (`Record v4.0.69 test archive`).
+
 ## 2026-06-14 - Build v4.0.69 Test Archive
 
 User request:
