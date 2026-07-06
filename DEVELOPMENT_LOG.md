@@ -16,6 +16,29 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-06 - Build v4.0.73 Test Archive
+
+User request:
+
+- Create a test archive for the branded tracking email release.
+
+Behavior changed:
+
+- No runtime behavior changed after the v4.0.73 implementation commit.
+- Preserved `plugin-archives/yoleotard-checkout-invoice-v4.0.72.zip`.
+- Created `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.73.zip`.
+
+Verification performed:
+
+- Main plugin and every PHP file under `includes/` passed `php -l`.
+- ZIP contains 44 entries under one `yoleotard-checkout-invoice/` folder.
+- Verified zero ZIP paths contain `\`.
+- Verified the main plugin, shared email service, and tracking notification service are present.
+- Verified local extraction creates real `assets/` and `includes/` directories.
+
+Repository rollback point:
+
+- Runtime implementation commit: `7707ac4` (`Brand tracking notification emails`). Generated archives remain local and git-ignored.
 ## 2026-07-06 - Branded Tracking Email v4.0.73
 
 User request:
