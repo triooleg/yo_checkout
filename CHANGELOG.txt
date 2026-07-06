@@ -1,4 +1,4 @@
-﻿v3.3.60
+v3.3.60
 - Strengthened KeyCRM order reuse after customer returns from card payment and edits the cart.
 - Persists KeyCRM order marker in localStorage, cookie, WordPress options by session/browser/email/phone.
 - Reuses and updates the existing unpaid KeyCRM order instead of creating a duplicate.
@@ -484,3 +484,10 @@ YOleotard Checkout v4.0.71
 - Prevents completed bank invoice local orders from being reused as editable checkout drafts when the customer makes another purchase in the same browser/session.
 - New purchases after an invoice order now create a new `yo_invoice_order` record for the Purchases Report instead of overwriting the previous invoice row.
 - Keeps unpaid non-invoice drafts reusable so customers can still go back, edit the cart, and continue the same checkout before invoice/payment creation.
+
+YOleotard Checkout v4.0.72
+
+- Adds a separate `Tracking Notifications` submenu for paid card orders and completed bank invoice orders.
+- Provides expandable order rows, All/Pending/Sent filters, pagination, a tracking URL textarea, and a protected send action.
+- Sends a styled English HTML shipment email with a tracking button and fallback link.
+- Stores tracking URL, recipient, sender, and sent time only after `wp_mail()` succeeds.

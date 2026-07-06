@@ -1,4 +1,4 @@
-﻿# YOleotard Checkout Development Log
+# YOleotard Checkout Development Log
 
 Codex must read this file before making any code change.
 
@@ -15,6 +15,53 @@ Each task should record:
 - verification performed
 - documentation updates
 - repository rollback point or blocker
+
+## 2026-07-06 - Customer Tracking Notifications v4.0.72
+
+User request:
+
+- Add a separate admin area listing successful card customers and customers who completed a bank invoice order.
+- Let an administrator expand an order, paste a shipment tracking URL, and send a styled English email.
+- Mark the row when the tracking message was successfully sent.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-tracking-notifications.php`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.72`.
+- Added `YOleotard Checkout > Tracking Notifications` with All/Pending/Sent filters and 20-row pagination.
+- Only paid card orders (`paid = 1`) and completed bank invoice orders (`bank_invoice_created = 1`) are listed.
+- Each row expands to customer contacts, products, a tracking URL textarea, and a send/resend button.
+- The protected admin-post handler checks `manage_options`, nonce, order eligibility, customer email, and HTTP(S) URL.
+- A styled English HTML email thanks the customer and includes a tracking button plus fallback link.
+- Tracking URL, recipient, sending administrator, and sent time are saved only after `wp_mail()` succeeds.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`, including the new tracking module.
+- `git diff --check` passed with only Git line-ending warnings.
+- `node --check assets/yo-checkout.js` was not required because JavaScript was not changed.
+- Live `wp_mail()` delivery and email rendering remain pending on the WordPress site.
+
+Live test status:
+
+- Pending. Send to a controlled test address and confirm delivery, rendering, links, filters, and Sent status.
+
+Repository rollback point:
+
+- Pending commit.
 
 ## 2026-06-14 - Preserve Purchases Report Invoice Rows v4.0.71
 

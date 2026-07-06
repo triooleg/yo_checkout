@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.71. Keeps completed bank invoice records from being reused as checkout drafts.
- * Version: 4.0.71
+ * Description: v4.0.72. Adds admin tracking notifications for completed customer orders.
+ * Version: 4.0.72
  * Author: YOleotard / ChatGPT
  */
 
@@ -46,6 +46,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-email.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-western-bid.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-order-access.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-purchase-report.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-tracking-notifications.php';
 
 
 class YO_Checkout_Invoice_Plugin {
@@ -62,6 +63,7 @@ class YO_Checkout_Invoice_Plugin {
     private $western_bid_service = null;
     private $order_access_service = null;
     private $purchase_report_service = null;
+    private $tracking_notifications_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -74,6 +76,7 @@ class YO_Checkout_Invoice_Plugin {
         add_action('admin_post_yo_shipping_clear_rates', [$this, 'admin_clear_shipping_rates']);
         add_action('admin_notices', [$this, 'dompdf_admin_notice']);
         add_action('admin_post_yo_checkout_install_dompdf', [$this, 'install_dompdf']);
+        add_action('admin_post_yo_checkout_send_tracking', [$this, 'admin_send_tracking_notification']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue']);
         add_action('wp_footer', [$this, 'render_modal']);
         add_action('wp_footer', [$this, 'render_google_customer_reviews_scripts'], 60);
@@ -188,6 +191,13 @@ class YO_Checkout_Invoice_Plugin {
             ]);
         }
         return $this->purchase_report_service;
+    }
+
+    private function tracking_notifications_service() {
+        if (!$this->tracking_notifications_service instanceof YO_Checkout_Tracking_Notifications_Service) {
+            $this->tracking_notifications_service = new YO_Checkout_Tracking_Notifications_Service();
+        }
+        return $this->tracking_notifications_service;
     }
 
     private function save_purchase_snapshot($local_id, $stage, array $extra = []) {
@@ -437,10 +447,19 @@ EUR=1',
         add_menu_page('YOleotard Checkout', 'YOleotard Checkout', 'manage_options', 'yo-checkout-invoice', [$this, 'settings_page'], 'dashicons-cart', 56);
         add_submenu_page('yo-checkout-invoice', 'Checkout Settings', 'Settings', 'manage_options', 'yo-checkout-invoice', [$this, 'settings_page']);
         add_submenu_page('yo-checkout-invoice', 'Purchases Report', 'Purchases Report', 'manage_options', 'yo-checkout-purchases', [$this, 'purchase_report_page']);
+        add_submenu_page('yo-checkout-invoice', 'Tracking Notifications', 'Tracking Notifications', 'manage_options', 'yo-checkout-tracking', [$this, 'tracking_notifications_page']);
     }
 
     public function purchase_report_page() {
         $this->purchase_report_service()->render_page(self::CPT);
+    }
+
+    public function tracking_notifications_page() {
+        $this->tracking_notifications_service()->render_page(self::CPT);
+    }
+
+    public function admin_send_tracking_notification() {
+        $this->tracking_notifications_service()->handle_send(self::CPT);
     }
 
     private function shipping_rates_table_name() {
