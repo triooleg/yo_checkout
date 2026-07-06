@@ -61,7 +61,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending commit.
+- Local git checkpoint commit: `e18826b` (`Add customer tracking notifications`).
 
 ## 2026-06-14 - Preserve Purchases Report Invoice Rows v4.0.71
 
