@@ -499,3 +499,11 @@ YOleotard Checkout v4.0.73
 - Adds the order number to the email subject and main heading.
 - Sends tracking emails from `YOleotard <no-reply@yoleotard.com>` instead of the default WordPress sender.
 - Adds Facebook, Instagram, and TikTok links to the tracking email footer.
+
+YOleotard Checkout v4.0.74
+
+- Creates or reuses the KeyCRM card order before starting a Monobank invoice.
+- Sends the KeyCRM order ID in Monobank destination, comment, merchant reference, and basket code instead of the local `WEB-*` ID.
+- Keeps repeated Monobank starts idempotent by updating the same pre-created KeyCRM order.
+- Blocks Monobank start if the KeyCRM order cannot be created and schedules the existing unpaid-order cancellation path.
+- After payment, the existing finalizer updates the same KeyCRM order, adds payment/status, sends email, and continues Step 4.

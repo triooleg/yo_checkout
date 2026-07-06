@@ -16,6 +16,59 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-06 - KeyCRM Order ID in Monobank v4.0.74
+
+User request:
+
+- Use the KeyCRM order ID in card payment data instead of the local WordPress order ID.
+- Monobank payment purpose currently shows values such as `#WEB-22237`, while Purchases Report later shows KeyCRM order `#620`.
+
+Root cause:
+
+- Monobank invoice data is immutable after creation.
+- The current card flow created the KeyCRM order only after payment succeeded, so only the local order ID existed when the Monobank destination was built.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-keycrm.php`
+- `includes/class-yo-checkout-monobank.php`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.74`.
+- Monobank card start creates or reuses an idempotent KeyCRM card order before provider invoice creation.
+- Monobank destination/comment, merchant reference, and basket code use the KeyCRM order ID; local `WEB-*` remains fallback only.
+- Repeated Monobank start updates the same KeyCRM order instead of creating a duplicate.
+- Monobank start fails closed if KeyCRM order creation fails.
+- A pre-created unpaid KeyCRM order is scheduled through the existing two-hour cancellation flow.
+- After successful payment, the finalizer updates the same order, adds payment and paid status, sends the paid email, hides sold items, and preserves Step 4.
+- Western Bid invoice/webhook reference behavior was intentionally not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `git diff --check` passed with only Git line-ending warnings.
+- Static flow check confirmed KeyCRM ensure runs before `start_monobank_payment()`, Monobank destination/reference/code consume `order_id`, and the paid finalizer calls the same idempotent card-order ensure path.
+- `node --check assets/yo-checkout.js` was not required because JavaScript was not changed.
+- Live KeyCRM and Monobank API verification remains pending.
+
+Live test status:
+
+- Pending. Confirm pre-payment KeyCRM creation, Monobank purpose/reference, retry idempotency, paid finalization, email, auto-hide, and Step 4.
+
+Repository rollback point:
+
+- Pending commit.
 ## 2026-07-06 - Build v4.0.73 Test Archive
 
 User request:

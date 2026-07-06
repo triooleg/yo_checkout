@@ -6,6 +6,23 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### KeyCRM order ID in Monobank live validation
+
+Status: v4.0.74 test candidate requires live validation.
+
+Details:
+
+- Monobank invoice destination must show the KeyCRM order number instead of local `WEB-*` ID.
+- v4.0.74 creates/reuses the KeyCRM card order before Monobank invoice creation and blocks provider start if KeyCRM creation fails.
+- The paid finalizer must update the same KeyCRM order without creating a duplicate.
+
+Handling:
+
+- Create a Monobank card checkout and confirm KeyCRM order exists before the Monobank page opens.
+- Confirm Monobank purpose shows that KeyCRM number and no `WEB-*` local ID.
+- Complete payment and confirm the same KeyCRM order receives payment, paid status, email completion, and Step 4.
+- Retry payment start once and confirm no duplicate KeyCRM order is created.
+
 ### Tracking notifications live validation
 
 Status: v4.0.73 test candidate requires live validation.

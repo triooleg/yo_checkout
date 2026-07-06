@@ -1121,11 +1121,12 @@ class YO_Checkout_KeyCRM_Service {
             $this->keycrm_request('PUT', '/order/' . $d['order_id'], ['buyer_comment' => $comment], $s);
         }
 
-    public function ensure_keycrm_order_after_successful_card_payment($local_id) {
-            // Create KeyCRM only once and only after the card provider confirms payment.
-            // Never reuse browser/local buyer markers as KeyCRM buyer.id.
+    private function ensure_keycrm_card_order($local_id, $mark_after_payment = false) {
+            $local_id = absint($local_id);
+            if (!$local_id) return new WP_Error('keycrm_local_order', 'Local checkout order was not found');
+
             $existing_order_id = absint(get_post_meta($local_id, 'order_id', true));
-            if ($existing_order_id && get_post_meta($local_id, 'keycrm_after_payment_done', true) === '1') {
+            if ($existing_order_id && $mark_after_payment && get_post_meta($local_id, 'keycrm_after_payment_done', true) === '1') {
                 return $existing_order_id;
             }
             if ($existing_order_id) {
@@ -1134,31 +1135,41 @@ class YO_Checkout_KeyCRM_Service {
                 $current_order_id = absint(get_post_meta($local_id, 'order_id', true));
                 if ($current_order_id) {
                     update_post_meta($local_id, 'keycrm_created', '1');
-                    update_post_meta($local_id, 'keycrm_after_payment_done', '1');
+                    update_post_meta($local_id, 'keycrm_card_order_ready', '1');
+                    if ($mark_after_payment) update_post_meta($local_id, 'keycrm_after_payment_done', '1');
                     $this->remember_keycrm_checkout_marker($local_id);
                     return $current_order_id;
                 }
             }
-    
+
             $s = $this->settings();
             delete_post_meta($local_id, 'buyer_id');
             delete_post_meta($local_id, 'order_id');
             update_post_meta($local_id, 'keycrm_created', '0');
-    
+
             $d = $this->get_order_data($local_id);
             $buyer_id = $this->keycrm_create_buyer($d, $s);
             if (is_wp_error($buyer_id)) return new WP_Error('keycrm_buyer', 'KeyCRM buyer was not created', $buyer_id->get_error_data());
-    
+
             update_post_meta($local_id, 'buyer_id', $buyer_id);
             $d['buyer_id'] = $buyer_id;
             $order_id = $this->keycrm_create_order($d, $buyer_id, $s, 'card');
             if (is_wp_error($order_id)) return $order_id;
-    
+
             update_post_meta($local_id, 'order_id', $order_id);
             update_post_meta($local_id, 'keycrm_created', '1');
-            update_post_meta($local_id, 'keycrm_after_payment_done', '1');
+            update_post_meta($local_id, 'keycrm_card_order_ready', '1');
+            if ($mark_after_payment) update_post_meta($local_id, 'keycrm_after_payment_done', '1');
             $this->remember_keycrm_checkout_marker($local_id);
             wp_update_post(['ID'=>$local_id, 'post_title'=>'Order #' . $order_id . ' - ' . ($d['full_name'] ?? '')]);
             return $order_id;
+        }
+
+    public function ensure_keycrm_order_before_card_payment($local_id) {
+            return $this->ensure_keycrm_card_order($local_id, false);
+        }
+
+    public function ensure_keycrm_order_after_successful_card_payment($local_id) {
+            return $this->ensure_keycrm_card_order($local_id, true);
         }
 }

@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.73`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.74`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
@@ -41,10 +41,10 @@ Rules for future work:
   Google Customer Reviews service. Owns footer script rendering for survey opt-in and optional merchant badge while preserving the frontend callback name `window.YOCheckoutGoogleReviews`.
 
 - `includes/class-yo-checkout-monobank.php`
-  Monobank payment service. Owns Monobank invoice creation, live/test token selection, per-order token-mode persistence, invoice status requests with the same saved token mode, local invoice-to-order mapping helpers, webhook `X-Sign` verification through the cached Monobank merchant public key, webhook amount/currency checks where provider fields are available, and webhook handling. Shared payment finalization remains in the main plugin.
+  Monobank payment service. Owns Monobank invoice creation, live/test token selection, per-order token-mode persistence, invoice status requests with the same saved token mode, local invoice-to-order mapping helpers, webhook `X-Sign` verification through the cached Monobank merchant public key, webhook amount/currency checks where provider fields are available, and webhook handling. v4.0.74 receives the pre-created KeyCRM order ID in `merchantPaymInfo.destination`, `comment`, `reference`, and basket code instead of exposing the local WordPress ID. Shared payment finalization remains in the main plugin.
 
 - `includes/class-yo-checkout-keycrm.php`
-  KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names.
+  KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names. v4.0.74 adds an idempotent pre-payment card-order ensure path for Monobank; the existing post-payment path then updates the same KeyCRM order and applies paid payment/status markers.
 
 - `includes/class-yo-checkout-email.php`
   Customer email service. Owns shared HTML email rendering, product thumbnail blocks, bank invoice email sending, paid-card email sending, email headers, and email-specific sent/error meta updates. The main plugin keeps thin wrapper methods so existing invoice/card flows continue to call the same method names.
@@ -68,7 +68,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, invoice-reserved overlay badges, promo GIF tooltip display, notifications, related UI, and the v4.0.66 desktop override that widens and compacts the YOOtheme `body.home .yo-height-filter` Ready-to-Ship filter without changing mobile filter rules.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.73`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.74`.
 
 - `README.md`
   Russian-language public project overview. Describes what the plugin does, supported checkout flows, integrations, admin areas, protected working zones, test-candidate zones, verification commands, archive rules, and development rules.

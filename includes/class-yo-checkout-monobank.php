@@ -193,6 +193,7 @@ class YO_Checkout_Monobank_Service {
         update_post_meta($local_id, 'card_total_amount', $fee['total']);
 
         $checkout_ref = !empty($data['order_id']) ? $data['order_id'] : ('WEB-' . $local_id);
+        $merchant_reference = !empty($data['order_id']) ? ('keycrm_order_' . $checkout_ref) : ('website_checkout_' . $local_id);
         $item_label = $this->checkout_item_label($data);
         $destination = 'Payment for ' . $item_label . ' #' . $checkout_ref;
         if (function_exists('mb_substr')) {
@@ -212,7 +213,7 @@ class YO_Checkout_Monobank_Service {
             'webHookUrl' => rest_url($this->rest_namespace . '/mono-webhook'),
             'paymentType' => 'debit',
             'merchantPaymInfo' => [
-                'reference' => 'website_checkout_' . $local_id,
+                'reference' => $merchant_reference,
                 'destination' => $destination,
                 'comment' => $destination,
                 'basketOrder' => [[
@@ -221,7 +222,7 @@ class YO_Checkout_Monobank_Service {
                     'sum' => $amount_cents,
                     'total' => $amount_cents,
                     'unit' => 'pcs',
-                    'code' => 'YO-WEB-' . $local_id,
+                    'code' => !empty($data['order_id']) ? ('KEYCRM-' . $checkout_ref) : ('YO-WEB-' . $local_id),
                 ]],
             ],
         ];
