@@ -4,6 +4,17 @@ if (!defined('ABSPATH')) exit;
 class YO_Checkout_Tracking_Notifications_Service {
     const PAGE_SLUG = 'yo-checkout-tracking';
     const ACTION = 'yo_checkout_send_tracking';
+    private $callbacks = [];
+
+    public function __construct(array $callbacks = []) {
+        $this->callbacks = $callbacks;
+    }
+
+    private function call($name, ...$args) {
+        return isset($this->callbacks[$name]) && is_callable($this->callbacks[$name])
+            ? call_user_func_array($this->callbacks[$name], $args)
+            : null;
+    }
 
     public function render_page($order_post_type) {
         if (!current_user_can('manage_options')) wp_die('Access denied');
@@ -65,7 +76,7 @@ class YO_Checkout_Tracking_Notifications_Service {
         if (!$email || !is_email($email)) $this->redirect('invalid_email', $local_id);
         if (!$tracking_url || !wp_http_validate_url($tracking_url)) $this->redirect('invalid_url', $local_id);
 
-        $sent = wp_mail($email, 'Your YOleotard order is on its way', $this->email_html($local_id, $tracking_url), ['Content-Type: text/html; charset=UTF-8']);
+        $sent = (bool)$this->call('send_tracking_email', $local_id, $tracking_url);
         if (!$sent) {
             update_post_meta($local_id, 'tracking_notification_error', 'wp_mail returned false');
             $this->redirect('send_failed', $local_id);
@@ -115,14 +126,6 @@ class YO_Checkout_Tracking_Notifications_Service {
             </div>
         </details>
         <?php
-    }
-
-    private function email_html($local_id, $tracking_url) {
-        $name = sanitize_text_field(get_post_meta($local_id, 'full_name', true));
-        $order_id = sanitize_text_field(get_post_meta($local_id, 'order_id', true));
-        $greeting = $name ? 'Dear ' . $name . ',' : 'Dear customer,';
-        $order_line = $order_id ? '<p style="margin:0 0 20px;color:#51545e">Order <strong>#' . esc_html($order_id) . '</strong></p>' : '';
-        return '<!doctype html><html><body style="margin:0;background:#f3f5f8;font-family:Arial,sans-serif;color:#172033"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 12px;background:#f3f5f8"><tr><td align="center"><table role="presentation" width="620" cellspacing="0" cellpadding="0" style="max-width:620px;width:100%;background:#ffffff;border:1px solid #dfe3e8"><tr><td style="padding:28px 36px;background:#101828;color:#ffffff;text-align:center"><div style="font-size:25px;font-weight:700">YOleotard</div><div style="margin-top:6px;font-size:13px;color:#d0d5dd">Your order is on its way</div></td></tr><tr><td style="padding:36px"><p style="margin:0 0 18px;font-size:17px">' . esc_html($greeting) . '</p><p style="margin:0 0 18px;line-height:1.65">Thank you for choosing YOleotard. Your order has been prepared and shipped. You can follow its delivery using the tracking link below.</p>' . $order_line . '<p style="margin:28px 0;text-align:center"><a href="' . esc_url($tracking_url) . '" style="display:inline-block;padding:13px 24px;background:#1677ff;color:#ffffff;text-decoration:none;font-weight:700;border-radius:5px">Track your order</a></p><p style="margin:0 0 8px;font-size:12px;color:#667085">If the button does not open, use this link:</p><p style="margin:0;overflow-wrap:anywhere"><a href="' . esc_url($tracking_url) . '" style="color:#175cd3">' . esc_html($tracking_url) . '</a></p><p style="margin:30px 0 0;line-height:1.6">Thank you for your order and trust in our work.<br><strong>The YOleotard Team</strong></p></td></tr></table></td></tr></table></body></html>';
     }
 
     private function items($local_id) {

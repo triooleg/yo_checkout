@@ -8,13 +8,13 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Tracking notifications live validation
 
-Status: v4.0.72 test candidate requires live validation.
+Status: v4.0.73 test candidate requires live validation.
 
 Details:
 
 - v4.0.72 adds the `YOleotard Checkout > Tracking Notifications` admin page.
 - The list includes successful card orders (`paid = 1`) and completed bank invoice orders (`bank_invoice_created = 1`).
-- Sending uses WordPress `wp_mail()` and marks an order Sent only when the mail call returns success.
+- v4.0.73 delegates tracking delivery to the shared email service, uses the invoice/paid logo and card style, includes the order number in the subject/heading, sends from `no-reply@yoleotard.com`, and adds Facebook/Instagram/TikTok footer links.
 
 Handling:
 

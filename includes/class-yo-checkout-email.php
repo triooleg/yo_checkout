@@ -175,6 +175,74 @@ class YO_Checkout_Email_Service {
             . '</div></body></html>';
     }
 
+    private function tracking_social_links_html() {
+        $links = [
+            'Facebook' => 'https://www.facebook.com/YOLeotard/',
+            'Instagram' => 'https://www.instagram.com/yoleotard/',
+            'TikTok' => 'https://www.tiktok.com/@yoleotard',
+        ];
+        $items = [];
+        foreach ($links as $label => $url) {
+            $items[] = '<a href="' . esc_url($url) . '" style="color:#475569;text-decoration:underline;">' . esc_html($label) . '</a>';
+        }
+        return '<div style="border-top:1px solid #e5e7eb;margin-top:26px;padding-top:18px;text-align:center;color:#64748b;font-size:13px;line-height:1.8;">'
+            . '<strong style="color:#111827;">Follow YOleotard</strong><br>'
+            . implode(' &middot; ', $items)
+            . '</div>';
+    }
+
+    private function build_tracking_email_html($local_id, $tracking_url) {
+        $d = $this->order_data($local_id);
+        $logo = $this->email_logo_html();
+        $order_number = sanitize_text_field($d['order_id'] ?? '');
+        if ($order_number === '') $order_number = (string)absint($local_id);
+        $name = sanitize_text_field($d['full_name'] ?? '');
+        $greeting = $name !== '' ? 'Dear ' . $name . ',' : 'Dear customer,';
+
+        return '<!doctype html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">'
+            . '<div style="max-width:680px;margin:0 auto;padding:28px 14px;">'
+            . '<div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:28px;box-shadow:0 6px 18px rgba(15,23,42,.06);">'
+            . $logo
+            . '<h1 style="margin:0 0 10px 0;font-size:26px;line-height:1.25;color:#111827;">Your YOleotard order #' . esc_html($order_number) . ' is on its way</h1>'
+            . '<p style="margin:0 0 18px 0;color:#475569;font-size:15px;line-height:1.6;">' . esc_html($greeting) . '</p>'
+            . '<p style="margin:0 0 18px 0;color:#475569;font-size:15px;line-height:1.6;">Thank you for your order and for choosing YOleotard. Your parcel has been prepared and shipped.</p>'
+            . '<div style="background:#eef6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 18px;margin:18px 0;">'
+            . '<p style="margin:0 0 6px 0;font-size:15px;">Order number: <strong>&#8470; ' . esc_html($order_number) . '</strong></p>'
+            . '<p style="margin:0;font-size:15px;">Shipment status: <strong>Shipped</strong></p>'
+            . '</div>'
+            . '<p style="font-size:15px;line-height:1.6;margin:0 0 12px 0;">You can follow the delivery progress using the tracking link below.</p>'
+            . '<p style="margin:24px 0;text-align:center;"><a href="' . esc_url($tracking_url) . '" style="background:#111827;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:8px;display:inline-block;font-weight:700;">Track your order</a></p>'
+            . '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 18px;background:#fafafa;">'
+            . '<p style="margin:0 0 7px 0;color:#64748b;font-size:12px;">If the button does not open, use this tracking link:</p>'
+            . '<p style="margin:0;overflow-wrap:anywhere;font-size:14px;"><a href="' . esc_url($tracking_url) . '" style="color:#1d4ed8;">' . esc_html($tracking_url) . '</a></p>'
+            . '</div>'
+            . '<p style="margin:24px 0 0 0;font-size:15px;line-height:1.6;">Best regards,<br><strong>YOleotard Atelier</strong><br>Made in Ukraine</p>'
+            . $this->tracking_social_links_html()
+            . '</div>'
+            . '<p style="text-align:center;color:#94a3b8;font-size:12px;margin:16px 0 0 0;">YOleotard &middot; <a href="https://yoleotard.com" style="color:#64748b;">yoleotard.com</a></p>'
+            . '</div></body></html>';
+    }
+
+    public function send_tracking_email($local_id, $tracking_url) {
+        $local_id = absint($local_id);
+        $d = $this->order_data($local_id);
+        $to = sanitize_email($d['email'] ?? '');
+        $tracking_url = esc_url_raw($tracking_url, ['http', 'https']);
+        if (!$to || !is_email($to) || !$tracking_url || !wp_http_validate_url($tracking_url)) return false;
+
+        $order_number = sanitize_text_field($d['order_id'] ?? '');
+        if ($order_number === '') $order_number = (string)$local_id;
+        $subject = 'YOleotard order #' . $order_number . ' is on its way';
+        $headers = [
+            'Content-Type: text/html; charset=UTF-8',
+            'From: YOleotard <no-reply@yoleotard.com>',
+        ];
+        $force_html = function() { return 'text/html'; };
+        add_filter('wp_mail_content_type', $force_html, 999);
+        $sent = wp_mail($to, $subject, $this->build_tracking_email_html($local_id, $tracking_url), $headers);
+        remove_filter('wp_mail_content_type', $force_html, 999);
+        return $sent;
+    }
     private function send_html_mail($to, $subject, $message, $attachments = []) {
         $s = $this->settings();
         $headers = $this->mail_headers($s);

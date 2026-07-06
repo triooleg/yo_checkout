@@ -16,6 +16,55 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-06 - Branded Tracking Email v4.0.73
+
+User request:
+
+- Make tracking emails use the same visual style and logo as successful-payment and bank-invoice emails.
+- Add social media links at the bottom.
+- Include the order number in the email subject.
+- Send from no-reply instead of the default WordPress sender.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-email.php`
+- `includes/class-yo-checkout-tracking-notifications.php`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `AUDIT_REMEDIATION_MAP.md`
+- `PROJECT_GOVERNANCE.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.73`.
+- Tracking notification rendering/delivery is delegated to the shared checkout email service.
+- The tracking email uses the same site logo callback, white card, typography, colors, border, radius, and footer treatment as paid/invoice emails.
+- The subject and H1 include the KeyCRM order number, with local order ID as fallback.
+- The sender is explicitly `YOleotard <no-reply@yoleotard.com>`.
+- The footer includes the live Facebook, Instagram, and TikTok links from yoleotard.com.
+- Tracking sent metadata is still written only after successful `wp_mail()`.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `git diff --check` passed with only Git line-ending warnings.
+- Verified the subject/H1 order number, explicit no-reply From header, shared email-service callback, and live Facebook/Instagram/TikTok URLs in code.
+- `node --check assets/yo-checkout.js` was not required because JavaScript was not changed.
+- Live Gmail delivery/rendering remains pending.
+
+Live test status:
+
+- Pending. Send to Gmail and confirm logo rendering, branded layout, order number, no-reply sender, social links, tracking links, and Sent status.
+
+Repository rollback point:
+
+- Pending commit.
 ## 2026-07-06 - Build v4.0.72 Test Archive
 
 User request:

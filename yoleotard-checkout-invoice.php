@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.72. Adds admin tracking notifications for completed customer orders.
- * Version: 4.0.72
+ * Description: v4.0.73. Aligns tracking emails with branded order email templates.
+ * Version: 4.0.73
  * Author: YOleotard / ChatGPT
  */
 
@@ -195,7 +195,9 @@ class YO_Checkout_Invoice_Plugin {
 
     private function tracking_notifications_service() {
         if (!$this->tracking_notifications_service instanceof YO_Checkout_Tracking_Notifications_Service) {
-            $this->tracking_notifications_service = new YO_Checkout_Tracking_Notifications_Service();
+            $this->tracking_notifications_service = new YO_Checkout_Tracking_Notifications_Service([
+                'send_tracking_email' => function($local_id, $tracking_url) { return $this->email_service()->send_tracking_email($local_id, $tracking_url); },
+            ]);
         }
         return $this->tracking_notifications_service;
     }

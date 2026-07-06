@@ -491,3 +491,11 @@ YOleotard Checkout v4.0.72
 - Provides expandable order rows, All/Pending/Sent filters, pagination, a tracking URL textarea, and a protected send action.
 - Sends a styled English HTML shipment email with a tracking button and fallback link.
 - Stores tracking URL, recipient, sender, and sent time only after `wp_mail()` succeeds.
+
+YOleotard Checkout v4.0.73
+
+- Moves tracking email rendering and delivery into the shared checkout email service.
+- Matches the branded invoice/paid email card style and uses the same configured site logo.
+- Adds the order number to the email subject and main heading.
+- Sends tracking emails from `YOleotard <no-reply@yoleotard.com>` instead of the default WordPress sender.
+- Adds Facebook, Instagram, and TikTok links to the tracking email footer.
