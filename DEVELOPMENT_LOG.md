@@ -68,7 +68,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending commit.
+- Implementation commit: `620f6d7` (`Use KeyCRM order ID for Monobank payments`).
 ## 2026-07-06 - Build v4.0.73 Test Archive
 
 User request:
@@ -267,7 +267,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending commit.
+- Implementation commit: `620f6d7` (`Use KeyCRM order ID for Monobank payments`).
 
 ## 2026-06-14 - Correct YOOtheme Card Default Value v4.0.70
 
@@ -351,7 +351,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending commit.
+- Implementation commit: `620f6d7` (`Use KeyCRM order ID for Monobank payments`).
 
 ## 2026-06-14 - YOOtheme Panel Style Invoice Reservation v4.0.69
 
