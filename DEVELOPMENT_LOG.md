@@ -64,7 +64,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending commit.
+- Local git checkpoint commit: `7707ac4` (`Brand tracking notification emails`).
 ## 2026-07-06 - Build v4.0.72 Test Archive
 
 User request:
