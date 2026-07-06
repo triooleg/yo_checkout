@@ -16,6 +16,28 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-06 - Build v4.0.74 Test Archive
+
+User request:
+
+- Create the test archive for the KeyCRM order ID in Monobank release.
+
+Behavior changed:
+
+- Preserved the previous exact v4.0.73 build as `plugin-archives/yoleotard-checkout-invoice-v4.0.73.zip`.
+- Rebuilt `plugin-archives/yoleotard-checkout-invoice.zip` from tracked plugin files with Python `zipfile`.
+
+Verification performed:
+
+- Embedded plugin version: `4.0.74`.
+- ZIP contains one top-level directory: `yoleotard-checkout-invoice/`.
+- ZIP contains 44 entries and no paths with backslashes.
+- `ZipFile.testzip()` returned no corrupt entry.
+- SHA-256: `4624E61C558EAC561BFEA5C74900D3F0DC904C54EE4FE8947F3FD2D08AE7771C`.
+
+Repository rollback point:
+
+- Pending commit.
 ## 2026-07-06 - KeyCRM Order ID in Monobank v4.0.74
 
 User request:
