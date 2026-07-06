@@ -16,6 +16,30 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-06 - Build v4.0.72 Test Archive
+
+User request:
+
+- Create a test archive for the tracking notification release.
+
+Behavior changed:
+
+- No runtime behavior changed after the v4.0.72 implementation commit.
+- Preserved the previous exact-name archive as `plugin-archives/yoleotard-checkout-invoice-v4.0.71.zip`.
+- Created `plugin-archives/yoleotard-checkout-invoice.zip` and `plugin-archives/yoleotard-checkout-invoice-v4.0.72.zip`.
+
+Verification performed:
+
+- Main plugin and every PHP file under `includes/` passed `php -l`.
+- Python `zipfile` created 44 entries under one `yoleotard-checkout-invoice/` top-level folder.
+- Verified zero ZIP paths contain `\`.
+- Verified the archive contains the main plugin file, frontend JS, and `includes/class-yo-checkout-tracking-notifications.php`.
+- Verified local extraction creates real `assets/` and `includes/` directories.
+
+Repository rollback point:
+
+- Runtime implementation commit: `e18826b` (`Add customer tracking notifications`). The generated archives remain local and git-ignored.
+
 ## 2026-07-06 - Customer Tracking Notifications v4.0.72
 
 User request:
