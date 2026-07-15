@@ -40,7 +40,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Pending commit.
+- Archive documentation commit: `03d2eeb` (`Record v4.0.75 test archive`).
 ## 2026-07-15 - Western Bid Step 2 Disclaimer v4.0.75
 
 User request:
