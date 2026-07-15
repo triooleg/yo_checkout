@@ -507,3 +507,10 @@ YOleotard Checkout v4.0.74
 - Keeps repeated Monobank starts idempotent by updating the same pre-created KeyCRM order.
 - Blocks Monobank start if the KeyCRM order cannot be created and schedules the existing unpaid-order cancellation path.
 - After payment, the existing finalizer updates the same KeyCRM order, adds payment/status, sends email, and continues Step 4.
+
+YOleotard Checkout v4.0.75
+
+- Adds the Western Bid Merchant of Record disclaimer to the Step 2 checkout receipt/information block.
+- Explains that Western Bid, Inc. is the Merchant of Record and that customers will see `WESTERN BID` on PayPal and card statements.
+- Adds compact styling for the disclaimer inside the existing receipt box.
+- Keeps payment provider routing, totals, KeyCRM, email, and invoice logic unchanged.

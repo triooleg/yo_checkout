@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.74. Sends the KeyCRM order ID to Monobank card payments.
- * Version: 4.0.74
+ * Description: v4.0.75. Adds the Western Bid Merchant of Record disclaimer to Step 2.
+ * Version: 4.0.75
  * Author: YOleotard / ChatGPT
  */
 

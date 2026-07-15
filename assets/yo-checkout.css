@@ -2,7 +2,7 @@
 .yo-fee-note{background:#eef7ff;border:1px solid #b9dcff;border-radius:12px;padding:12px;margin:12px 0;color:#07194b;line-height:1.45}.yo-terms-check{display:block;margin:12px 0 4px;line-height:1.45}.yo-terms-check input{margin-right:8px}.yo-method-btn:disabled{opacity:.55;cursor:not-allowed}
 
 .yo-terms-check a{color:#1e87f0!important;text-decoration:underline;font-weight:600}.yo-terms-check a:hover{color:#0f6ecd!important}
-.yo-checkout-receipt{background:#eef7ff;border-color:#b9dcff}.yo-receipt-title{margin-bottom:8px}.yo-receipt-row,.yo-receipt-total{display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-top:1px solid rgba(30,135,240,.18)}.yo-receipt-row:first-of-type{border-top:0}.yo-receipt-total{font-size:17px;color:#07194b;border-top:2px solid #1e87f0;margin-top:6px;padding-top:9px}.yo-receipt-note{font-size:13px;line-height:1.45;margin:10px 0 0;color:#334155}
+.yo-checkout-receipt{background:#eef7ff;border-color:#b9dcff}.yo-receipt-title{margin-bottom:8px}.yo-receipt-row,.yo-receipt-total{display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-top:1px solid rgba(30,135,240,.18)}.yo-receipt-row:first-of-type{border-top:0}.yo-receipt-total{font-size:17px;color:#07194b;border-top:2px solid #1e87f0;margin-top:6px;padding-top:9px}.yo-receipt-note{font-size:13px;line-height:1.45;margin:10px 0 0;color:#334155}.yo-western-bid-disclaimer{margin-top:10px;padding-top:10px;border-top:1px solid rgba(30,135,240,.18);font-size:12.5px;line-height:1.45;color:#334155}.yo-western-bid-disclaimer strong{display:block;color:#07194b;margin-bottom:3px}.yo-western-bid-disclaimer p{margin:0}
 
 .yo-receipt-product{font-weight:600;color:#07194b;margin:4px 0 8px;line-height:1.35}.yo-discount-row strong{color:#0b7f3a}
 

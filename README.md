@@ -2,7 +2,7 @@
 
 WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com), который добавляет полноценный checkout для продажи готовых купальников и платьев YOleotard напрямую с сайта.
 
-Текущая версия плагина: **4.0.74**.
+Текущая версия плагина: **4.0.75**.
 
 ## Что делает плагин
 
@@ -146,6 +146,10 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 Отчет поддерживает фильтр по статусу и пагинацию 10/20/50 записей на странице.
 
+## Western Bid disclaimer in Step 2
+
+В v4.0.75 на втором шаге checkout, внутри информационного блока с расчетом card payment, добавлен disclaimer Western Bid. Покупатель видит, что магазин интегрирован с Western Bid e-commerce platform, Western Bid, Inc. является Merchant of Record, а в PayPal/card statement получателем платежа будет указано `WESTERN BID`.
+
 ## KeyCRM order ID in Monobank
 
 Начиная с v4.0.74 перед созданием Monobank invoice плагин создает или переиспользует card order в KeyCRM. Реальный номер KeyCRM передается в назначение, комментарий, reference и basket code Monobank вместо локального WordPress ID `WEB-*`. После успешной оплаты существующий финализатор обновляет тот же KeyCRM order, добавляет платеж и устанавливает paid status. Неоплаченный предсозданный order обрабатывается существующей двухчасовой отменой.
@@ -156,7 +160,7 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 ## Подтвержденные рабочие зоны
 
-На момент v4.0.74 защищенными рабочими зонами считаются:
+На момент v4.0.75 защищенными рабочими зонами считаются:
 
 - Monobank card payment;
 - Western Bid Stripe/PayPal payment;

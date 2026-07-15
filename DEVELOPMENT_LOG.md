@@ -16,6 +16,45 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-15 - Western Bid Step 2 Disclaimer v4.0.75
+
+User request:
+
+- Add a Western Bid disclaimer to the information message on the second checkout/cart step.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.75`.
+- Step 2 checkout receipt/information block now includes the Western Bid Merchant of Record disclaimer.
+- The disclaimer tells customers that Western Bid, Inc. is Merchant of Record and that `WESTERN BID` appears on PayPal and card statements.
+- Payment provider routing, totals, KeyCRM, email, invoice, and Step 3/Step 4 logic were not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- `git diff --check` passed with only Git line-ending warnings.
+
+Live test status:
+
+- Pending. Install the v4.0.75 archive and confirm Step 2 shows the disclaimer compactly before payment method selection.
+
+Repository rollback point:
+
+- Implementation commit: `73ce641` (`Add Western Bid Step 2 disclaimer`).
 ## 2026-07-06 - Build v4.0.74 Test Archive
 
 User request:
@@ -37,7 +76,7 @@ Verification performed:
 
 Repository rollback point:
 
-- Pending commit.
+- Implementation commit: `73ce641` (`Add Western Bid Step 2 disclaimer`).
 ## 2026-07-06 - KeyCRM Order ID in Monobank v4.0.74
 
 User request:

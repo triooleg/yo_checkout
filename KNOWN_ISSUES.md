@@ -6,6 +6,22 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Western Bid Step 2 disclaimer live validation
+
+Status: v4.0.75 test candidate requires visual validation.
+
+Details:
+
+- Step 2 checkout receipt now shows the Western Bid Merchant of Record disclaimer inside the existing information block.
+- The disclaimer explains that Western Bid, Inc. is the Merchant of Record and that `WESTERN BID` will appear as payee on PayPal and card statements.
+- Payment routing, totals, KeyCRM, email, and invoice behavior were not changed.
+
+Handling:
+
+- Install the v4.0.75 test archive.
+- Add a product to cart, fill Step 1, continue to Step 2, and confirm the disclaimer is visible and compact inside the information block.
+- Confirm card and SEPA/SWIFT invoice buttons still require Terms confirmation and continue to the existing flows.
+
 ### KeyCRM order ID in Monobank live validation
 
 Status: v4.0.74 test candidate requires live validation.

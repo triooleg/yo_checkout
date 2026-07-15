@@ -1464,7 +1464,8 @@
       rows += '<div class=\"yo-receipt-row\"><span>Delivery to '+escHtml(current.shipping?.country || 'your country')+(current.shipping?.selected_label ? ' &middot; '+escHtml(current.shipping.selected_label) : '')+'</span><strong>&euro;'+money(f.shipping || 0)+'</strong></div>' +
         '<div class=\"yo-receipt-row\"><span>Card payment service fee '+money(f.percent)+'%</span><strong>&euro;'+money(f.fee)+'</strong></div>' +
         '<div class=\"yo-receipt-total\"><span>Total card payment</span><strong>&euro;'+money(f.total)+'</strong></div>' +
-        '<p class=\"yo-receipt-note\">Card payments are processed by a third-party provider. If you choose SEPA/SWIFT invoice, the card payment service fee is not added. Bank invoice total: &euro;'+money(b.total)+'.</p>';
+        '<p class=\"yo-receipt-note\">Card payments are processed by a third-party provider. If you choose SEPA/SWIFT invoice, the card payment service fee is not added. Bank invoice total: &euro;'+money(b.total)+'.</p>' +
+        '<div class=\"yo-western-bid-disclaimer\"><strong>Disclaimer</strong><p>This store is integrated with the Western Bid&trade; e-commerce platform, and Western Bid, Inc. is the Merchant of Record for all purchases made in this store. Therefore, you will see &ldquo;WESTERN BID&rdquo; listed as the payee on your PayPal account and credit card statement.</p></div>';
       box.innerHTML = rows;
       box.querySelectorAll('input[name="yo_shipping_option"]').forEach(function(input){
         input.addEventListener('change', function(){ updateShippingOption(this.value); });
