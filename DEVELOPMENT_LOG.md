@@ -50,11 +50,12 @@ Verification performed:
 
 Live test status:
 
-- Pending. Install the v4.0.75 archive and confirm Step 2 shows the disclaimer compactly before payment method selection.
+- Pending. Install the v4.0.75 build and confirm Step 2 shows the disclaimer compactly before payment method selection.
 
 Repository rollback point:
 
-- Implementation commit: `73ce641` (`Add Western Bid Step 2 disclaimer`).
+- Implementation commit: `6e6d9f3` (`Add Western Bid Step 2 disclaimer`).
+
 ## 2026-07-06 - Build v4.0.74 Test Archive
 
 User request:
@@ -76,7 +77,8 @@ Verification performed:
 
 Repository rollback point:
 
-- Implementation commit: `73ce641` (`Add Western Bid Step 2 disclaimer`).
+- Archive documentation commit: `4ca2b02` (`Record v4.0.74 test archive`).
+
 ## 2026-07-06 - KeyCRM Order ID in Monobank v4.0.74
 
 User request:
