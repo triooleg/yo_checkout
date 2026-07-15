@@ -16,6 +16,31 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-15 - Build v4.0.75 Test Archive
+
+User request:
+
+- Create a test archive for the Western Bid Step 2 disclaimer release.
+
+Behavior changed:
+
+- No runtime behavior changed after the v4.0.75 implementation commits.
+- Preserved the previous exact v4.0.74 build as `plugin-archives/yoleotard-checkout-invoice-v4.0.74.zip`.
+- Rebuilt `plugin-archives/yoleotard-checkout-invoice.zip` from tracked plugin files with Python `zipfile`.
+- Saved a local versioned copy as `plugin-archives/yoleotard-checkout-invoice-v4.0.75.zip`.
+
+Verification performed:
+
+- Embedded plugin version: `4.0.75`.
+- ZIP contains one top-level directory: `yoleotard-checkout-invoice/`.
+- ZIP contains 44 entries and no paths with backslashes.
+- `ZipFile.testzip()` returned no corrupt entry.
+- Local extraction creates real `assets/` and `includes/` directories.
+- SHA-256: `81634026A8C920A37BFE0710774C71726489AA332463310AEFAF5EBEAC95E0D7`.
+
+Repository rollback point:
+
+- Pending commit.
 ## 2026-07-15 - Western Bid Step 2 Disclaimer v4.0.75
 
 User request:
