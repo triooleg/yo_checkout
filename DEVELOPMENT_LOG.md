@@ -16,6 +16,31 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-19 - Build v4.0.76 Test Archive
+
+User request:
+
+- Create a test archive for the free-shipping product-card badge release.
+
+Behavior changed:
+
+- No runtime behavior changed after the v4.0.76 implementation commit.
+- Preserved the previous exact-name build as version `4.0.75` before rebuilding `plugin-archives/yoleotard-checkout-invoice.zip`.
+- Rebuilt `plugin-archives/yoleotard-checkout-invoice.zip` from tracked plugin files with Python `zipfile`.
+- Saved a local versioned copy as `plugin-archives/yoleotard-checkout-invoice-v4.0.76.zip`.
+
+Verification performed:
+
+- Embedded plugin version: `4.0.76`.
+- ZIP contains one top-level directory: `yoleotard-checkout-invoice/`.
+- ZIP contains 43 entries and no paths with backslashes.
+- `ZipFile.testzip()` returned no corrupt entry.
+- SHA-256: `0894CB54235FDB38CACEA011B625899892F61304C4B61CE30A8DABBDD5F7E5D2`.
+
+Repository rollback point:
+
+- Archive documentation commit on `main`.
+
 ## 2026-07-19 - Free Shipping Product Badge v4.0.76
 
 User request:
