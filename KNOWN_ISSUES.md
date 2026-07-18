@@ -6,6 +6,22 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Free-shipping product-card badge live validation
+
+Status: v4.0.76 test candidate requires visual validation.
+
+Details:
+
+- The Shipping tab now has a visual storefront badge setting with an enable checkbox and editable text.
+- When enabled, product cards should show the configured text, for example `SHIPPING INCLUDED`, after the measurements block and before the Buy button.
+- This badge is informational only and must not change checkout shipping totals or available shipping options.
+
+Handling:
+
+- Enable the checkbox in `YOleotard Checkout > Settings > Shipping` and save a short badge text.
+- Confirm regular and sale product cards show the badge in the correct position on desktop and mobile.
+- Confirm disabling the checkbox removes the badge and checkout shipping calculation remains unchanged.
+
 ### Western Bid Step 2 disclaimer live validation
 
 Status: v4.0.75 test candidate requires visual validation.

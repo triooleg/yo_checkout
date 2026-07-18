@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.75. Adds the Western Bid Merchant of Record disclaimer to Step 2.
- * Version: 4.0.75
+ * Description: v4.0.76. Adds optional free-shipping badge text under product cards.
+ * Version: 4.0.76
  * Author: YOleotard / ChatGPT
  */
 
@@ -324,6 +324,8 @@ class YO_Checkout_Invoice_Plugin {
             'shipping_service_mode' => 'auto_cheapest',
             'shipping_choice_enabled' => '1',
             'shipping_option_limit' => '5',
+            'shipping_free_badge_enabled' => '0',
+            'shipping_free_badge_text' => 'SHIPPING INCLUDED',
             'shipping_fx_mode' => 'auto_nbu',
             'shipping_fx_nbu_url' => 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json',
             'shipping_fx_cache_hours' => '12',
@@ -810,6 +812,14 @@ EUR=1',
                 $out[$key] = is_string($value) ? esc_url_raw(trim($value)) : '';
                 continue;
             }
+            if ($key === 'shipping_free_badge_enabled') {
+                $out[$key] = ((string)$value === '1') ? '1' : '0';
+                continue;
+            }
+            if ($key === 'shipping_free_badge_text') {
+                $out[$key] = is_string($value) ? sanitize_text_field(wp_unslash($value)) : '';
+                continue;
+            }
             $out[$key] = is_string($value) ? wp_kses_post(trim($value)) : $value;
         }
 
@@ -873,6 +883,8 @@ EUR=1',
                         <?php $this->select('shipping_service_mode', 'Service selection mode', ['auto_cheapest'=>'Auto: cheapest available service', 'auto_fastest'=>'Auto: fastest available service', 'nova_post'=>'Nova Post only', 'nova_global'=>'Nova Global only', 'ukrposhta'=>'Ukrposhta only']); ?>
                         <?php $this->select('shipping_choice_enabled', 'Show selectable shipping options in checkout', ['1'=>'On', '0'=>'Off']); ?>
                         <?php $this->field('shipping_option_limit', 'Maximum shipping options shown to customer'); ?>
+                        <?php $this->checkbox('shipping_free_badge_enabled', 'Show free shipping badge under product cards', 'Visual storefront badge only. It does not change checkout shipping totals.'); ?>
+                        <?php $this->field('shipping_free_badge_text', 'Free shipping badge text'); ?>
                         <?php $this->field('nova_post_weight_kg', 'Default parcel weight, kg'); ?>
                         <?php $this->field('nova_post_length_cm', 'Default parcel length, cm'); ?>
                         <?php $this->field('nova_post_width_cm', 'Default parcel width, cm'); ?>
@@ -1123,6 +1135,17 @@ EUR=1',
         printf('<tr><th scope="row"><label for="%1$s">%2$s</label></th><td><input name="%3$s[%1$s]" id="%1$s" type="%4$s" value="%5$s" class="regular-text" autocomplete="off"></td></tr>',
             esc_attr($key), esc_html($label), esc_attr(self::OPT), esc_attr($type), esc_attr($s[$key] ?? ''));
     }
+    private function checkbox($key, $label, $description = '') {
+        $s = self::settings();
+        printf(
+            '<tr><th scope="row">%2$s</th><td><input type="hidden" name="%3$s[%1$s]" value="0"><label><input name="%3$s[%1$s]" id="%1$s" type="checkbox" value="1" %4$s> %2$s</label>%5$s</td></tr>',
+            esc_attr($key),
+            esc_html($label),
+            esc_attr(self::OPT),
+            checked((string)($s[$key] ?? '0'), '1', false),
+            $description !== '' ? '<p class="description">' . esc_html($description) . '</p>' : ''
+        );
+    }
     private function textarea($key, $label) {
         $s = self::settings();
         printf('<tr><th scope="row"><label for="%1$s">%2$s</label></th><td><textarea name="%3$s[%1$s]" id="%1$s" rows="5" class="large-text">%4$s</textarea></td></tr>',
@@ -1173,6 +1196,8 @@ EUR=1',
             'promoBadgeBgColor' => sanitize_text_field($s['promo_badge_bg_color'] ?? '#0b8f2f'),
             'promoBadgeOpacity' => max(0, min(100, floatval(str_replace(',', '.', (string)($s['promo_badge_opacity'] ?? 100))))),
             'promoTooltipGifUrl' => esc_url($s['promo_tooltip_gif_url'] ?? ''),
+            'freeShippingBadgeEnabled' => (string)($s['shipping_free_badge_enabled'] ?? '0') === '1',
+            'freeShippingBadgeText' => sanitize_text_field($s['shipping_free_badge_text'] ?? 'SHIPPING INCLUDED'),
             'reservationMinutes' => max(1, min(1440, absint($s['reservation_minutes'] ?? 30))),
             'reservationBadgeText' => sanitize_text_field($s['reservation_badge_text'] ?? 'Reserved'),
             'cartAddedNotificationEnabled' => (string)($s['cart_added_notification_enabled'] ?? '1') === '1',

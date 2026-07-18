@@ -713,3 +713,42 @@ li.yo-invoice-reserved-card::after {
     font-size:13px !important;
   }
 }
+/* v4.0.76 optional free-shipping product-card badge */
+.yo-free-shipping-badge-wrap{
+  display:block;
+  margin:10px 0 10px;
+  line-height:1;
+}
+.yo-free-shipping-badge{
+  display:inline-flex;
+  align-items:center;
+  max-width:100%;
+  gap:7px;
+  padding:6px 12px;
+  border:1px solid rgba(16,185,129,.28);
+  border-radius:999px;
+  background:#dff8ea;
+  color:#07543a;
+  box-shadow:0 8px 18px rgba(7,84,58,.12);
+  font-size:12px;
+  font-weight:800;
+  line-height:1.2;
+  letter-spacing:0;
+  text-transform:uppercase;
+  vertical-align:middle;
+}
+.yo-free-shipping-badge-text{
+  overflow-wrap:anywhere;
+}
+.yo-free-shipping-badge-dot{
+  flex:0 0 auto;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#10b981;
+  box-shadow:0 0 0 3px rgba(16,185,129,.16);
+}
+@media (max-width: 480px){
+  .yo-free-shipping-badge-wrap{margin:9px 0 10px;}
+  .yo-free-shipping-badge{padding:6px 10px;font-size:11.5px;}
+}

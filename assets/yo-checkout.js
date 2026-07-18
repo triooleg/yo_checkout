@@ -376,6 +376,46 @@
       return null;
     }
 
+    function freeShippingBadgeEnabled(){
+      return !!(window.YOCheckout && window.YOCheckout.freeShippingBadgeEnabled && String(window.YOCheckout.freeShippingBadgeText || '').trim() !== '');
+    }
+    function removeFreeShippingBadge(card){
+      if(!card) return;
+      card.querySelectorAll('.yo-free-shipping-badge-wrap').forEach(function(el){ el.remove(); });
+    }
+    function productBuyButton(card){
+      if(!card) return null;
+      return card.querySelector('.yo-main-buy-btn, .sale-new-btn, .yo-sale-new-btn, .yo-sale-btn, a.el-link.uk-button:not(.sale-old-btn), a.uk-button, button.uk-button');
+    }
+    function placeFreeShippingBadge(card){
+      if(!card) return;
+      if(!freeShippingBadgeEnabled()) { removeFreeShippingBadge(card); return; }
+      const button = productBuyButton(card);
+      if(!button) { removeFreeShippingBadge(card); return; }
+      const text = String(window.YOCheckout.freeShippingBadgeText || 'SHIPPING INCLUDED').trim();
+      let wrap = card.querySelector('.yo-free-shipping-badge-wrap');
+      if(!wrap){
+        wrap = document.createElement('div');
+        wrap.className = 'yo-free-shipping-badge-wrap';
+        const badge = document.createElement('span');
+        badge.className = 'yo-free-shipping-badge';
+        const dot = document.createElement('span');
+        dot.className = 'yo-free-shipping-badge-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('span');
+        label.className = 'yo-free-shipping-badge-text';
+        badge.appendChild(dot);
+        badge.appendChild(label);
+        wrap.appendChild(badge);
+      }
+      const label = wrap.querySelector('.yo-free-shipping-badge-text');
+      if(label) label.textContent = text;
+      const buttonHost = button.parentElement || card;
+      if(wrap.parentElement !== buttonHost || wrap.nextElementSibling !== button){
+        buttonHost.insertBefore(wrap, button);
+      }
+    }
+
     function isProductCard(card){
       if(!card) return false;
       // YOOtheme also uses .el-item in footer/menu grids. Promo badges must be
@@ -684,8 +724,9 @@
     function addPayButtons(){
       cleanupInvalidPromoBadges();
       document.querySelectorAll('.el-item').forEach(function(card){
-        if(!isProductCard(card)) { removePromoBadge(card); return; }
+        if(!isProductCard(card)) { removePromoBadge(card); removeFreeShippingBadge(card); return; }
         if(isInvoiceReservedCard(card)){
+          placeFreeShippingBadge(card);
           applyInvoiceReservedState(card);
           return;
         }
@@ -699,20 +740,23 @@
           // already have the red sale button. Remove any old badges immediately.
           removePromoBadge(card);
           if(saleButton) cleanPaymentButton(saleButton);
+          placeFreeShippingBadge(card);
           return;
         }
         if(regularButton){
           cleanPaymentButton(regularButton);
           const priceNode = regularButton.querySelector('.yo-price[data-eur]');
-          if(!priceNode) { removePromoBadge(card); return; }
+          if(!priceNode) { removePromoBadge(card); removeFreeShippingBadge(card); return; }
           if(!regularButton.dataset.yoTextReady){
             regularButton.innerHTML='<span class="yo-cart-icon"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="7.3" cy="17.3" r="1.4"></circle><circle cx="13.3" cy="17.3" r="1.4"></circle><polyline fill="none" stroke="currentColor" stroke-width="1.1" points="0 2 3.2 4 5.3 12.5 16 12.5 18 6.5 8 6.5"></polyline></svg></span> Buy now &bull; <span class="yo-price" data-eur="'+priceNode.getAttribute('data-eur')+'">'+priceNode.textContent+'</span>';
             regularButton.dataset.yoTextReady='1';
           }
           // Show promo badge only for regular products without the red sale button.
           placePromoBadge(card);
+          placeFreeShippingBadge(card);
         } else {
           removePromoBadge(card);
+          removeFreeShippingBadge(card);
         }
       });
       cleanupInvalidPromoBadges();

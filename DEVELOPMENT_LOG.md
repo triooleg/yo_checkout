@@ -16,6 +16,45 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-19 - Free Shipping Product Badge v4.0.76
+
+User request:
+
+- Add a Shipping admin checkbox and text field for a free-shipping/product-card badge.
+- When enabled, show the configured text under each product card on the storefront.
+- Analyze the product card and choose the best color and placement for the message.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `README.md`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now `4.0.76`.
+- Shipping settings now include `Show free shipping badge under product cards` and `Free shipping badge text`.
+- The storefront receives the enabled flag and badge text through `YOCheckout` config.
+- Product cards render a compact emerald `SHIPPING INCLUDED`-style badge after the measurements block and before the Buy button.
+- This is a visual storefront badge only; checkout shipping calculation and totals are not changed.
+
+Verification performed:
+
+- `php -l yoleotard-checkout-invoice.php` passed.`r`n- `php -l` passed for every PHP file under `includes/`.`r`n- `node --check assets/yo-checkout.js` passed.`r`n- `git diff --check` passed with only Git line-ending warnings.
+
+Live test status:
+
+- Pending. Install the v4.0.76 build and confirm the badge appears only when enabled, uses the configured text, and sits between measurements and the Buy button on desktop/mobile cards.
+
+Repository rollback point:
+
+- Implementation commit: `Add free shipping product badge` on `main`.
 ## 2026-07-15 - Build v4.0.75 Test Archive
 
 User request:

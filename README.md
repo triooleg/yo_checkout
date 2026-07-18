@@ -2,7 +2,7 @@
 
 WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com), который добавляет полноценный checkout для продажи готовых купальников и платьев YOleotard напрямую с сайта.
 
-Текущая версия плагина: **4.0.75**.
+Текущая версия плагина: **4.0.76**.
 
 ## Что делает плагин
 
@@ -146,6 +146,17 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 Отчет поддерживает фильтр по статусу и пагинацию 10/20/50 записей на странице.
 
+## Free shipping badge
+
+В v4.0.76 во вкладке доставки добавлена витринная настройка бейджа бесплатной доставки:
+
+- checkbox включает или отключает бейдж под карточками товаров;
+- текстовое поле задает надпись, например `SHIPPING INCLUDED`;
+- бейдж выводится после размеров товара и перед кнопкой покупки;
+- бейдж является только визуальным сообщением на витрине и не меняет расчет доставки в checkout.
+
+Визуальное решение: компактный emerald/green бейдж с мягким светлым фоном, чтобы он читался как преимущество доставки, но не конкурировал с основной синей кнопкой `Buy now`.
+
 ## Western Bid disclaimer in Step 2
 
 В v4.0.75 на втором шаге checkout, внутри информационного блока с расчетом card payment, добавлен disclaimer Western Bid. Покупатель видит, что магазин интегрирован с Western Bid e-commerce platform, Western Bid, Inc. является Merchant of Record, а в PayPal/card statement получателем платежа будет указано `WESTERN BID`.
@@ -160,7 +171,7 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 ## Подтвержденные рабочие зоны
 
-На момент v4.0.75 защищенными рабочими зонами считаются:
+На момент v4.0.76 защищенными рабочими зонами считаются:
 
 - Monobank card payment;
 - Western Bid Stripe/PayPal payment;
@@ -183,8 +194,9 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 - per-order guest access tokens;
 - Purchases Report и checkout snapshots;
 - promo badge GIF tooltip;
-- desktop Ready-to-Ship height filter spacing.
-- bank-invoice Card Default reservation state.
+- desktop Ready-to-Ship height filter spacing;
+- bank-invoice Card Default reservation state;
+- free-shipping product-card badge.
 
 ## Структура проекта
 

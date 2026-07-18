@@ -514,3 +514,11 @@ YOleotard Checkout v4.0.75
 - Explains that Western Bid, Inc. is the Merchant of Record and that customers will see `WESTERN BID` on PayPal and card statements.
 - Adds compact styling for the disclaimer inside the existing receipt box.
 - Keeps payment provider routing, totals, KeyCRM, email, and invoice logic unchanged.
+
+YOleotard Checkout v4.0.76
+
+- Adds an optional Shipping tab setting for a storefront free-shipping badge under product cards.
+- Adds editable badge text, defaulting to `SHIPPING INCLUDED`, and a checkbox to enable or disable the badge.
+- Shows the badge in the product-card flow after measurements and before the Buy button, including regular and sale cards.
+- Styles the badge as a compact emerald benefit label that does not compete with the blue Buy button.
+- Keeps checkout shipping totals, provider routing, KeyCRM, email, invoice, and payment logic unchanged.
