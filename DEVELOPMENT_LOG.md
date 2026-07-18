@@ -16,6 +16,32 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-19 - Build v4.0.77 Test Archive
+
+User request:
+
+- Create a test archive after moving the free-shipping badge directly above the Buy button.
+
+Behavior changed:
+
+- No runtime behavior changed after implementation commit f6c0266.
+- Preserved the previous exact-name v4.0.76 build as plugin-archives/yoleotard-checkout-invoice-v4.0.76.zip.
+- Rebuilt plugin-archives/yoleotard-checkout-invoice.zip with Python zipfile.
+- Saved a versioned copy as plugin-archives/yoleotard-checkout-invoice-v4.0.77.zip.
+
+Verification performed:
+
+- Embedded plugin version: 4.0.77.
+- ZIP contains one top-level directory: yoleotard-checkout-invoice/.
+- ZIP contains 43 entries and no paths with backslashes.
+- Local extraction created real assets/ and includes/ directories.
+- ZipFile.testzip() returned no corrupt entry.
+- SHA-256: C79C1B381A6886656E35BA410433228E7C1926AD5AA8A86578D141E3569C9F67.
+
+Repository rollback point:
+
+- Implementation commit f6c0266 on main.
+- Archive documentation commit follows on main.
 ## 2026-07-19 - Free Shipping Badge Placement v4.0.77
 
 User clarification:
@@ -57,7 +83,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending implementation commit.
+- Implementation commit: f6c0266 Fix free shipping badge placement.
 
 ## 2026-07-19 - Build v4.0.76 Test Archive
 
