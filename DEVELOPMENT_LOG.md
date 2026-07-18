@@ -16,6 +16,49 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-19 - Free Shipping Badge Placement v4.0.77
+
+User clarification:
+
+- Place the free-shipping badge directly above the product Buy button, not beside the unit controls.
+
+Root cause:
+
+- A combined UIkit button selector returned the first matching control in DOM order, so the cm unit control could be mistaken for the product Buy button.
+
+Files changed:
+
+- assets/yo-checkout.js
+- yoleotard-checkout-invoice.php
+- CHANGELOG.txt
+- PROJECT_CONTEXT.md
+- PLUGIN_MAP.md
+- KNOWN_ISSUES.md
+- README.md
+- DEVELOPMENT_LOG.md
+
+Behavior changed:
+
+- Plugin header version is now 4.0.77.
+- Free-shipping badge placement now prioritizes the prepared checkout button and sale button.
+- Generic UIkit controls qualify only when they contain the product price or visible Buy text.
+- The badge remains inserted as the immediate previous sibling of the actual Buy button.
+
+Verification performed:
+
+- php -l yoleotard-checkout-invoice.php passed.
+- php -l passed for every PHP file under includes/.
+- node --check assets/yo-checkout.js passed.
+- git diff --check passed with only normal Git line-ending warnings.
+
+Live test status:
+
+- Pending. Confirm the badge appears directly above Buy now on regular and sale cards on desktop/mobile.
+
+Repository rollback point:
+
+- Pending implementation commit.
+
 ## 2026-07-19 - Build v4.0.76 Test Archive
 
 User request:

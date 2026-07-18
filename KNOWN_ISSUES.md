@@ -8,12 +8,12 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Free-shipping product-card badge live validation
 
-Status: v4.0.76 test candidate requires visual validation.
+Status: v4.0.77 test candidate requires visual validation.
 
 Details:
 
 - The Shipping tab now has a visual storefront badge setting with an enable checkbox and editable text.
-- When enabled, product cards should show the configured text, for example `SHIPPING INCLUDED`, after the measurements block and before the Buy button.
+- In v4.0.77, enabled product cards should show the configured text, for example `SHIPPING INCLUDED`, directly above the actual Buy button; unit and currency controls must remain in the top controls row.
 - This badge is informational only and must not change checkout shipping totals or available shipping options.
 
 Handling:

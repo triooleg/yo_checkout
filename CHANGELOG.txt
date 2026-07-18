@@ -522,3 +522,7 @@ YOleotard Checkout v4.0.76
 - Shows the badge in the product-card flow after measurements and before the Buy button, including regular and sale cards.
 - Styles the badge as a compact emerald benefit label that does not compete with the blue Buy button.
 - Keeps checkout shipping totals, provider routing, KeyCRM, email, invoice, and payment logic unchanged.
+
+YOleotard Checkout v4.0.77
+- Fixed free-shipping badge placement so UIkit unit and currency controls are never mistaken for the product buy button.
+- The badge is now inserted directly above the actual Buy now button on regular, sale, and reserved product cards.

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.76. Adds optional free-shipping badge text under product cards.
- * Version: 4.0.76
+ * Description: v4.0.77. Keeps the optional free-shipping badge directly above product buy buttons.
+ * Version: 4.0.77
  * Author: YOleotard / ChatGPT
  */
 

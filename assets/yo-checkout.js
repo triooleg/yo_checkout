@@ -385,7 +385,15 @@
     }
     function productBuyButton(card){
       if(!card) return null;
-      return card.querySelector('.yo-main-buy-btn, .sale-new-btn, .yo-sale-new-btn, .yo-sale-btn, a.el-link.uk-button:not(.sale-old-btn), a.uk-button, button.uk-button');
+      const preparedButton = card.querySelector('.yo-main-buy-btn');
+      if(preparedButton) return preparedButton;
+      const saleButton = card.querySelector('.sale-new-btn, .yo-sale-new-btn, .yo-sale-btn, .uk-button-danger');
+      if(saleButton) return saleButton;
+      return Array.from(card.querySelectorAll('a.el-link.uk-button, a.uk-button, button.uk-button')).find(function(button){
+        if(button.classList.contains('sale-old-btn')) return false;
+        const text = (button.textContent || '').replace(/\s+/g, ' ').trim();
+        return !!button.querySelector('.yo-price[data-eur]') || /\bbuy\b/i.test(text);
+      }) || null;
     }
     function placeFreeShippingBadge(card){
       if(!card) return;
