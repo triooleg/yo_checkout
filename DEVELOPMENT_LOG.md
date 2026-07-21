@@ -65,7 +65,7 @@ Live test status:
 
 Repository rollback point:
 
-- Pending implementation commit on `main`.
+- Implementation commit: `36f08f6` (`Fix Western Bid shipping payload`) on `main`.
 
 ## 2026-07-19 - Build v4.0.77 Test Archive
 
