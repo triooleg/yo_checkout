@@ -69,7 +69,11 @@ Live test status:
 
 Repository rollback point:
 
-- Pending v4.0.80 implementation commit on `main`.
+- Runtime implementation commit: `3b86a4c` (`Keep append-only checkout submission history`).
+- Verified the previous exact-name ZIP embedded v4.0.78 and was byte-identical to `plugin-archives/yoleotard-checkout-invoice-v4.0.78.zip` before replacement.
+- Created `plugin-archives/yoleotard-checkout-invoice.zip` and the local history copy `plugin-archives/yoleotard-checkout-invoice-v4.0.80.zip`.
+- Both v4.0.80 archives contain 49 entries, one `yoleotard-checkout-invoice/` top-level folder, no backslash paths, the new submission service, and real `assets/` / `includes/` directories after extraction.
+- Archive SHA-256: `e27d6f821496a9303e0c07e99e65c2f2932f1d93a5c8e280031b9b4ac464d68d`.
 ## 2026-07-21 - Separate Card Payment Attempts And Snapshot JSON v4.0.79
 
 User clarification:
