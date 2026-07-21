@@ -526,3 +526,11 @@ YOleotard Checkout v4.0.76
 YOleotard Checkout v4.0.77
 - Fixed free-shipping badge placement so UIkit unit and currency controls are never mistaken for the product buy button.
 - The badge is now inserted directly above the actual Buy now button on regular, sale, and reserved product cards.
+
+YOleotard Checkout v4.0.78
+- Fixes Western Bid payment-form arithmetic for orders with delivery: `amount` now excludes delivery and exactly matches the product/service-fee lines.
+- Sends delivery separately through the documented Western Bid `shipping` field, so provider total remains equal to the local card total.
+- Calculates the Western Bid purchase hash from the non-shipping amount required by the gateway.
+- Applies promo discounts to provider product lines and rejects internally inconsistent payload totals before redirecting the customer.
+- Keeps webhook full-total verification, KeyCRM finalization, paid email, sold-item handling, and Step 4 unchanged.
+- Adds a focused CLI regression test for enabled delivery, disabled delivery, service fee, and promo discount payloads.

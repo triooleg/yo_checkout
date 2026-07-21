@@ -6,6 +6,25 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
+### Western Bid payments with delivery live validation
+
+Status: v4.0.78 test candidate requires a live Western Bid Stripe/PayPal payment with nonzero delivery.
+
+Details:
+
+- Real UK and Malaysia attempts stopped before provider selection when delivery was nonzero, while a EUR 1 test with delivery intentionally disabled succeeded.
+- The previous form sent the full card total in `amount`, sent `shipping = 0.00`, and also sent product/service-fee `amount_x` lines whose sum excluded delivery.
+- v4.0.78 follows the Western Bid payment-gate contract: `amount` equals the item/service-fee line sum, delivery is sent separately in `shipping`, and their sum equals the local card total.
+- Webhook gross verification, KeyCRM finalization, customer email, and Step 4 logic remain unchanged.
+
+Handling:
+
+- Run one low-value Western Bid card checkout with a small but nonzero delivery amount.
+- Confirm the Stripe/PayPal page opens instead of showing a connection error.
+- Confirm the charged amount equals products after discounts plus card fee plus delivery.
+- Complete payment and confirm webhook verification, KeyCRM update, paid email, sold-item handling, and Step 4.
+- Keep v4.0.78 in test-candidate status until this live path passes.
+
 ### Free-shipping product-card badge live validation
 
 Status: v4.0.77 test candidate requires visual validation.

@@ -211,8 +211,8 @@ class YO_Checkout_Western_Bid_Service {
         update_post_meta($local_id, 'card_fee_amount', $fee['fee'] ?? '0.00');
         update_post_meta($local_id, 'card_total_amount', $fee['total'] ?? '0.00');
 
-        $amount = number_format(round(floatval($fee['total'] ?? 0), 2), 2, '.', '');
-        if (floatval($amount) <= 0) return new WP_Error('western_bid_bad_amount', 'Western Bid amount is empty');
+        $expected_card_total = round(floatval($fee['total'] ?? 0), 2);
+        if ($expected_card_total <= 0) return new WP_Error('western_bid_bad_amount', 'Western Bid amount is empty');
 
         $name_parts = preg_split('/\s+/', trim((string)($d['full_name'] ?? '')), 2);
         $first_name = $name_parts[0] ?? '';
@@ -232,12 +232,9 @@ class YO_Checkout_Western_Bid_Service {
         $fields = [
             'charset' => 'utf-8',
             'wb_login' => $creds['login'],
-            'wb_hash' => md5($creds['login'] . $creds['secret'] . $amount . $invoice),
             'invoice' => $invoice,
             'email' => $email,
             'phone' => $phone,
-            'amount' => $amount,
-            'shipping' => '0.00',
             'currency_code' => $creds['currency'],
             'return' => add_query_arg(['action' => 'yo_checkout_western_bid_return', 'invoice' => rawurlencode($invoice)], admin_url('admin-ajax.php')),
             'cancel_return' => add_query_arg(['action' => 'yo_checkout_western_bid_return', 'invoice' => rawurlencode($invoice), 'status' => 'cancelled'], admin_url('admin-ajax.php')),
@@ -255,27 +252,18 @@ class YO_Checkout_Western_Bid_Service {
             'zip_code' => $zip,
             'address_override' => '1',
             'no_shipping' => '1',
-            'shipping_cost' => $shipping_cost,
-            'shipping_note' => 'Shipping is included in the order total',
         ];
-        $this->call('append_checkout_debug_log', 'wb-' . substr(preg_replace('/[^A-Za-z0-9_-]/', '', $invoice), -24), 'western_bid form fields prepared', [
-            'local_id' => $local_id,
-            'invoice' => $invoice,
-            'gate' => $creds['gate'],
-            'amount' => $amount,
-            'shipping_included' => $shipping_cost,
-            'country_raw' => $country_raw,
-            'country_sent' => $country_iso,
-            'has_address' => $address1 !== '' ? 'yes' : 'no',
-            'has_zip' => $zip !== '' ? 'yes' : 'no',
-        ]);
 
         $index = 1;
+        $item_lines_total = 0.0;
         foreach ($items as $item) {
             if (!is_array($item)) continue;
             $title = (string)$this->call('clean_product_title_for_display', $item['title'] ?? '');
             if ($title === '') continue;
-            $item_amount = number_format(round(floatval($item['price_eur'] ?? 0), 2), 2, '.', '');
+            // Product-level discounts are already reflected in price_eur. Promo
+            // discounts are stored separately and must reduce the provider line.
+            $item_amount_value = round(floatval($item['price_eur'] ?? 0) - floatval($item['promo_discount_eur'] ?? 0), 2);
+            $item_amount = number_format(max(0, $item_amount_value), 2, '.', '');
             if (floatval($item_amount) <= 0) continue;
             $product_id = sanitize_text_field($item['product_id'] ?? ($item['feed_id'] ?? ('item-' . $index)));
             $fields['item_name_' . $index] = mb_substr($title, 0, 120);
@@ -284,8 +272,22 @@ class YO_Checkout_Western_Bid_Service {
             $fields['quantity_' . $index] = '1';
             $fields['url_' . $index] = home_url('/');
             $fields['description_' . $index] = mb_substr($title, 0, 255);
+            $item_lines_total = round($item_lines_total + floatval($item_amount), 2);
             $index++;
             if ($index > 30) break;
+        }
+
+        if ($index === 1) {
+            $product_amount = number_format(round(floatval($fee['product'] ?? ($d['price_eur'] ?? 0)), 2), 2, '.', '');
+            if (floatval($product_amount) <= 0) return new WP_Error('western_bid_bad_product_amount', 'Western Bid product amount is empty');
+            $fields['item_name_1'] = 'YOleotard order';
+            $fields['item_number_1'] = $invoice;
+            $fields['amount_1'] = $product_amount;
+            $fields['quantity_1'] = '1';
+            $fields['url_1'] = home_url('/');
+            $fields['description_1'] = 'YOleotard order';
+            $item_lines_total = round(floatval($product_amount), 2);
+            $index++;
         }
 
         $service_fee = round(floatval($fee['fee'] ?? 0), 2);
@@ -296,17 +298,38 @@ class YO_Checkout_Western_Bid_Service {
             $fields['quantity_' . $index] = '1';
             $fields['url_' . $index] = home_url('/');
             $fields['description_' . $index] = 'Card payment service fee';
-            $index++;
+            $item_lines_total = round($item_lines_total + $service_fee, 2);
         }
 
-        if ($index === 1) {
-            $fields['item_name_1'] = 'YOleotard order';
-            $fields['item_number_1'] = $invoice;
-            $fields['amount_1'] = $amount;
-            $fields['quantity_1'] = '1';
-            $fields['url_1'] = home_url('/');
-            $fields['description_1'] = 'YOleotard order';
+        $amount = number_format($item_lines_total, 2, '.', '');
+        $payload_total = round($item_lines_total + floatval($shipping_cost), 2);
+        if (abs($payload_total - $expected_card_total) > 0.01) {
+            return new WP_Error('western_bid_payload_total_mismatch', 'Western Bid item, shipping, and card totals do not match', [
+                'item_lines_total' => $amount,
+                'shipping' => $shipping_cost,
+                'payload_total' => number_format($payload_total, 2, '.', ''),
+                'expected_card_total' => number_format($expected_card_total, 2, '.', ''),
+            ]);
         }
+
+        // Western Bid requires amount to exclude delivery and equal the exact
+        // sum of amount_x * quantity_x. Delivery is charged separately.
+        $fields['amount'] = $amount;
+        $fields['shipping'] = $shipping_cost;
+        $fields['wb_hash'] = md5($creds['login'] . $creds['secret'] . $amount . $invoice);
+
+        $this->call('append_checkout_debug_log', 'wb-' . substr(preg_replace('/[^A-Za-z0-9_-]/', '', $invoice), -24), 'western_bid form fields prepared', [
+            'local_id' => $local_id,
+            'invoice' => $invoice,
+            'gate' => $creds['gate'],
+            'amount_excluding_shipping' => $amount,
+            'shipping' => $shipping_cost,
+            'payload_total' => number_format($payload_total, 2, '.', ''),
+            'country_raw' => $country_raw,
+            'country_sent' => $country_iso,
+            'has_address' => $address1 !== '' ? 'yes' : 'no',
+            'has_zip' => $zip !== '' ? 'yes' : 'no',
+        ]);
 
         return $fields;
     }

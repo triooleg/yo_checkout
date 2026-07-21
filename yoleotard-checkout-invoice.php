@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.77. Keeps the optional free-shipping badge directly above product buy buttons.
- * Version: 4.0.77
+ * Description: v4.0.78. Sends Western Bid delivery separately from the item amount.
+ * Version: 4.0.78
  * Author: YOleotard / ChatGPT
  */
 

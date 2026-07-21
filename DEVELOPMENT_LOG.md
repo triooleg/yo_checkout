@@ -16,6 +16,57 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-21 - Western Bid Delivery Payload Fix v4.0.78
+
+User request:
+
+- Investigate and fix Western Bid/Stripe connection failures affecting real UK and Malaysia card orders while a EUR 1 no-delivery test succeeded.
+
+Root cause:
+
+- The form sent the full local card total, including delivery, in `amount`, but sent `shipping = 0.00`.
+- At the same time, the required `amount_x * quantity_x` lines contained products and service fee without delivery, so their sum did not equal `amount` whenever delivery was nonzero.
+- The mismatch was exactly the delivery amount in the reported orders. The EUR 1 test succeeded because delivery had intentionally been disabled and the mismatch was zero.
+
+Files changed:
+
+- `includes/class-yo-checkout-western-bid.php`
+- `tests/test-western-bid-shipping-payload.php`
+- `yoleotard-checkout-invoice.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `README.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now 4.0.78.
+- Western Bid `amount` excludes delivery and equals the exact product/service-fee line sum.
+- Delivery is sent separately in the documented `shipping` field.
+- The purchase-form hash is calculated from the non-shipping amount.
+- Promo discounts reduce the corresponding provider product lines.
+- An inconsistent item + delivery total returns a local error before redirect instead of sending an invalid form.
+- Webhook gross verification still uses the full charged card total; KeyCRM, paid email, sold-item handling, and Step 4 are unchanged.
+
+Verification performed:
+
+- `php -l includes/class-yo-checkout-western-bid.php` passed.
+- `php -l tests/test-western-bid-shipping-payload.php` passed.
+- `php tests/test-western-bid-shipping-payload.php` passed for enabled delivery, disabled delivery, fee, and promo scenarios.
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for every PHP file under `includes/`.
+- `git diff --check` passed; only normal Git CRLF conversion warnings were printed.
+
+Live test status:
+
+- Test candidate. A live low-value Western Bid Stripe/PayPal checkout with nonzero delivery is still required.
+
+Repository rollback point:
+
+- Pending implementation commit on `main`.
+
 ## 2026-07-19 - Build v4.0.77 Test Archive
 
 User request:
