@@ -16,6 +16,33 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-21 - Build v4.0.78 Test Archive
+
+User request:
+
+- Create the installable test archive for the Western Bid delivery payload fix.
+
+Behavior changed:
+
+- No runtime behavior changed after implementation commit `36f08f6`.
+- Verified the previous exact-name archive embedded v4.0.77 and was byte-identical to the existing `plugin-archives/yoleotard-checkout-invoice-v4.0.77.zip` backup before rebuilding.
+- Rebuilt `plugin-archives/yoleotard-checkout-invoice.zip` from tracked files with Python `zipfile`.
+- Saved the same v4.0.78 build as `plugin-archives/yoleotard-checkout-invoice-v4.0.78.zip`.
+
+Verification performed:
+
+- Main plugin and every PHP file under `includes/` passed `php -l` before packaging.
+- `tests/test-western-bid-shipping-payload.php` passed syntax and runtime checks.
+- Both v4.0.78 ZIP files contain 44 entries under one `yoleotard-checkout-invoice/` top-level folder.
+- Both archives embed plugin version 4.0.78, contain no paths with backslashes, and pass `ZipFile.testzip()`.
+- Extraction produced real `assets/`, `includes/`, and `tests/` directories and the main plugin file.
+- SHA-256 for both v4.0.78 archives: `615D1406CB9F2A24DEC8E98F287DEC2B5B9136332AFB91B69747318D66DAFF60`.
+
+Repository rollback point:
+
+- Runtime implementation commit: `36f08f6` (`Fix Western Bid shipping payload`).
+- Archive documentation commit follows on `main`.
+
 ## 2026-07-21 - Western Bid Delivery Payload Fix v4.0.78
 
 User request:
