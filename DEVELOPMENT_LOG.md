@@ -16,6 +16,63 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-21 - Separate Card Payment Attempts And Snapshot JSON v4.0.79
+
+User clarification:
+
+- Purchases Report must create a new row for every card-payment attempt instead of overwriting the current row, so managers can see how many times a customer tried to pay.
+- Saved snapshot data must be readable JSON without visible escaping backslashes.
+- The project owner live-confirmed the previous v4.0.78 Western Bid fix with both enabled and disabled delivery.
+
+Root cause:
+
+- `ajax_start_card_payment()` attached every new provider invoice/reference and `card_payment_selected` snapshot to the same reusable local checkout post.
+- `checkout_snapshot_json` was saved without `wp_slash()`, so WordPress meta unslashing could remove required JSON escapes from quoted values.
+- When snapshot decoding failed, the report encoded the entire raw value as a JSON string, adding visible backslashes before every quote.
+
+Files changed:
+
+- `includes/class-yo-checkout-payment-attempt.php`
+- `includes/class-yo-checkout-purchase-report.php`
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `tests/test-payment-attempt-service.php`
+- `tests/test-purchase-report-snapshot.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `KNOWN_WORKING_FEATURES.md`
+- `README.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now 4.0.79.
+- Every card-payment start creates a new local attempt before provider routing.
+- Each attempt receives its own provider reference, webhook/polling target, paid/finalizer state, snapshot, and guest access token.
+- Customer/cart/shipping/promo data and reusable KeyCRM identity are copied; stale provider IDs, payment/finalizer markers, snapshots, stages, and access-token hashes are not copied.
+- Failed provider starts return the new local ID/token so frontend retries continue from the recorded attempt.
+- Payment attempts cannot later be reused and overwritten as Step 1 checkout drafts.
+- Purchases Report shows attempt number/root and stores new snapshots through `wp_slash()`.
+- Legacy malformed snapshots are displayed as raw readable text without a second escaping pass.
+- Provider totals, webhook verification, KeyCRM finalization, paid email, sold-item handling, and Step 4 readiness rules are unchanged.
+
+Verification performed:
+
+- `php -l` passed for the main plugin file and every PHP file in `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- Western Bid shipping payload, payment-attempt service, and purchase-report snapshot CLI tests passed.
+- `git diff --check` passed with line-ending conversion warnings only.
+
+Live test status:
+
+- v4.0.79 is a test candidate for two sequential unpaid attempts, one completed attempt, report history, and snapshot rendering.
+- Western Bid v4.0.78 amount/shipping behavior is now live-confirmed with shipping enabled and disabled.
+
+Repository rollback point:
+
+- v4.0.79 implementation commit on `main`.
 ## 2026-07-21 - Build v4.0.78 Test Archive
 
 User request:

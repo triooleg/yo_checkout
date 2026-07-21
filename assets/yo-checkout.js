@@ -1810,7 +1810,7 @@
           setStep(3);
           startPaymentPolling();
         }
-        else { closePaymentWindow(paymentWindow); alert((data.data?.message || 'Payment error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
+        else { if(data && data.data) rememberKeycrmFromResponse(data); closePaymentWindow(paymentWindow); alert((data.data?.message || 'Payment error')+'\n\n'+JSON.stringify(data.data?.details || data, null, 2)); setStep(2); }
       }).catch(function(){ closePaymentWindow(paymentWindow); alert('Connection error'); setStep(2); });
       });
     });

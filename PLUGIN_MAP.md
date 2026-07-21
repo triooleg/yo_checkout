@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, Step 2 Western Bid Merchant of Record disclaimer display, optional Shipping tab free-shipping product-card badge settings, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.78`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, Step 2 Western Bid Merchant of Record disclaimer display, optional Shipping tab free-shipping product-card badge settings, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.79`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
@@ -56,13 +56,21 @@ Rules for future work:
   Guest order-access service. Owns local checkout access-token generation, server-side token hashing, posted-token reading, legacy no-token compatibility, and reusable response fields for protected public AJAX order actions.
 
 - `includes/class-yo-checkout-purchase-report.php`
-  Admin purchase report service. Owns checkout snapshot persistence and the WordPress admin purchases table. The report reads local `yo_invoice_order` posts, shows customer/cart/payment/provider/order data, keeps expandable JSON snapshots for the data saved before payment, and supports status filtering plus 10/20/50 records per page pagination. v4.0.71 protects completed bank invoice local records from being reused as checkout drafts, so a later purchase in the same browser session creates a new report row instead of overwriting the previous invoice row.
+  Admin purchase report service. Owns checkout snapshot persistence and the WordPress admin purchases table. The report reads local `yo_invoice_order` posts, shows customer/cart/payment/provider/order data, keeps expandable JSON snapshots for the data saved before payment, and supports status filtering plus 10/20/50 records per page pagination. v4.0.71 protects completed bank invoice local records from being reused as checkout drafts. v4.0.79 stores nested snapshot JSON through `wp_slash()`, displays legacy malformed snapshots without a second escaping pass, and labels separate card attempts with their attempt/root IDs.
+
+- `includes/class-yo-checkout-payment-attempt.php`
+  Card payment-attempt service added in v4.0.79. Creates a new local checkout order for every card-payment start, copies only current customer/cart/shipping/promo and reusable KeyCRM identity data, assigns root/source/sequence metadata, and deliberately excludes prior provider IDs, paid/finalizer markers, snapshots, checkout stages, and guest access-token hashes.
 
 - `includes/class-yo-checkout-tracking-notifications.php`
   Admin shipment tracking notification service added in v4.0.72. Lists paid card orders and completed bank invoice orders with All/Pending/Sent filters and pagination. Each order expands to customer/product details and a tracking URL form. The protected `admin_post_yo_checkout_send_tracking` action validates capability, nonce, order eligibility, customer email, and HTTP(S) tracking URL; delegates delivery to the shared email service; and marks tracking metadata as sent only when `wp_mail()` succeeds. v4.0.73 uses the same logo/card style as paid and invoice emails, includes the order number in the subject and heading, sends from `YOleotard <no-reply@yoleotard.com>`, and adds Facebook, Instagram, and TikTok links.
 
 - `tests/test-western-bid-shipping-payload.php`
   Focused CLI regression test for Western Bid payload arithmetic with enabled delivery, disabled delivery, card service fee, and promo discount.
+- `tests/test-payment-attempt-service.php`
+  CLI regression test for separate sequential payment-attempt records, root/source numbering, copied checkout data, excluded provider/status/token metadata, and paid-attempt rejection.
+
+- `tests/test-purchase-report-snapshot.php`
+  CLI regression test that emulates WordPress meta unslashing, verifies quoted product titles remain valid nested JSON, and checks legacy snapshot fallback output has no added visible backslashes.
 
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, stores local order access tokens, sends protected AJAX order tokens, product reservations, permanent invoice-reserved card state for YOOtheme Card Default product cards, server-availability sync that greys and disables product cards which the backend already considers unavailable, customer form flow, promo code application, whole-badge promo GIF tooltip created through the UIkit JavaScript API when the customer hovers, focuses, taps, or clicks the badge, shipping option selection, optional free-shipping product-card badge insertion directly before the actual product Buy button while excluding UIkit unit/currency controls, Western Bid Merchant of Record disclaimer in the Step 2 receipt, card/bank payment actions, passes selected payment method and terms confirmation before Step 3, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
@@ -71,7 +79,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, invoice-reserved overlay badges, promo GIF tooltip display, notifications, Step 2 Western Bid disclaimer styling, optional emerald free-shipping product-card badge styling, related UI, and the v4.0.66 desktop override that widens and compacts the YOOtheme `body.home .yo-height-filter` Ready-to-Ship filter without changing mobile filter rules.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.77`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.79`.
 
 - `README.md`
   Russian-language public project overview. Describes what the plugin does, supported checkout flows, integrations, admin areas, protected working zones, test-candidate zones, verification commands, archive rules, and development rules.

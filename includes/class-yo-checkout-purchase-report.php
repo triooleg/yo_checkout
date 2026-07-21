@@ -44,6 +44,9 @@ class YO_Checkout_Purchase_Report_Service {
             ],
             'order' => [
                 'local_id' => $local_id,
+                'payment_attempt_number' => absint(get_post_meta($local_id, 'payment_attempt_number', true)),
+                'payment_attempt_root_id' => absint(get_post_meta($local_id, 'payment_attempt_root_id', true)),
+                'payment_attempt_source_id' => absint(get_post_meta($local_id, 'payment_attempt_source_id', true)),
                 'keycrm_order_id' => sanitize_text_field(get_post_meta($local_id, 'order_id', true)),
                 'buyer_id' => sanitize_text_field(get_post_meta($local_id, 'buyer_id', true)),
                 'payment_provider' => sanitize_text_field(get_post_meta($local_id, 'payment_provider', true)),
@@ -69,7 +72,7 @@ class YO_Checkout_Purchase_Report_Service {
         if (!empty($extra['terms_confirmed'])) update_post_meta($local_id, 'checkout_terms_confirmed', '1');
         update_post_meta($local_id, 'checkout_stage', sanitize_key($stage));
         update_post_meta($local_id, 'checkout_stage_updated_at', $snapshot['stage_at']);
-        update_post_meta($local_id, 'checkout_snapshot_json', wp_json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        update_post_meta($local_id, 'checkout_snapshot_json', wp_slash(wp_json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
     }
 
     public function render_page($order_post_type) {
@@ -110,7 +113,7 @@ class YO_Checkout_Purchase_Report_Service {
             echo '<tr>';
             echo '<td>' . esc_html($order->post_date) . '</td>';
             echo '<td>' . esc_html(get_post_meta($order->ID, 'checkout_stage_updated_at', true) ?: $order->post_modified) . '</td>';
-            echo '<td><strong>#' . esc_html($row['keycrm_order_id'] ?: $order->ID) . '</strong><br><code>local #' . esc_html($order->ID) . '</code></td>';
+            echo '<td><strong>#' . esc_html($row['keycrm_order_id'] ?: $order->ID) . '</strong><br><code>local #' . esc_html($order->ID) . '</code>' . $this->attempt_html($row) . '</td>';
             echo '<td>' . $this->status_badge($row['status']) . '<br><small>' . esc_html($row['stage']) . '</small></td>';
             echo '<td>' . esc_html($row['payment']) . '<br><small>' . esc_html($row['choice']) . '</small></td>';
             echo '<td>' . esc_html($row['full_name']) . '<br><small>' . esc_html($row['country']) . '</small></td>';
@@ -228,6 +231,8 @@ class YO_Checkout_Purchase_Report_Service {
             'choice' => get_post_meta($order->ID, 'checkout_payment_method_choice', true),
             'payment' => trim(($provider ?: 'not selected') . ($type ? ' / ' . $type : '')),
             'keycrm_order_id' => get_post_meta($order->ID, 'order_id', true),
+            'payment_attempt_number' => absint(get_post_meta($order->ID, 'payment_attempt_number', true)),
+            'payment_attempt_root_id' => absint(get_post_meta($order->ID, 'payment_attempt_root_id', true)),
             'full_name' => $data['full_name'] ?? '',
             'email' => $data['email'] ?? '',
             'phone' => $data['phone'] ?? '',
@@ -289,10 +294,20 @@ class YO_Checkout_Purchase_Report_Service {
         return $out ? implode('<br>', $out) : '-';
     }
 
+    private function attempt_html($row) {
+        $number = absint($row['payment_attempt_number'] ?? 0);
+        if (!$number) return '';
+        $root = absint($row['payment_attempt_root_id'] ?? 0);
+        return '<br><small>Payment attempt #' . esc_html($number) . ($root ? ' from local #' . esc_html($root) : '') . '</small>';
+    }
+
     private function snapshot_html($snapshot) {
         if (!$snapshot) return '-';
         $decoded = json_decode((string)$snapshot, true);
         $label = is_array($decoded) && !empty($decoded['stage_at']) ? $decoded['stage_at'] : 'Saved snapshot';
-        return '<details><summary>' . esc_html($label) . '</summary><pre style="white-space:pre-wrap;max-width:420px;">' . esc_html(wp_json_encode($decoded ?: $snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . '</pre></details>';
+        $display = is_array($decoded)
+            ? wp_json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : (string)$snapshot;
+        return '<details><summary>' . esc_html($label) . '</summary><pre style="white-space:pre-wrap;max-width:420px;">' . esc_html($display) . '</pre></details>';
     }
 }

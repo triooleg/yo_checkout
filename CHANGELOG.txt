@@ -534,3 +534,11 @@ YOleotard Checkout v4.0.78
 - Applies promo discounts to provider product lines and rejects internally inconsistent payload totals before redirecting the customer.
 - Keeps webhook full-total verification, KeyCRM finalization, paid email, sold-item handling, and Step 4 unchanged.
 - Adds a focused CLI regression test for enabled delivery, disabled delivery, service fee, and promo discount payloads.
+YOleotard Checkout v4.0.79
+- Creates a separate local `yo_invoice_order` record every time the customer starts a card payment, so Purchases Report keeps the complete attempt history instead of overwriting one draft.
+- Gives each attempt its own local ID, provider invoice/reference, access token, webhook/polling target, status, and snapshot while preserving reusable cart, shipping, promo, and KeyCRM identity data.
+- Prevents payment-attempt records from being reused as editable checkout drafts when the customer returns to Step 1.
+- Labels report rows with payment attempt number and root local order.
+- Stores snapshot JSON with `wp_slash()` so quoted product titles remain valid after WordPress meta processing.
+- Displays legacy malformed snapshot text without a second JSON encoding pass, removing newly added visible backslashes.
+- Adds focused payment-attempt and purchase-report snapshot regression tests.

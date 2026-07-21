@@ -6,25 +6,24 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
-### Western Bid payments with delivery live validation
+### Per-card-attempt Purchases Report live validation
 
-Status: v4.0.78 test candidate requires a live Western Bid Stripe/PayPal payment with nonzero delivery.
+Status: v4.0.79 test candidate requires admin/report and payment-flow validation.
 
 Details:
 
-- Real UK and Malaysia attempts stopped before provider selection when delivery was nonzero, while a EUR 1 test with delivery intentionally disabled succeeded.
-- The previous form sent the full card total in `amount`, sent `shipping = 0.00`, and also sent product/service-fee `amount_x` lines whose sum excluded delivery.
-- v4.0.78 follows the Western Bid payment-gate contract: `amount` equals the item/service-fee line sum, delivery is sent separately in `shipping`, and their sum equals the local card total.
-- Webhook gross verification, KeyCRM finalization, customer email, and Step 4 logic remain unchanged.
+- Every click that starts card payment now creates a separate local `yo_invoice_order` payment-attempt record before Monobank or Western Bid starts.
+- The provider invoice/reference, webhook mapping, polling, finalizer, KeyCRM state, and paid status belong to that new local attempt instead of overwriting the prior row.
+- The report labels attempts as `Payment attempt #N from local #ID`.
+- New snapshots are stored with WordPress-safe JSON slashing; legacy malformed snapshots are displayed as readable raw JSON text without adding visible backslashes.
 
 Handling:
 
-- Run one low-value Western Bid card checkout with a small but nonzero delivery amount.
-- Confirm the Stripe/PayPal page opens instead of showing a connection error.
-- Confirm the charged amount equals products after discounts plus card fee plus delivery.
-- Complete payment and confirm webhook verification, KeyCRM update, paid email, sold-item handling, and Step 4.
-- Keep v4.0.78 in test-candidate status until this live path passes.
-
+- Start two unpaid card attempts for the same checkout and confirm two separate local rows and two distinct provider IDs appear.
+- Confirm the first row remains unchanged after the second attempt starts.
+- Open Saved data and confirm new snapshots are formatted JSON without visible `\"` sequences.
+- Complete one attempt and confirm only its row becomes Paid and the existing KeyCRM/email/Step 4 flow completes once.
+- Return to Step 1 after an attempt and confirm the old attempt row is not overwritten.
 ### Free-shipping product-card badge live validation
 
 Status: v4.0.77 test candidate requires visual validation.

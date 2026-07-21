@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.78. Sends Western Bid delivery separately from the item amount.
- * Version: 4.0.78
+ * Description: v4.0.79. Records every card payment attempt as a separate local order.
+ * Version: 4.0.79
  * Author: YOleotard / ChatGPT
  */
 
@@ -46,6 +46,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-email.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-western-bid.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-order-access.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-purchase-report.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-payment-attempt.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-tracking-notifications.php';
 
 
@@ -63,6 +64,7 @@ class YO_Checkout_Invoice_Plugin {
     private $western_bid_service = null;
     private $order_access_service = null;
     private $purchase_report_service = null;
+    private $payment_attempt_service = null;
     private $tracking_notifications_service = null;
 
     public function __construct() {
@@ -183,6 +185,15 @@ class YO_Checkout_Invoice_Plugin {
         ];
     }
 
+    private function payment_attempt_response_fields($local_id) {
+        $marker = $this->order_access_cart_marker($local_id, get_post_meta($local_id, 'order_id', true));
+        return [
+            'localId' => absint($local_id),
+            'accessToken' => $marker['access_token'],
+            'cartMarker' => $marker,
+        ];
+    }
+
     private function purchase_report_service() {
         if (!$this->purchase_report_service instanceof YO_Checkout_Purchase_Report_Service) {
             $this->purchase_report_service = new YO_Checkout_Purchase_Report_Service([
@@ -191,6 +202,13 @@ class YO_Checkout_Invoice_Plugin {
             ]);
         }
         return $this->purchase_report_service;
+    }
+
+    private function payment_attempt_service() {
+        if (!$this->payment_attempt_service instanceof YO_Checkout_Payment_Attempt_Service) {
+            $this->payment_attempt_service = new YO_Checkout_Payment_Attempt_Service(self::CPT);
+        }
+        return $this->payment_attempt_service;
     }
 
     private function tracking_notifications_service() {
@@ -1535,6 +1553,7 @@ EUR=1',
         if (!$local_id || get_post_type($local_id) !== self::CPT) return false;
         if (get_post_meta($local_id, 'paid', true) === '1') return false;
         if (get_post_meta($local_id, 'bank_invoice_created', true) === '1') return false;
+        if (absint(get_post_meta($local_id, 'payment_attempt_number', true)) > 0) return false;
         return true;
     }
 
@@ -1838,12 +1857,17 @@ EUR=1',
 
     public function ajax_start_card_payment() {
         $this->verify_nonce();
-        $local_id = absint($_POST['local_id'] ?? 0);
-        if (!$local_id || get_post_type($local_id) !== self::CPT) wp_send_json_error(['message'=>'Order not found']);
-        $this->verify_order_access_for_ajax($local_id);
+        $source_local_id = absint($_POST['local_id'] ?? 0);
+        if (!$source_local_id || get_post_type($source_local_id) !== self::CPT) wp_send_json_error(['message'=>'Order not found']);
+        $this->verify_order_access_for_ajax($source_local_id);
         $buyer_id = sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? ''));
-        $payable = $this->order_items_are_payable_for_buyer($local_id, $buyer_id);
+        $payable = $this->order_items_are_payable_for_buyer($source_local_id, $buyer_id);
         if (is_wp_error($payable)) wp_send_json_error(['message'=>$payable->get_error_message(), 'details'=>$payable->get_error_data()]);
+
+        $local_id = $this->payment_attempt_service()->create($source_local_id);
+        if (is_wp_error($local_id)) {
+            wp_send_json_error(['message'=>$local_id->get_error_message(), 'details'=>$local_id->get_error_data()]);
+        }
 
         // Recalculate and persist Nova Post shipping exactly when the customer selects card payment.
         // The card service fee is then calculated from product + delivery.
@@ -1874,10 +1898,10 @@ EUR=1',
             $keycrm_order_id = $this->ensure_keycrm_order_before_card_payment($local_id);
             if (is_wp_error($keycrm_order_id)) {
                 update_post_meta($local_id, 'keycrm_before_card_payment_error', wp_json_encode($keycrm_order_id->get_error_data() ?: $keycrm_order_id->get_error_message()));
-                wp_send_json_error([
+                wp_send_json_error(array_merge([
                     'message' => 'KeyCRM order was not created before card payment. Please try again.',
                     'details' => $keycrm_order_id->get_error_data() ?: $keycrm_order_id->get_error_message(),
-                ]);
+                ], $this->payment_attempt_response_fields($local_id)));
             }
             delete_post_meta($local_id, 'keycrm_before_card_payment_error');
             if (function_exists('wp_next_scheduled') && !wp_next_scheduled('yo_checkout_check_unpaid_order', [$local_id])) {
@@ -1898,28 +1922,24 @@ EUR=1',
     private function start_monobank_payment($local_id) {
         $result = $this->monobank_service()->start_payment($local_id);
         if (is_wp_error($result)) {
-            wp_send_json_error([
+            wp_send_json_error(array_merge([
                 'message' => $result->get_error_message(),
                 'details' => $result->get_error_data(),
-            ]);
+            ], $this->payment_attempt_response_fields($local_id)));
         }
-        $result = array_merge($result, $this->order_access_response_fields($local_id));
-        if (!isset($result['cartMarker']) || !is_array($result['cartMarker'])) $result['cartMarker'] = [];
-        $result['cartMarker'] = array_merge($result['cartMarker'], $this->order_access_cart_marker($local_id, get_post_meta($local_id, 'order_id', true)));
+        $result = array_merge($result, $this->payment_attempt_response_fields($local_id));
         wp_send_json_success($result);
     }
 
     private function start_western_bid_payment($local_id) {
         $result = $this->western_bid_service()->start_payment($local_id);
         if (is_wp_error($result)) {
-            wp_send_json_error([
+            wp_send_json_error(array_merge([
                 'message' => $result->get_error_message(),
                 'details' => $result->get_error_data(),
-            ]);
+            ], $this->payment_attempt_response_fields($local_id)));
         }
-        $result = array_merge($result, $this->order_access_response_fields($local_id));
-        if (!isset($result['cartMarker']) || !is_array($result['cartMarker'])) $result['cartMarker'] = [];
-        $result['cartMarker'] = array_merge($result['cartMarker'], $this->order_access_cart_marker($local_id, get_post_meta($local_id, 'order_id', true)));
+        $result = array_merge($result, $this->payment_attempt_response_fields($local_id));
         wp_send_json_success($result);
     }
 
