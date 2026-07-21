@@ -52,6 +52,9 @@
         return id;
       }catch(e){ return 'yos_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12); }
     }
+    function checkoutSubmissionId(){
+      return 'yosub_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12);
+    }
     function getStoredDraftLocalId(){
       try{ return localStorage.getItem(CHECKOUT_DRAFT_KEY) || ''; }catch(e){ return ''; }
     }
@@ -1689,6 +1692,8 @@
       validateCartAvailability(true).then(function(){
         if(!cartItems.length){ setStep(1); return; }
         const fd=new FormData(e.target);
+        fd.append('append_checkout_submission', '1');
+        fd.append('checkout_submission_id', checkoutSubmissionId());
         const cartMarker = getCartKeycrmMarker();
         const draftLocalId = current.localId || (cartMarker && cartMarker.local_id ? cartMarker.local_id : '') || getStoredDraftLocalId() || getCookie('yo_checkout_local_order_id');
         if(draftLocalId) fd.append('local_id', draftLocalId);

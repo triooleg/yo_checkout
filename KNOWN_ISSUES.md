@@ -6,24 +6,26 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ## Active Issues
 
-### Per-card-attempt Purchases Report live validation
+### Append-only checkout history live validation
 
-Status: v4.0.79 test candidate requires admin/report and payment-flow validation.
+Status: v4.0.80 test candidate requires admin/report and payment-flow validation.
 
 Details:
 
-- Every click that starts card payment now creates a separate local `yo_invoice_order` payment-attempt record before Monobank or Western Bid starts.
-- The provider invoice/reference, webhook mapping, polling, finalizer, KeyCRM state, and paid status belong to that new local attempt instead of overwriting the prior row.
-- The report labels attempts as `Payment attempt #N from local #ID`.
-- New snapshots are stored with WordPress-safe JSON slashing; legacy malformed snapshots are displayed as readable raw JSON text without adding visible backslashes.
+- The persistent browser `buyer_id`, `checkout_session_id`, and old localStorage local ID must no longer determine the ID of a new Step 1 report row.
+- Every explicit Step 1 form submission now creates a new `yo_invoice_order` with a one-time `checkout_submission_id` and server-side `Checkout submission #N` lineage.
+- The previous ordinary draft is marked superseded and excluded from future draft reuse; payment attempts, paid orders, and completed bank invoices remain immutable.
+- The internal save immediately before bank invoice creation intentionally stays on the current local order to avoid a technical duplicate.
+- Every card provider start still creates its own v4.0.79 payment-attempt row with independent provider IDs, webhook/polling state, and final status.
 
 Handling:
 
-- Start two unpaid card attempts for the same checkout and confirm two separate local rows and two distinct provider IDs appear.
-- Confirm the first row remains unchanged after the second attempt starts.
-- Open Saved data and confirm new snapshots are formatted JSON without visible `\"` sequences.
-- Complete one attempt and confirm only its row becomes Paid and the existing KeyCRM/email/Step 4 flow completes once.
-- Return to Step 1 after an attempt and confirm the old attempt row is not overwritten.
+- Submit Step 1 twice in the same browser without completing payment and confirm two different local IDs and `Checkout submission #1/#2` rows exist.
+- Confirm the first row keeps its original customer/cart snapshot after the second submission.
+- Start two card payments and confirm separate payment-attempt rows and provider IDs are added without overwriting either Step 1 row.
+- Return after an unpaid Monobank attempt and confirm the existing KeyCRM order is reused instead of duplicated.
+- Create one bank invoice and confirm the internal pre-invoice save does not add an extra checkout-submission row.
+- Complete one card attempt and confirm only its row becomes Paid and KeyCRM/email/Step 4 execute once.
 ### Free-shipping product-card badge live validation
 
 Status: v4.0.77 test candidate requires visual validation.

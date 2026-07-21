@@ -16,6 +16,60 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-21 - Append-Only Step 1 Checkout Submissions v4.0.80
+
+User clarification:
+
+- The browser keeps one local order ID in localStorage for an unfinished customer session, so repeated Step 1 submissions were still overwriting the same Purchases Report row.
+- Report history must not use that persistent browser ID as the identity of a new checkout submission.
+
+Root cause:
+
+- `assets/yo-checkout.js` posted `current.localId` / the stored draft local ID on every Step 1 submit.
+- `ajax_create_order()` also recovered an unpaid draft by checkout session, browser buyer, contact, and KeyCRM markers, then updated that post even if the frontend omitted the ID.
+- v4.0.79 separated provider starts, but did not yet make the earlier `order_details_saved` submissions append-only.
+
+Files changed:
+
+- `includes/class-yo-checkout-submission.php`
+- `includes/class-yo-checkout-payment-attempt.php`
+- `includes/class-yo-checkout-purchase-report.php`
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `tests/test-checkout-submission-service.php`
+- `CHANGELOG.txt`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `README.md`
+- `DEVELOPMENT_LOG.md`
+
+Behavior changed:
+
+- Plugin header version is now 4.0.80.
+- Every explicit Step 1 submit sends a one-time `checkout_submission_id` and requests an append-only local record.
+- Backend creates a new local order regardless of reusable localStorage/session/contact draft matches.
+- New records receive server-side submission number/root/previous lineage; Purchases Report shows `Checkout submission #N`.
+- Previous ordinary drafts are marked superseded and cannot be selected by later draft-reuse fallbacks.
+- Payment attempts, paid orders, and completed bank invoices are not superseded.
+- An authorized previous KeyCRM order ID is carried into the new submission, preserving KeyCRM reuse after an unpaid attempt.
+- The bank-invoice internal save does not use append mode and remains on the current local order.
+- Payment provider payloads, amounts, delivery, webhook verification, finalization, email, sold-item handling, and Step 4 are unchanged.
+
+Verification performed:
+
+- `php -l` passed for the main plugin file and every PHP file in `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- Western Bid shipping payload, checkout-submission, payment-attempt, and purchase-report snapshot CLI tests passed.
+- `git diff --check` passed with line-ending conversion warnings only.
+
+Live test status:
+
+- v4.0.80 remains a test candidate until repeated same-browser Step 1 submissions, card retries, KeyCRM reuse, and bank invoice behavior are confirmed on the site.
+
+Repository rollback point:
+
+- Pending v4.0.80 implementation commit on `main`.
 ## 2026-07-21 - Separate Card Payment Attempts And Snapshot JSON v4.0.79
 
 User clarification:

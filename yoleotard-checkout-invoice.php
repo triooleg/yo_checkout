@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.79. Records every card payment attempt as a separate local order.
- * Version: 4.0.79
+ * Description: v4.0.80. Records every checkout submission and card attempt separately.
+ * Version: 4.0.80
  * Author: YOleotard / ChatGPT
  */
 
@@ -47,6 +47,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-western-bid
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-order-access.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-purchase-report.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-payment-attempt.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-submission.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-tracking-notifications.php';
 
 
@@ -65,6 +66,7 @@ class YO_Checkout_Invoice_Plugin {
     private $order_access_service = null;
     private $purchase_report_service = null;
     private $payment_attempt_service = null;
+    private $checkout_submission_service = null;
     private $tracking_notifications_service = null;
 
     public function __construct() {
@@ -209,6 +211,13 @@ class YO_Checkout_Invoice_Plugin {
             $this->payment_attempt_service = new YO_Checkout_Payment_Attempt_Service(self::CPT);
         }
         return $this->payment_attempt_service;
+    }
+
+    private function checkout_submission_service() {
+        if (!$this->checkout_submission_service instanceof YO_Checkout_Submission_Service) {
+            $this->checkout_submission_service = new YO_Checkout_Submission_Service(self::CPT);
+        }
+        return $this->checkout_submission_service;
     }
 
     private function tracking_notifications_service() {
@@ -1554,6 +1563,7 @@ EUR=1',
         if (get_post_meta($local_id, 'paid', true) === '1') return false;
         if (get_post_meta($local_id, 'bank_invoice_created', true) === '1') return false;
         if (absint(get_post_meta($local_id, 'payment_attempt_number', true)) > 0) return false;
+        if (absint(get_post_meta($local_id, 'checkout_superseded_by', true)) > 0) return false;
         return true;
     }
 
@@ -1584,6 +1594,9 @@ EUR=1',
         $browser_buyer_id = sanitize_text_field(wp_unslash($_POST['buyer_id'] ?? ''));
         $buyer_id = $browser_buyer_id;
         $checkout_session_id = sanitize_text_field(wp_unslash($_POST['checkout_session_id'] ?? ''));
+        $checkout_submission_id = sanitize_text_field(wp_unslash($_POST['checkout_submission_id'] ?? ''));
+        $append_checkout_submission = !empty($_POST['append_checkout_submission']) && $checkout_submission_id !== '';
+        $append_previous_local_id = absint($_POST['local_id'] ?? 0);
         $payment_intent = sanitize_text_field(wp_unslash($_POST['payment_intent'] ?? ''));
         $ignore_stale_keycrm_marker = !empty($_POST['ignore_stale_keycrm_marker']) || $payment_intent === 'bank_invoice';
         $posted_keycrm_order_id = $ignore_stale_keycrm_marker ? '' : preg_replace('/[^0-9]/', '', (string) wp_unslash($_POST['keycrm_order_id'] ?? ''));
@@ -1740,7 +1753,28 @@ EUR=1',
             $incoming_local_id = $absolute_marker_reuse_local_id;
         }
         $local_id = 0;
-        if ($this->is_reusable_checkout_draft($incoming_local_id)) {
+        if ($append_checkout_submission) {
+            if ($append_previous_local_id && get_post_type($append_previous_local_id) !== self::CPT) {
+                $append_previous_local_id = 0;
+            }
+            if ($append_previous_local_id) {
+                $posted_access_token = $this->order_access_service()->posted_token();
+                if ($this->order_access_service()->has_token($append_previous_local_id)
+                    && !$this->order_access_service()->verify($append_previous_local_id, $posted_access_token)) {
+                    $this->append_checkout_debug_log($debug_id, 'create_order ignored inaccessible previous draft', ['local_id' => $append_previous_local_id]);
+                    $append_previous_local_id = 0;
+                    $posted_keycrm_order_id = '';
+                }
+            }
+            if ($append_previous_local_id && !$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') {
+                $posted_keycrm_order_id = preg_replace('/[^0-9]/', '', (string)get_post_meta($append_previous_local_id, 'order_id', true));
+            }
+            $local_id = $this->checkout_submission_service()->create($append_previous_local_id, $data['full_name'], $checkout_submission_id);
+            if (is_wp_error($local_id)) {
+                $this->append_checkout_debug_log($debug_id, 'create_order submission was not created', ['error' => $local_id->get_error_message()]);
+                wp_send_json_error(['message'=>$local_id->get_error_message(), 'debugId'=>$debug_id]);
+            }
+        } elseif ($this->is_reusable_checkout_draft($incoming_local_id)) {
             // Keep the same local checkout draft for the whole browser session, even if a KeyCRM
             // order has already been created. This prevents duplicate KeyCRM orders when the
             // customer goes back, changes the cart, and starts payment again.

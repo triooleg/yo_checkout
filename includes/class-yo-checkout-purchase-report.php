@@ -47,6 +47,9 @@ class YO_Checkout_Purchase_Report_Service {
                 'payment_attempt_number' => absint(get_post_meta($local_id, 'payment_attempt_number', true)),
                 'payment_attempt_root_id' => absint(get_post_meta($local_id, 'payment_attempt_root_id', true)),
                 'payment_attempt_source_id' => absint(get_post_meta($local_id, 'payment_attempt_source_id', true)),
+                'checkout_submission_id' => sanitize_text_field(get_post_meta($local_id, 'checkout_submission_id', true)),
+                'checkout_submission_number' => absint(get_post_meta($local_id, 'checkout_submission_number', true)),
+                'checkout_submission_root_id' => absint(get_post_meta($local_id, 'checkout_submission_root_id', true)),
                 'keycrm_order_id' => sanitize_text_field(get_post_meta($local_id, 'order_id', true)),
                 'buyer_id' => sanitize_text_field(get_post_meta($local_id, 'buyer_id', true)),
                 'payment_provider' => sanitize_text_field(get_post_meta($local_id, 'payment_provider', true)),
@@ -113,7 +116,7 @@ class YO_Checkout_Purchase_Report_Service {
             echo '<tr>';
             echo '<td>' . esc_html($order->post_date) . '</td>';
             echo '<td>' . esc_html(get_post_meta($order->ID, 'checkout_stage_updated_at', true) ?: $order->post_modified) . '</td>';
-            echo '<td><strong>#' . esc_html($row['keycrm_order_id'] ?: $order->ID) . '</strong><br><code>local #' . esc_html($order->ID) . '</code>' . $this->attempt_html($row) . '</td>';
+            echo '<td><strong>#' . esc_html($row['keycrm_order_id'] ?: $order->ID) . '</strong><br><code>local #' . esc_html($order->ID) . '</code>' . $this->submission_html($row) . $this->attempt_html($row) . '</td>';
             echo '<td>' . $this->status_badge($row['status']) . '<br><small>' . esc_html($row['stage']) . '</small></td>';
             echo '<td>' . esc_html($row['payment']) . '<br><small>' . esc_html($row['choice']) . '</small></td>';
             echo '<td>' . esc_html($row['full_name']) . '<br><small>' . esc_html($row['country']) . '</small></td>';
@@ -233,6 +236,8 @@ class YO_Checkout_Purchase_Report_Service {
             'keycrm_order_id' => get_post_meta($order->ID, 'order_id', true),
             'payment_attempt_number' => absint(get_post_meta($order->ID, 'payment_attempt_number', true)),
             'payment_attempt_root_id' => absint(get_post_meta($order->ID, 'payment_attempt_root_id', true)),
+            'checkout_submission_number' => absint(get_post_meta($order->ID, 'checkout_submission_number', true)),
+            'checkout_submission_root_id' => absint(get_post_meta($order->ID, 'checkout_submission_root_id', true)),
             'full_name' => $data['full_name'] ?? '',
             'email' => $data['email'] ?? '',
             'phone' => $data['phone'] ?? '',
@@ -292,6 +297,13 @@ class YO_Checkout_Purchase_Report_Service {
         if ($row['western_bid_invoice']) $out[] = '<code>WB: ' . esc_html($row['western_bid_invoice']) . '</code>';
         if ($row['bank_invoice_url']) $out[] = '<a href="' . esc_url($row['bank_invoice_url']) . '" target="_blank" rel="noopener">Invoice</a>';
         return $out ? implode('<br>', $out) : '-';
+    }
+
+    private function submission_html($row) {
+        $number = absint($row['checkout_submission_number'] ?? 0);
+        if (!$number) return '';
+        $root = absint($row['checkout_submission_root_id'] ?? 0);
+        return '<br><small>Checkout submission #' . esc_html($number) . ($root ? ' from local #' . esc_html($root) : '') . '</small>';
     }
 
     private function attempt_html($row) {

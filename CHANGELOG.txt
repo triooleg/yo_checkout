@@ -542,3 +542,10 @@ YOleotard Checkout v4.0.79
 - Stores snapshot JSON with `wp_slash()` so quoted product titles remain valid after WordPress meta processing.
 - Displays legacy malformed snapshot text without a second JSON encoding pass, removing newly added visible backslashes.
 - Adds focused payment-attempt and purchase-report snapshot regression tests.
+YOleotard Checkout v4.0.80
+- Creates a new server-side local order for every explicit Step 1 checkout submission instead of reusing the browser localStorage draft ID.
+- Adds a one-time `checkout_submission_id` and server-side `Checkout submission #N` lineage for Purchases Report.
+- Marks superseded ordinary drafts as non-reusable while preserving payment attempts, paid orders, and completed bank invoices as immutable records.
+- Keeps the existing KeyCRM order marker when a customer returns after an unpaid attempt, avoiding duplicate KeyCRM orders.
+- Keeps the internal bank-invoice save on the current local order so one invoice action does not create a technical duplicate report row.
+- Adds a focused checkout-submission regression test.
