@@ -64,7 +64,7 @@ Verification:
 
 Repository rollback point:
 
-- Pending final verification and commit/push.
+- Runtime implementation commit: `a8e5f4a` (`Create KeyCRM card orders after payment`).
 ## 2026-07-21 - Append-Only Step 1 Checkout Submissions v4.0.80
 
 User clarification:
