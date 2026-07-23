@@ -16,6 +16,55 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-23 - Card KeyCRM Creation Only After Confirmed Payment v4.0.81
+
+User clarification:
+
+- Monobank and Western Bid orders may enter KeyCRM only after the payment provider confirms a completed transaction.
+- The only unpaid checkout orders allowed in KeyCRM are customer-selected bank invoice orders.
+
+Root cause and diagnosis:
+
+- v4.0.74 intentionally created a KeyCRM order before opening Monobank so its ID could be sent in the payment purpose.
+- A cancelled Monobank attempt therefore left a legitimate but unpaid KeyCRM order even though the local checkout remained Draft.
+- Older same-browser draft reuse could later attach Western Bid metadata to the same local record, explaining the mixed Mono/WB provider IDs without proving payment.
+
+Implementation:
+
+- Card payment attempts no longer copy `order_id`, `buyer_id`, or `keycrm_created` from their source record.
+- Card start unconditionally clears stale KeyCRM identity/finalizer markers for every provider.
+- Removed the Monobank pre-payment KeyCRM ensure path and its public service wrapper.
+- Monobank falls back to the local `WEB-*` payment-attempt reference until confirmed payment.
+- The shared successful-card-payment finalizer remains responsible for creating KeyCRM, adding payment, setting paid status, sending email, and completing Step 4.
+- Append-only Step 1 records no longer inherit an old KeyCRM order marker.
+- Bank invoice still calls `ensure_keycrm_order(..., 'bank')` before generating the invoice.
+- Existing legacy unpaid KeyCRM orders are intentionally not deleted automatically.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `includes/class-yo-checkout-keycrm.php`
+- `includes/class-yo-checkout-payment-attempt.php`
+- `tests/test-payment-attempt-service.php`
+- `tests/test-card-keycrm-timing.php`
+- `CHANGELOG.txt`
+- `README.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `PROJECT_GOVERNANCE.md`
+- `DEVELOPMENT_LOG.md`
+
+Verification:
+
+- PHP syntax checks passed for the main plugin and all PHP files in `includes/`.
+- Payment-attempt, card-KeyCRM-timing, checkout-submission, Western Bid shipping payload, and purchase-report snapshot tests passed.
+- Live Monobank, Western Bid, KeyCRM, and bank-invoice validation remains required.
+- No test archive was created because it was not requested for this task.
+
+Repository rollback point:
+
+- Pending final verification and commit/push.
 ## 2026-07-21 - Append-Only Step 1 Checkout Submissions v4.0.80
 
 User clarification:

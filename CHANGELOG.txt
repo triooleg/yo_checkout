@@ -549,3 +549,10 @@ YOleotard Checkout v4.0.80
 - Keeps the existing KeyCRM order marker when a customer returns after an unpaid attempt, avoiding duplicate KeyCRM orders.
 - Keeps the internal bank-invoice save on the current local order so one invoice action does not create a technical duplicate report row.
 - Adds a focused checkout-submission regression test.
+YOleotard Checkout v4.0.81
+- Stops Monobank and Western Bid card attempts from inheriting or creating KeyCRM buyer/order records before payment confirmation.
+- Uses the local website payment-attempt reference for Monobank until the provider confirms payment.
+- Keeps KeyCRM card order creation, payment registration, and paid status inside the shared successful-payment finalizer.
+- Keeps bank invoice behavior unchanged: choosing invoice payment creates an unpaid KeyCRM order immediately.
+- Prevents append-only Step 1 submissions from carrying an old KeyCRM order marker into a new local record.
+- Adds focused regression coverage for KeyCRM creation timing and non-inheritance of KeyCRM metadata.

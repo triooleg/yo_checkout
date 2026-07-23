@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.80. Records every checkout submission and card attempt separately.
- * Version: 4.0.80
+ * Description: v4.0.81. Creates card orders in KeyCRM only after confirmed payment.
+ * Version: 4.0.81
  * Author: YOleotard / ChatGPT
  */
 
@@ -1602,6 +1602,7 @@ EUR=1',
         $posted_keycrm_order_id = $ignore_stale_keycrm_marker ? '' : preg_replace('/[^0-9]/', '', (string) wp_unslash($_POST['keycrm_order_id'] ?? ''));
         if (!$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->posted_cart_marker_keycrm_order_id();
         if (!$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') $posted_keycrm_order_id = $this->keycrm_marker_cookie_order_id();
+        if ($append_checkout_submission) $posted_keycrm_order_id = '';
 
         $posted_cart_marker_local_id = $ignore_stale_keycrm_marker ? 0 : absint($_POST['cart_marker_local_id'] ?? 0);
         if (!$ignore_stale_keycrm_marker && !$posted_cart_marker_local_id) {
@@ -1766,9 +1767,6 @@ EUR=1',
                     $posted_keycrm_order_id = '';
                 }
             }
-            if ($append_previous_local_id && !$ignore_stale_keycrm_marker && $posted_keycrm_order_id === '') {
-                $posted_keycrm_order_id = preg_replace('/[^0-9]/', '', (string)get_post_meta($append_previous_local_id, 'order_id', true));
-            }
             $local_id = $this->checkout_submission_service()->create($append_previous_local_id, $data['full_name'], $checkout_submission_id);
             if (is_wp_error($local_id)) {
                 $this->append_checkout_debug_log($debug_id, 'create_order submission was not created', ['error' => $local_id->get_error_message()]);
@@ -1909,17 +1907,12 @@ EUR=1',
         $provider = $this->card_provider_for_order($local_id);
         update_post_meta($local_id, 'payment_provider', $provider);
         update_post_meta($local_id, 'payment_type', 'card');
-        // Monobank needs the real KeyCRM order number before its invoice payload is created.
-        // Preserve an already prepared KeyCRM card order on retries; other providers keep
-        // the previous stale-marker reset behavior.
-        $reset_meta_keys = ['keycrm_card_order_ready','keycrm_after_payment_done','keycrm_after_payment_error','keycrm_paid_payment_added','keycrm_paid_status_set','paid_email_sent','paid_email_error'];
-        if ($provider !== 'monobank') {
-            array_unshift($reset_meta_keys, 'order_id', 'buyer_id');
-        }
+        // Card providers must not create or reuse KeyCRM orders before confirmed payment.
+        $reset_meta_keys = ['order_id','buyer_id','keycrm_card_order_ready','keycrm_before_card_payment_error','keycrm_after_payment_done','keycrm_after_payment_error','keycrm_paid_payment_added','keycrm_paid_status_set','paid_email_sent','paid_email_error'];
         foreach ($reset_meta_keys as $meta_key) {
             delete_post_meta($local_id, $meta_key);
         }
-        if ($provider !== 'monobank') update_post_meta($local_id, 'keycrm_created', '0');
+        update_post_meta($local_id, 'keycrm_created', '0');
         $fee = $this->card_fee_data($local_id, $provider);
         update_post_meta($local_id, 'card_fee_percent', $fee['percent']);
         update_post_meta($local_id, 'card_fee_amount', $fee['fee']);
@@ -1928,20 +1921,7 @@ EUR=1',
             'payment_method_choice' => sanitize_text_field(wp_unslash($_POST['payment_method_choice'] ?? 'card')),
             'terms_confirmed' => !empty($_POST['terms_confirmed']),
         ]);
-        if ($provider === 'monobank') {
-            $keycrm_order_id = $this->ensure_keycrm_order_before_card_payment($local_id);
-            if (is_wp_error($keycrm_order_id)) {
-                update_post_meta($local_id, 'keycrm_before_card_payment_error', wp_json_encode($keycrm_order_id->get_error_data() ?: $keycrm_order_id->get_error_message()));
-                wp_send_json_error(array_merge([
-                    'message' => 'KeyCRM order was not created before card payment. Please try again.',
-                    'details' => $keycrm_order_id->get_error_data() ?: $keycrm_order_id->get_error_message(),
-                ], $this->payment_attempt_response_fields($local_id)));
-            }
-            delete_post_meta($local_id, 'keycrm_before_card_payment_error');
-            if (function_exists('wp_next_scheduled') && !wp_next_scheduled('yo_checkout_check_unpaid_order', [$local_id])) {
-                wp_schedule_single_event(time() + 120 * 60, 'yo_checkout_check_unpaid_order', [$local_id]);
-            }
-        }
+
         if ($provider === 'western_bid') {
             $this->start_western_bid_payment($local_id);
             return;
@@ -3028,10 +3008,6 @@ EUR=1',
 
     private function keycrm_update_order_comment($local_id, $comment) {
         return $this->keycrm_service()->keycrm_update_order_comment($local_id, $comment);
-    }
-
-    private function ensure_keycrm_order_before_card_payment($local_id) {
-        return $this->keycrm_service()->ensure_keycrm_order_before_card_payment($local_id);
     }
 
     private function ensure_keycrm_order_after_successful_card_payment($local_id) {

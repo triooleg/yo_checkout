@@ -8,7 +8,7 @@ This file tracks known risks, limitations, and unresolved technical debt.
 
 ### Append-only checkout history live validation
 
-Status: v4.0.80 test candidate requires admin/report and payment-flow validation.
+Status: v4.0.80/v4.0.81 test candidates require admin/report and payment-flow validation.
 
 Details:
 
@@ -58,22 +58,25 @@ Handling:
 - Add a product to cart, fill Step 1, continue to Step 2, and confirm the disclaimer is visible and compact inside the information block.
 - Confirm card and SEPA/SWIFT invoice buttons still require Terms confirmation and continue to the existing flows.
 
-### KeyCRM order ID in Monobank live validation
+### Card KeyCRM creation timing live validation
 
-Status: v4.0.74 test candidate requires live validation.
+Status: v4.0.81 test candidate requires live validation.
 
 Details:
 
-- Monobank invoice destination must show the KeyCRM order number instead of local `WEB-*` ID.
-- v4.0.74 creates/reuses the KeyCRM card order before Monobank invoice creation and blocks provider start if KeyCRM creation fails.
-- The paid finalizer must update the same KeyCRM order without creating a duplicate.
+- Monobank and Western Bid must not create or reuse a KeyCRM order before the provider confirms successful payment.
+- Each card attempt starts without inherited `order_id`, `buyer_id`, or `keycrm_created` metadata.
+- Monobank uses the local website payment-attempt reference (`WEB-*`) until payment is confirmed.
+- The shared paid finalizer creates exactly one KeyCRM order, payment record, and paid status after trusted provider confirmation.
+- Bank invoice intentionally keeps creating an unpaid KeyCRM order when the customer chooses invoice payment.
+- Legacy unpaid KeyCRM orders created by older plugin versions are not deleted automatically and require manual review in KeyCRM.
 
 Handling:
 
-- Create a Monobank card checkout and confirm KeyCRM order exists before the Monobank page opens.
-- Confirm Monobank purpose shows that KeyCRM number and no `WEB-*` local ID.
-- Complete payment and confirm the same KeyCRM order receives payment, paid status, email completion, and Step 4.
-- Retry payment start once and confirm no duplicate KeyCRM order is created.
+- Start and cancel one Monobank payment; confirm no new KeyCRM order appears.
+- Start and cancel one Western Bid payment; confirm no new KeyCRM order appears.
+- Complete one payment through each card provider; confirm exactly one paid KeyCRM order is created only after confirmation.
+- Create one bank invoice; confirm an unpaid KeyCRM order is still created immediately.
 
 ### Tracking notifications live validation
 

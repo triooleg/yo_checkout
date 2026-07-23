@@ -161,9 +161,9 @@ WordPress-плагин для сайта [yoleotard.com](https://yoleotard.com),
 
 В v4.0.75 на втором шаге checkout, внутри информационного блока с расчетом card payment, добавлен disclaimer Western Bid. Покупатель видит, что магазин интегрирован с Western Bid e-commerce platform, Western Bid, Inc. является Merchant of Record, а в PayPal/card statement получателем платежа будет указано `WESTERN BID`.
 
-## KeyCRM order ID in Monobank
+## Создание заказов KeyCRM
 
-Начиная с v4.0.74 перед созданием Monobank invoice плагин создает или переиспользует card order в KeyCRM. Реальный номер KeyCRM передается в назначение, комментарий, reference и basket code Monobank вместо локального WordPress ID `WEB-*`. После успешной оплаты существующий финализатор обновляет тот же KeyCRM order, добавляет платеж и устанавливает paid status. Неоплаченный предсозданный order обрабатывается существующей двухчасовой отменой.
+Начиная с v4.0.81 карточные сценарии Monobank и Western Bid не создают и не переиспользуют заказ KeyCRM до подтверждения успешной оплаты платежной системой. До оплаты Monobank использует локальный идентификатор попытки вида `WEB-*`; после доверенного webhook/polling-подтверждения общий финализатор создает заказ KeyCRM, добавляет платеж и устанавливает оплаченный статус. Неоплаченный заказ создается в KeyCRM только для выбранного клиентом SEPA/SWIFT bank invoice. Ранее созданные неоплаченные карточные заказы KeyCRM автоматически не удаляются.
 
 ## Tracking Notifications
 

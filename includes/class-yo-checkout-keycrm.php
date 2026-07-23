@@ -1121,12 +1121,12 @@ class YO_Checkout_KeyCRM_Service {
             $this->keycrm_request('PUT', '/order/' . $d['order_id'], ['buyer_comment' => $comment], $s);
         }
 
-    private function ensure_keycrm_card_order($local_id, $mark_after_payment = false) {
+    private function ensure_keycrm_card_order($local_id) {
             $local_id = absint($local_id);
             if (!$local_id) return new WP_Error('keycrm_local_order', 'Local checkout order was not found');
 
             $existing_order_id = absint(get_post_meta($local_id, 'order_id', true));
-            if ($existing_order_id && $mark_after_payment && get_post_meta($local_id, 'keycrm_after_payment_done', true) === '1') {
+            if ($existing_order_id && get_post_meta($local_id, 'keycrm_after_payment_done', true) === '1') {
                 return $existing_order_id;
             }
             if ($existing_order_id) {
@@ -1136,7 +1136,7 @@ class YO_Checkout_KeyCRM_Service {
                 if ($current_order_id) {
                     update_post_meta($local_id, 'keycrm_created', '1');
                     update_post_meta($local_id, 'keycrm_card_order_ready', '1');
-                    if ($mark_after_payment) update_post_meta($local_id, 'keycrm_after_payment_done', '1');
+                    update_post_meta($local_id, 'keycrm_after_payment_done', '1');
                     $this->remember_keycrm_checkout_marker($local_id);
                     return $current_order_id;
                 }
@@ -1159,17 +1159,13 @@ class YO_Checkout_KeyCRM_Service {
             update_post_meta($local_id, 'order_id', $order_id);
             update_post_meta($local_id, 'keycrm_created', '1');
             update_post_meta($local_id, 'keycrm_card_order_ready', '1');
-            if ($mark_after_payment) update_post_meta($local_id, 'keycrm_after_payment_done', '1');
+            update_post_meta($local_id, 'keycrm_after_payment_done', '1');
             $this->remember_keycrm_checkout_marker($local_id);
             wp_update_post(['ID'=>$local_id, 'post_title'=>'Order #' . $order_id . ' - ' . ($d['full_name'] ?? '')]);
             return $order_id;
         }
 
-    public function ensure_keycrm_order_before_card_payment($local_id) {
-            return $this->ensure_keycrm_card_order($local_id, false);
-        }
-
     public function ensure_keycrm_order_after_successful_card_payment($local_id) {
-            return $this->ensure_keycrm_card_order($local_id, true);
+            return $this->ensure_keycrm_card_order($local_id);
         }
 }
