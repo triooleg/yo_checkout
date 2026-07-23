@@ -16,6 +16,23 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-07-23 - v4.0.81 Test Archive
+
+User request:
+
+- Build an installable test archive for the completed v4.0.81 card/KeyCRM timing fix.
+
+Archive handling:
+
+- Verified the existing exact-name archive is v4.0.80.
+- Verified `plugin-archives/yoleotard-checkout-invoice-v4.0.80.zip` is byte-identical to the previous exact-name archive, so the prior package is preserved before replacement.
+- Build the new archive from the committed tracked project state without PowerShell `Compress-Archive`.
+- Expected archive layout: one top-level `yoleotard-checkout-invoice/` directory, forward-slash paths only, and 50 tracked files including the new card-KeyCRM timing regression test.
+
+Repository rollback point:
+
+- Runtime implementation commit: `a8e5f4a` (`Create KeyCRM card orders after payment`).
+- Archive documentation commit follows on `main`.
 ## 2026-07-23 - Card KeyCRM Creation Only After Confirmed Payment v4.0.81
 
 User clarification:
