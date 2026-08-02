@@ -16,6 +16,54 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-02 - Default Step 2 Controls and Invoice Button v4.0.82
+
+User request:
+
+- Keep the informational Terms checkbox enabled by default on checkout Step 2.
+- Make the bank invoice payment action visually recognizable as a button.
+- Build a test archive.
+
+Implementation:
+
+- The Step 2 checkbox now has an initial checked state in the PHP markup.
+- Successful Step 1 transition explicitly restores `checked = true` before Step 2 is displayed.
+- Both payment buttons start enabled; the existing checkbox change handler still disables both when the customer unchecks Terms.
+- Bank invoice uses UIkit secondary semantics plus a checkout-owned dark-teal class with white text and hover/focus states.
+- Existing card/bank click guards and submitted `terms_confirmed` values remain unchanged.
+- Plugin header version is now `4.0.82`.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `assets/yo-checkout.js`
+- `assets/yo-checkout.css`
+- `tests/test-step2-payment-controls.php`
+- `CHANGELOG.txt`
+- `README.md`
+- `PROJECT_CONTEXT.md`
+- `PLUGIN_MAP.md`
+- `KNOWN_ISSUES.md`
+- `PROJECT_GOVERNANCE.md`
+- `DEVELOPMENT_LOG.md`
+
+Verification:
+
+- `php -l` passed for the main plugin, the new test, and every PHP file under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- Step 2 payment-controls, payment-attempt, card-KeyCRM timing, checkout-submission, Western Bid shipping payload, and purchase-report snapshot tests passed.
+- `git diff --check` passed.
+- Desktop/mobile live visual validation remains required.
+
+Archive handling:
+
+- Preserve the exact-name v4.0.81 archive as `plugin-archives/yoleotard-checkout-invoice-v4.0.81.zip` before replacing it.
+- Build the v4.0.82 exact-name ZIP from committed tracked files without PowerShell `Compress-Archive`.
+- Verify one top-level plugin directory, forward-slash paths, embedded version, and archive integrity.
+
+Repository rollback point:
+
+- Pending final verification and commit/push.
 ## 2026-07-23 - v4.0.81 Test Archive
 
 User request:

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.81. Creates card orders in KeyCRM only after confirmed payment.
- * Version: 4.0.81
+ * Description: v4.0.82. Improves the default Step 2 payment controls.
+ * Version: 4.0.82
  * Author: YOleotard / ChatGPT
  */
 
@@ -1300,10 +1300,10 @@ EUR=1',
               <h3 class="uk-modal-title">Choose payment method</h3>
               <p class="yo-note">You can pay by card, Apple Pay or Google Pay. If card payment does not work, please choose bank transfer by SEPA/SWIFT invoice.</p>
               <div id="yo-checkout-receipt" class="yo-fee-note yo-checkout-receipt"></div>
-              <label class="yo-terms-check"><input id="yo-accept-terms" class="uk-checkbox" type="checkbox"> I confirm my payment method choice and agree to the <a href="<?php echo esc_url(home_url('/terms-conditions/')); ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</label>
+              <label class="yo-terms-check"><input id="yo-accept-terms" class="uk-checkbox" type="checkbox" checked> I confirm my payment method choice and agree to the <a href="<?php echo esc_url(home_url('/terms-conditions/')); ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</label>
               <div class="yo-methods">
-                <button id="yo-pay-card" class="uk-button uk-button-primary yo-method-btn" type="button" disabled>Pay by card / Apple Pay / Google Pay</button>
-                <button id="yo-pay-bank" class="uk-button uk-button-default yo-method-btn" type="button" disabled>Pay by bank transfer / SEPA / SWIFT invoice</button>
+                <button id="yo-pay-card" class="uk-button uk-button-primary yo-method-btn" type="button">Pay by card / Apple Pay / Google Pay</button>
+                <button id="yo-pay-bank" class="uk-button uk-button-secondary yo-method-btn yo-bank-method-btn" type="button">Pay by bank transfer / SEPA / SWIFT invoice</button>
               </div>
             </div>
             <div id="yo-step-payment" class="yo-hidden"><button id="yo-back-to-method-from-payment" class="yo-back-btn" type="button" aria-label="Back to payment method">← Back to payment method</button><h3 class="uk-modal-title">Card payment</h3><div id="yo-external-payment-info" class="yo-hidden"></div><iframe id="yo-payment-frame" title="card payment" src="" allow="payment *"></iframe></div>

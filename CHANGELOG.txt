@@ -556,3 +556,9 @@ YOleotard Checkout v4.0.81
 - Keeps bank invoice behavior unchanged: choosing invoice payment creates an unpaid KeyCRM order immediately.
 - Prevents append-only Step 1 submissions from carrying an old KeyCRM order marker into a new local record.
 - Adds focused regression coverage for KeyCRM creation timing and non-inheritance of KeyCRM metadata.
+YOleotard Checkout v4.0.82
+- Checks the Step 2 Terms & Conditions confirmation checkbox by default when payment methods are shown.
+- Starts both payment-method buttons enabled while preserving the existing behavior that disables them when the customer unchecks Terms.
+- Gives the bank transfer / SEPA / SWIFT invoice action a distinct dark-teal UIkit-compatible button style with visible hover and focus states.
+- Keeps payment routing, totals, KeyCRM timing, invoice creation, and click-time Terms guards unchanged.
+- Adds a focused Step 2 payment-controls regression test.

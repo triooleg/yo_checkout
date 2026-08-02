@@ -58,6 +58,24 @@ Handling:
 - Add a product to cart, fill Step 1, continue to Step 2, and confirm the disclaimer is visible and compact inside the information block.
 - Confirm card and SEPA/SWIFT invoice buttons still require Terms confirmation and continue to the existing flows.
 
+### Step 2 default payment controls live validation
+
+Status: v4.0.82 test candidate requires desktop and mobile visual validation.
+
+Details:
+
+- The Terms & Conditions confirmation checkbox is checked by default when Step 2 opens.
+- Both payment buttons start enabled, but unchecking Terms still disables both buttons and preserves the existing click-time guard.
+- The bank invoice action uses a distinct dark-teal button with white text and visible hover/focus feedback.
+- Payment routing, totals, KeyCRM timing, invoice creation, and Terms submission fields are unchanged.
+
+Handling:
+
+- Open Step 2 on desktop and mobile and confirm the checkbox is visibly checked.
+- Confirm card and bank invoice buttons are enabled initially.
+- Uncheck Terms and confirm both buttons become disabled; re-check and confirm they recover.
+- Confirm the bank invoice button is visually distinct and its full label fits without overlap.
+- Start both payment methods and confirm the existing flows still open normally.
 ### Card KeyCRM creation timing live validation
 
 Status: v4.0.81 test candidate requires live validation.
