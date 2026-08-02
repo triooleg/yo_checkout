@@ -16,6 +16,23 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-02 - v4.0.83 Test Archive
+
+User request:
+
+- Build an installable test archive for the completed reservation countdown fix.
+
+Archive handling:
+
+- Verified the existing exact-name archive was v4.0.82 with SHA-256 `71bb16aa2f1f3e679b84bfcd7445e6f4475c80f74651ca441faa807a0e11fbba`.
+- Confirmed `plugin-archives/yoleotard-checkout-invoice-v4.0.82.zip` was byte-identical before replacing the exact-name archive.
+- Built `plugin-archives/yoleotard-checkout-invoice.zip` and the local history copy `plugin-archives/yoleotard-checkout-invoice-v4.0.83.zip` from 52 tracked files using Python `zipfile`, not PowerShell `Compress-Archive`.
+- Verified embedded plugin version `4.0.83`, one `yoleotard-checkout-invoice/` top-level directory, forward-slash paths only, exact tracked-file membership, `ZipFile.testzip()` integrity, and extraction of real `assets/`, `includes/`, and regression-test paths.
+- Exact-name and v4.0.83 history archives are byte-identical; SHA-256: `0841dcbd0f62424d7bf01c60e107a08bdcc1f9e2418b46450dc241304bb787b6`.
+
+Repository rollback point:
+
+- Runtime implementation commit: `a10cb58` (`Fix reservation countdown race`).
 ## 2026-08-02 - Reservation Countdown Concurrent Refresh Fix v4.0.83
 
 User request:

@@ -568,3 +568,4 @@ YOleotard Checkout v4.0.83
 - Keeps expired reservation rows filtered from responses without writing during read-only refreshes.
 - Preserves server persistence for explicit reservation creation and release actions.
 - Adds a focused regression test for the reservation read/write boundary.
+- Built and verified the installable v4.0.83 test archive while preserving the previous v4.0.82 package.
