@@ -58,7 +58,7 @@ Verification:
 
 Repository rollback point:
 
-- Pending commit after verification.
+- Runtime implementation commit: `a10cb58` (`Fix reservation countdown race`).
 ## 2026-08-02 - Default Step 2 Controls and Invoice Button v4.0.82
 
 User request:
