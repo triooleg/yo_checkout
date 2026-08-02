@@ -576,3 +576,4 @@ YOleotard Checkout v4.0.84
 - Synchronizes reservation timers across already-open browser/incognito sessions every five seconds and when a tab regains focus or visibility.
 - Keeps permanent bank-invoice Card Default reservation behavior unchanged.
 - Adds focused frontend reservation countdown regression coverage.
+- Built and verified the installable v4.0.84 test archive while preserving the previous v4.0.83 package.
