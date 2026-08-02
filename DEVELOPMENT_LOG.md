@@ -63,7 +63,7 @@ Archive handling:
 
 Repository rollback point:
 
-- Pending final verification and commit/push.
+- Runtime implementation commit: `eac5e31` (`Improve Step 2 payment controls`).
 ## 2026-07-23 - v4.0.81 Test Archive
 
 User request:
