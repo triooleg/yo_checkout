@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.83. Prevents reservation countdown loss during concurrent refreshes.
- * Version: 4.0.83
+ * Description: v4.0.84. Keeps reservation countdowns synchronized across browsers.
+ * Version: 4.0.84
  * Author: YOleotard / ChatGPT
  */
 

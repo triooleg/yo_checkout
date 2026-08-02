@@ -569,3 +569,10 @@ YOleotard Checkout v4.0.83
 - Preserves server persistence for explicit reservation creation and release actions.
 - Adds a focused regression test for the reservation read/write boundary.
 - Built and verified the installable v4.0.83 test archive while preserving the previous v4.0.82 package.
+
+YOleotard Checkout v4.0.84
+- Prevents the generic server-unavailable Reserved badge from covering an active reservation countdown.
+- Applies only the newest reservation-list AJAX response so an older response cannot clear newer visual state.
+- Synchronizes reservation timers across already-open browser/incognito sessions every five seconds and when a tab regains focus or visibility.
+- Keeps permanent bank-invoice Card Default reservation behavior unchanged.
+- Adds focused frontend reservation countdown regression coverage.

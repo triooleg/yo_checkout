@@ -32,6 +32,8 @@
     let activePaymentWindow = null;
     let finalOrderPollingActive = false;
     let reservationServerOffsetMs = 0;
+    let reservationRefreshRequestId = 0;
+    const RESERVATION_REFRESH_INTERVAL_MS = 5000;
     const BUYER_STORAGE_KEY = 'yo_checkout_buyer_id_v1';
     const CHECKOUT_SESSION_KEY = 'yo_checkout_session_id_v1';
     const CHECKOUT_DRAFT_KEY = 'yo_checkout_local_order_id_v1';
@@ -617,6 +619,11 @@
     }
     function applyReservedState(card, text, expires){
       if(!card) return;
+      // A temporary reservation countdown is more specific than the generic
+      // server-unavailable state. Do not leave its untimed badge on top.
+      if(card.dataset.yoServerUnavailable === '1' && !card.classList.contains('uk-card-default') && !card.querySelector('.uk-card-default')){
+        clearInvoiceReservedState(card);
+      }
       card.classList.add('yo-reserved-card');
       card.style.position = card.style.position || 'relative';
       let badge = card.querySelector('.yo-reserved-overlay-badge');
@@ -656,9 +663,11 @@
       removePromoBadge(card);
     }
     function refreshReservedCards(){
+      const requestId = ++reservationRefreshRequestId;
       const fd = new FormData();
       fd.append('buyer_id', buyerId());
-      post('yo_checkout_get_reservations', fd).then(function(data){
+      return post('yo_checkout_get_reservations', fd).then(function(data){
+        if(requestId !== reservationRefreshRequestId) return;
         if(!data || !data.success || !data.data || !Array.isArray(data.data.items)) return;
         if(data.data.now) reservationServerOffsetMs = (parseInt(data.data.now, 10) * 1000) - Date.now();
         const serverNow = parseInt(data.data.now || Math.floor((Date.now() + reservationServerOffsetMs) / 1000), 10) || Math.floor(Date.now()/1000);
@@ -1140,6 +1149,9 @@
           return;
         }
         card.dataset.yoServerUnavailable = '1';
+        // The reservations endpoint owns the timed UI. Availability validation
+        // must not cover an active countdown with an untimed Reserved badge.
+        if(card.classList.contains('yo-reserved-card') && card.querySelector('.yo-reserved-overlay-badge[data-yo-reservation-expires]')) return;
         applyInvoiceReservedState(card);
         const badge = card.querySelector('.yo-invoice-reserved-overlay-badge');
         if(badge) badge.textContent = badgeText || window.YOCheckout?.invoiceReservedBadgeText || window.YOCheckout?.reservationBadgeText || 'Reserved';
@@ -2206,6 +2218,8 @@
       });
     }
     initCountryAutocomplete(); loadCart();
-    ensureFloatingCart(); updateFloatingCart(); renderCartSummary(); validateCartAvailability(true); addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); setInterval(updateReservedCountdowns, 1000); setInterval(refreshReservedCards, 60000); setInterval(refreshProductCardAvailability, 60000); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },500); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },1500); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },3000); setTimeout(refreshProductCardAvailability, 10000);
+    ensureFloatingCart(); updateFloatingCart(); renderCartSummary(); validateCartAvailability(true); addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); setInterval(updateReservedCountdowns, 1000); setInterval(refreshReservedCards, RESERVATION_REFRESH_INTERVAL_MS); setInterval(refreshProductCardAvailability, 60000); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },500); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },1500); setTimeout(function(){ addPayButtons(); refreshProductCardAvailability(); refreshReservedCards(); },3000); setTimeout(refreshProductCardAvailability, 10000);
+    window.addEventListener('focus', refreshReservedCards);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) refreshReservedCards(); });
   });
 })();

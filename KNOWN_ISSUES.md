@@ -58,22 +58,26 @@ Handling:
 - Add a product to cart, fill Step 1, continue to Step 2, and confirm the disclaimer is visible and compact inside the information block.
 - Confirm card and SEPA/SWIFT invoice buttons still require Terms confirmation and continue to the existing flows.
 
-### Reservation countdown concurrent-refresh validation
+### Cross-browser reservation countdown validation
 
-Status: v4.0.83 test candidate requires live validation.
+Status: v4.0.84 test candidate requires live validation.
 
 Details:
 
-- Multiple reservation and availability AJAX requests run during initial product-grid setup.
-- Before v4.0.83, every reservation read rewrote the shared WordPress option after filtering expired rows. A slower request with an older snapshot could therefore overwrite a reservation created by a newer request, causing the countdown to disappear after several seconds.
-- Reservation reads are now side-effect free. Create and release actions remain the only paths that persist reservation changes.
+- v4.0.83 removed a server-side read/write race, but live testing showed that the timer could still be covered after 2-5 seconds by the generic server-unavailable `Reserved` badge in a second browser.
+- Reservation refresh requests could also finish out of order and let an older response clear newer visual state.
+- v4.0.84 gives the timed reservation badge priority, applies only the newest reservation-list response, polls reservations every five seconds, and refreshes immediately when the tab regains focus or visibility.
+- Permanent bank-invoice `Card Default` behavior remains separate and unchanged.
 
 Handling:
 
-- Add an available product to the cart and confirm the `Reserved MM:SS` countdown appears immediately.
-- Keep the page open for at least 15 seconds and confirm the countdown continues decreasing without reverting to plain `Reserved` or disappearing.
-- Refresh the page and repeat the check.
-- Remove the item from the cart and confirm the reservation is released.
+- Keep the storefront open in a normal browser and in an incognito window.
+- Add an available product to the cart in the normal browser.
+- Confirm the incognito window shows `Reserved MM:SS` without a manual reload within five seconds.
+- Keep both pages open for at least 20 seconds and confirm neither countdown changes to plain `Reserved` or disappears.
+- Refresh the incognito page and repeat the check.
+- Remove the item from the cart and confirm both browsers unlock it after synchronization.
+
 ### Step 2 default payment controls live validation
 
 Status: v4.0.82 test candidate requires desktop and mobile visual validation.

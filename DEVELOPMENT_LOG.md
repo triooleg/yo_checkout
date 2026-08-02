@@ -16,6 +16,54 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-02 - Cross-Browser Reservation Countdown Fix v4.0.84
+
+User report:
+
+- A product reserved in the normal browser did not show its timer in an already-open incognito window until reload.
+- After reload, the countdown appeared but changed to an untimed Reserved state or disappeared after 2-5 seconds.
+
+Root cause:
+
+- The general product-availability request treated another visitor's temporary reservation as generic unavailability and rendered the permanent-style untimed badge over the countdown.
+- Parallel reservation-list requests could complete out of order and apply stale visual state.
+- Reservation polling ran only every 60 seconds, so another already-open browser did not learn about a new reservation promptly.
+
+Implementation:
+
+- Timed reservation UI now removes transient generic unavailable UI and has priority while its expiry is active.
+- Availability rendering skips its untimed overlay when a timed reservation badge is present.
+- Reservation-list responses use a monotonically increasing request ID; only the newest response may update cards.
+- Cross-browser reservation polling now runs every five seconds and also refreshes on window focus and restored document visibility.
+- Permanent YOOtheme `Card Default` bank-invoice reservations remain protected from temporary-state cleanup.
+- Plugin header version is now `4.0.84`.
+
+Files changed:
+
+- `assets/yo-checkout.js`
+- `yoleotard-checkout-invoice.php`
+- `tests/test-reservation-countdown-ui.php`
+- `CHANGELOG.txt`
+- `DEVELOPMENT_LOG.md`
+- `PLUGIN_MAP.md`
+- `PROJECT_CONTEXT.md`
+- `KNOWN_ISSUES.md`
+- `PROJECT_GOVERNANCE.md`
+- `README.md`
+
+Verification:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for all 14 PHP files under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- All 8 PHP regression tests passed, including both reservation race/countdown tests.
+- `git diff --check` passed with line-ending warnings only.
+- Live two-browser/incognito validation remains required.
+
+Repository rollback point:
+
+- Pending commit after full verification.
+
 ## 2026-08-02 - v4.0.83 Test Archive
 
 User request:
