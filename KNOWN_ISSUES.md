@@ -58,6 +58,22 @@ Handling:
 - Add a product to cart, fill Step 1, continue to Step 2, and confirm the disclaimer is visible and compact inside the information block.
 - Confirm card and SEPA/SWIFT invoice buttons still require Terms confirmation and continue to the existing flows.
 
+### Reservation countdown concurrent-refresh validation
+
+Status: v4.0.83 test candidate requires live validation.
+
+Details:
+
+- Multiple reservation and availability AJAX requests run during initial product-grid setup.
+- Before v4.0.83, every reservation read rewrote the shared WordPress option after filtering expired rows. A slower request with an older snapshot could therefore overwrite a reservation created by a newer request, causing the countdown to disappear after several seconds.
+- Reservation reads are now side-effect free. Create and release actions remain the only paths that persist reservation changes.
+
+Handling:
+
+- Add an available product to the cart and confirm the `Reserved MM:SS` countdown appears immediately.
+- Keep the page open for at least 15 seconds and confirm the countdown continues decreasing without reverting to plain `Reserved` or disappearing.
+- Refresh the page and repeat the check.
+- Remove the item from the cart and confirm the reservation is released.
 ### Step 2 default payment controls live validation
 
 Status: v4.0.82 test candidate requires desktop and mobile visual validation.

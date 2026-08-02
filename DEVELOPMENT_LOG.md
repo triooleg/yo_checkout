@@ -16,6 +16,49 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-02 - Reservation Countdown Concurrent Refresh Fix v4.0.83
+
+User request:
+
+- Investigate why a newly reserved product first showed no countdown and why the countdown disappeared several seconds after page refresh.
+
+Root cause:
+
+- Initial product-grid setup starts several reservation and availability AJAX requests close together.
+- `clean_reservations()` rewrote the complete shared reservation option even when called by a read-only request.
+- A slower reader holding an older snapshot could overwrite a reservation that a newer request had just created.
+
+Implementation:
+
+- `clean_reservations()` now filters invalid and expired rows in memory without writing during reads.
+- Explicit create and release operations still persist reservation mutations.
+- Plugin header version is now `4.0.83`.
+- Added a static regression test that protects the read/write boundary.
+
+Files changed:
+
+- `yoleotard-checkout-invoice.php`
+- `tests/test-reservation-read-race.php`
+- `CHANGELOG.txt`
+- `DEVELOPMENT_LOG.md`
+- `PLUGIN_MAP.md`
+- `PROJECT_CONTEXT.md`
+- `KNOWN_ISSUES.md`
+- `PROJECT_GOVERNANCE.md`
+- `README.md`
+
+Verification:
+
+- `php -l yoleotard-checkout-invoice.php` passed.
+- `php -l` passed for all 14 PHP files under `includes/`.
+- `node --check assets/yo-checkout.js` passed.
+- All 7 PHP regression tests passed, including `test-reservation-read-race.php`.
+- `git diff --check` passed with line-ending warnings only.
+- Live product-card timer validation remains required after installation.
+
+Repository rollback point:
+
+- Pending commit after verification.
 ## 2026-08-02 - Default Step 2 Controls and Invoice Button v4.0.82
 
 User request:

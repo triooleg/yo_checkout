@@ -562,3 +562,9 @@ YOleotard Checkout v4.0.82
 - Gives the bank transfer / SEPA / SWIFT invoice action a distinct dark-teal UIkit-compatible button style with visible hover and focus states.
 - Keeps payment routing, totals, KeyCRM timing, invoice creation, and click-time Terms guards unchanged.
 - Adds a focused Step 2 payment-controls regression test.
+
+YOleotard Checkout v4.0.83
+- Makes reservation-list reads side-effect free so concurrent page-load AJAX requests cannot overwrite a newly created reservation with an older option snapshot.
+- Keeps expired reservation rows filtered from responses without writing during read-only refreshes.
+- Preserves server persistence for explicit reservation creation and release actions.
+- Adds a focused regression test for the reservation read/write boundary.

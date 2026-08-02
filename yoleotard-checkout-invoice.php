@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.82. Improves the default Step 2 payment controls.
- * Version: 4.0.82
+ * Description: v4.0.83. Prevents reservation countdown loss during concurrent refreshes.
+ * Version: 4.0.83
  * Author: YOleotard / ChatGPT
  */
 
@@ -1354,7 +1354,7 @@ EUR=1',
             if (!$key || !$title || !$buyer || $expires <= $now) continue;
             $clean[$key] = ['title'=>$title, 'product_id'=>$product_id, 'buyer_id'=>$buyer, 'expires'=>$expires];
         }
-        update_option($this->reservation_option_key(), $clean, false);
+        // Keep reads side-effect free: parallel AJAX readers must never overwrite a newer reservation.
         return $clean;
     }
 

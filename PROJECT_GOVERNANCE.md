@@ -373,7 +373,7 @@ Current status:
 - Stable runtime version: `4.0.56`
 - Current branch: `main`
 - Current next planned work: `Phase 4 - Invoice Access Hardening`
-- Runtime work in progress: `v4.0.82` default Step 2 controls and visible bank invoice button test candidate
+- Runtime work in progress: `v4.0.83` reservation countdown concurrent-refresh fix test candidate
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule
