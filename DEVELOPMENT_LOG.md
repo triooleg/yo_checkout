@@ -57,9 +57,10 @@ Verification:
 
 Archive handling:
 
-- Preserve the exact-name v4.0.81 archive as `plugin-archives/yoleotard-checkout-invoice-v4.0.81.zip` before replacing it.
-- Build the v4.0.82 exact-name ZIP from committed tracked files without PowerShell `Compress-Archive`.
-- Verify one top-level plugin directory, forward-slash paths, embedded version, and archive integrity.
+- Confirmed the previous exact-name ZIP and `yoleotard-checkout-invoice-v4.0.81.zip` are byte-identical v4.0.81 packages before replacement.
+- Preserved the previous package as `plugin-archives/yoleotard-checkout-invoice-v4.0.81.zip`.
+- Built both the exact-name v4.0.82 ZIP and local `yoleotard-checkout-invoice-v4.0.82.zip` history copy from 51 committed tracked files without PowerShell `Compress-Archive`.
+- Verified one `yoleotard-checkout-invoice/` top-level directory, forward-slash paths only, embedded version `4.0.82`, exact tracked-file membership, and `ZipFile.testzip()` integrity.
 
 Repository rollback point:
 
