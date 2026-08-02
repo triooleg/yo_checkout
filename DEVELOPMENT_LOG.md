@@ -62,7 +62,7 @@ Verification:
 
 Repository rollback point:
 
-- Pending commit after full verification.
+- Runtime implementation commit: `d2469d2` (`Fix cross-browser reservation countdown`).
 
 ## 2026-08-02 - v4.0.83 Test Archive
 
