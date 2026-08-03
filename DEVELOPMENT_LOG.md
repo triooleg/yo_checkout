@@ -16,6 +16,31 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-03 - v4.0.85 Test Archive
+
+User request:
+
+- Build a plugin archive for testing after fixing the duplicated reserved-card preview icon.
+
+Archive handling:
+
+- Confirmed the previous exact archive and `yoleotard-checkout-invoice-v4.0.84.zip` are byte-identical.
+- Preserved v4.0.84 with SHA-256 `bcd05dfe234d2116272afdadd8dabc6f22eb44e54636199ec3211b22937604af`.
+- Built `plugin-archives/yoleotard-checkout-invoice.zip` from committed tracked files using Python `zipfile`.
+- Saved the same package as `plugin-archives/yoleotard-checkout-invoice-v4.0.85.zip`.
+
+Archive verification:
+
+- SHA-256: `58b29b174da1451e3e20a52a25ea811ffd2175a9addef9ab2ac4f3d99a5b3969`.
+- Contains 54 tracked files under the single top-level `yoleotard-checkout-invoice/` directory.
+- Contains no backslashes in ZIP entry paths.
+- Embedded plugin version is `4.0.85`.
+- Extraction check confirmed the main file, `assets/`, `includes/`, and the new reserved preview icon regression test.
+
+Repository rollback point:
+
+- Runtime fix: `2fa77b4` (`Fix duplicate reserved preview icon`).
+- Documentation checkpoint: `3469c18` (`Record v4.0.85 rollback point`).
 ## 2026-08-03 - Reserved Card Default Preview Icon Fix v4.0.85
 
 User report:

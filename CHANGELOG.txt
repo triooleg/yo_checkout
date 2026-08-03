@@ -584,3 +584,4 @@ YOleotard Checkout v4.0.85
 - Confirms through a live rendered-DOM Edge check that the scoped icon is hidden, the Reserved badge stays visible, an ordinary card is unaffected, and no public page error occurs.
 - Records the Customizer-only UIkit Transition skipped warning as not reproducible on the public storefront.
 - Adds focused CSS regression coverage for the reserved preview icon selector.
+- Built and verified the installable v4.0.85 test archive while preserving the previous v4.0.84 package.
