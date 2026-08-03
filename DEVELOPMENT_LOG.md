@@ -69,7 +69,7 @@ Verification:
 
 Repository rollback point:
 
-- Pending commit after full verification.
+- `2fa77b4` (`Fix duplicate reserved preview icon`).
 
 ## 2026-08-02 - v4.0.84 Test Archive
 
