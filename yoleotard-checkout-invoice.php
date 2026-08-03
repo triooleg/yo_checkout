@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.84. Keeps reservation countdowns synchronized across browsers.
- * Version: 4.0.84
+ * Description: v4.0.85. Prevents duplicate preview icons on reserved product cards.
+ * Version: 4.0.85
  * Author: YOleotard / ChatGPT
  */
 

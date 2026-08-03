@@ -373,7 +373,7 @@ Current status:
 - Stable runtime version: `4.0.56`
 - Current branch: `main`
 - Current next planned work: `Phase 4 - Invoice Access Hardening`
-- Runtime work in progress: `v4.0.84` cross-browser reservation countdown synchronization test candidate
+- Runtime work in progress: `v4.0.85` reserved Card Default preview-icon visual fix test candidate
 - Phase 0 baseline: completed in `REGRESSION_BASELINE.md`
 
 ## Final Rule

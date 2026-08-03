@@ -78,6 +78,26 @@ Handling:
 - Refresh the incognito page and repeat the check.
 - Remove the item from the cart and confirm both browsers unlock it after synchronization.
 
+### Reserved Card Default preview icon validation
+
+Status: v4.0.85 test candidate requires Customizer and storefront visual validation.
+
+Details:
+
+- YOOtheme stores a `play-circle` element inside the original Price button and positions it over the product image.
+- Normal cards replace that button with Buy now, but permanent `Card Default` cards exit checkout button setup early, leaving the original icon visible under the reserved overlay.
+- In WordPress Customizer this icon can overlap the editor preview icon and look doubled.
+- v4.0.85 hides only `play-circle` when it is a direct child of a disabled `.yo-invoice-reserved-buy-btn` inside `.yo-invoice-reserved-card`.
+- A headless Edge check against the public Lime Energy card confirmed the icon becomes `display:none`, the Reserved badge remains visible, an ordinary card is unchanged, and no public page error occurs.
+- The reported `AbortError: Transition was skipped` was not reproducible on the public storefront over multiple refresh cycles; it is consistent with UIkit transition cancellation during Customizer preview redraw and is not globally suppressed by the plugin.
+
+Handling:
+
+- Open a `Card Default` reserved product in WordPress Customizer and confirm only one editor preview icon remains.
+- Open the public storefront and confirm the reserved card shows the Reserved badge without an extra play-circle.
+- Confirm a normal available video product keeps its expected preview/lightbox behavior.
+- Confirm the browser console has no new checkout-plugin errors on the public storefront.
+
 ### Step 2 default payment controls live validation
 
 Status: v4.0.82 test candidate requires desktop and mobile visual validation.

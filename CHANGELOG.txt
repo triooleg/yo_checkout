@@ -577,3 +577,10 @@ YOleotard Checkout v4.0.84
 - Keeps permanent bank-invoice Card Default reservation behavior unchanged.
 - Adds focused frontend reservation countdown regression coverage.
 - Built and verified the installable v4.0.84 test archive while preserving the previous v4.0.83 package.
+
+YOleotard Checkout v4.0.85
+- Hides the leftover YOOtheme play-circle only inside disabled Card Default reservation buttons, preventing it from overlapping the Customizer preview icon.
+- Keeps normal product-card video/lightbox behavior and the Reserved overlay badge unchanged.
+- Confirms through a live rendered-DOM Edge check that the scoped icon is hidden, the Reserved badge stays visible, an ordinary card is unaffected, and no public page error occurs.
+- Records the Customizer-only UIkit Transition skipped warning as not reproducible on the public storefront.
+- Adds focused CSS regression coverage for the reserved preview icon selector.

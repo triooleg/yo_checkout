@@ -538,6 +538,9 @@ li.yo-invoice-reserved-card::after {
   pointer-events: none !important;
   cursor: not-allowed !important;
 }
+.yo-invoice-reserved-card .yo-invoice-reserved-buy-btn > [uk-icon*="play-circle"] {
+  display: none !important;
+}
 
 
 /* v3.3.39 cart preview layout: when 3+ products are selected, images are shown above and summary text below */

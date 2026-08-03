@@ -16,6 +16,61 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-03 - Reserved Card Default Preview Icon Fix v4.0.85
+
+User report:
+
+- A Card Default reserved product showed what looked like a doubled preview/play icon in WordPress Customizer.
+- The Customizer console also showed `AbortError: Transition was skipped`.
+- Build a test archive after the fix.
+
+Diagnosis:
+
+- Public rendered DOM inspection found one real `play-circle` SVG remaining inside the original YOOtheme Price button of the reserved Lime Energy card.
+- YOOtheme positions that button icon absolutely over the product image. Normal checkout cards remove it when converting Price to Buy now, but Card Default cards intentionally leave button setup early.
+- In Customizer, the remaining button icon overlaps the editor preview icon and appears doubled.
+- A 12-second public Edge run across multiple reservation refresh cycles produced no `pageerror` or `console.error`; the Transition skipped warning is therefore treated as a Customizer/UIkit canceled-animation warning, not masked by the plugin.
+
+Implementation:
+
+- Added a CSS selector scoped to `.yo-invoice-reserved-card .yo-invoice-reserved-buy-btn` that hides only its direct `play-circle` child.
+- Normal cards, image links, UIkit lightbox behavior, the Reserved badge, and reservation logic remain unchanged.
+- Plugin header version is now `4.0.85`.
+- Added focused CSS regression coverage.
+
+Browser verification:
+
+- Loaded the public site in headless Microsoft Edge and injected the local v4.0.85 CSS.
+- Confirmed the reserved Lime Energy play-circle exists but computes to `display:none`.
+- Confirmed its Reserved badge stays visible with text `Reserved`.
+- Confirmed ordinary Black Radiance is not marked invoice-reserved.
+- Confirmed no public page errors were captured.
+
+Files changed:
+
+- `assets/yo-checkout.css`
+- `yoleotard-checkout-invoice.php`
+- `tests/test-reserved-preview-icon.php`
+- `CHANGELOG.txt`
+- `DEVELOPMENT_LOG.md`
+- `PLUGIN_MAP.md`
+- `PROJECT_CONTEXT.md`
+- `KNOWN_ISSUES.md`
+- `PROJECT_GOVERNANCE.md`
+- `README.md`
+
+Verification:
+
+- Main plugin PHP lint and all 14 `includes/` PHP lints passed.
+- `node --check assets/yo-checkout.js` passed.
+- All 9 PHP regression tests passed, including the new reserved preview icon test.
+- Browser rendered-DOM verification and Git whitespace check passed.
+- Customizer visual confirmation remains required after installation.
+
+Repository rollback point:
+
+- Pending commit after full verification.
+
 ## 2026-08-02 - v4.0.84 Test Archive
 
 User request:
