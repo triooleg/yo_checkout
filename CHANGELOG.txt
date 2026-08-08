@@ -585,3 +585,12 @@ YOleotard Checkout v4.0.85
 - Records the Customizer-only UIkit Transition skipped warning as not reproducible on the public storefront.
 - Adds focused CSS regression coverage for the reserved preview icon selector.
 - Built and verified the installable v4.0.85 test archive while preserving the previous v4.0.84 package.
+YOleotard Checkout v4.0.86
+- Adds the optional Need help buying? product-card action with WhatsApp, Instagram Direct, and Facebook Messenger channels.
+- Places the action to the right of the regular Buy now button and absolutely above right-aligned sale controls without changing product-card height.
+- Sends the selected model title, price, page link, and photo link in the WhatsApp message; copies the same message for Instagram Direct.
+- Adds a Meta Messenger webhook that verifies X-Hub-Signature-256 with the App Secret and sends a trusted server-resolved product card after an m.me referral.
+- Adds the Помощь менеджера admin tab for the feature switch, channel addresses, Meta App ID, App Secret, Page ID, Page Access Token, Graph API version, generated verify token, and callback URL.
+- Keeps App Secret and Page Access Token server-side and preserves stored secrets when their admin fields are left blank.
+- Hides the helper from reserved and Card Default product cards.
+- Adds focused Messenger security and manager-button UI regression tests.

@@ -1,6 +1,6 @@
 # YOleotard Checkout Plugin Map
 
-Last updated: 2026-07-21
+Last updated: 2026-08-09
 
 ## Purpose
 
@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, Step 2 Western Bid Merchant of Record disclaimer display, default-enabled Terms confirmation and distinct bank-invoice button, optional Shipping tab free-shipping product-card badge settings, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.85`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, Step 2 Western Bid Merchant of Record disclaimer display, default-enabled Terms confirmation and distinct bank-invoice button, optional Shipping tab free-shipping product-card badge settings, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.86`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
@@ -63,9 +63,16 @@ Rules for future work:
 - `includes/class-yo-checkout-submission.php`
   Append-only checkout submission service added in v4.0.80. Creates a new local order for every explicit Step 1 form submission, stores a one-time submission ID plus server-side sequence/root lineage, and marks only the previous ordinary draft as superseded. Payment attempts, paid orders, and completed bank invoices remain immutable and are never superseded.
 
+- `includes/class-yo-checkout-messenger.php`
+  Manager-assisted purchase and Meta Messenger service added in v4.0.86. Owns manager/Messenger defaults and sanitization, secret-preserving admin fields, generated webhook verify token, public GET/POST REST route registration, raw-body X-Hub-Signature-256 verification, m.me product referral validation and deduplication, trusted product-catalog lookup, and Graph Send API product-card responses. App Secret and Page Access Token stay server-side and may alternatively be supplied by YO_CHECKOUT_MESSENGER_APP_SECRET / YO_CHECKOUT_MESSENGER_PAGE_TOKEN constants.
 - `includes/class-yo-checkout-tracking-notifications.php`
   Admin shipment tracking notification service added in v4.0.72. Lists paid card orders and completed bank invoice orders with All/Pending/Sent filters and pagination. Each order expands to customer/product details and a tracking URL form. The protected `admin_post_yo_checkout_send_tracking` action validates capability, nonce, order eligibility, customer email, and HTTP(S) tracking URL; delegates delivery to the shared email service; and marks tracking metadata as sent only when `wp_mail()` succeeds. v4.0.73 uses the same logo/card style as paid and invoice emails, includes the order number in the subject and heading, sends from `YOleotard <no-reply@yoleotard.com>`, and adds Facebook, Instagram, and TikTok links.
 
+- `tests/test-messenger-service.php`
+  Focused regression test for Meta SHA-256 webhook signatures, strict referral product IDs, and prevention of App Secret/Page Access Token localization.
+
+- `tests/test-manager-purchase-ui.php`
+  Static UI contract test for the approved button label, three manager channels, upward absolute menu, and regular/discount positioning rules.
 - `tests/test-western-bid-shipping-payload.php`
   Focused CLI regression test for Western Bid payload arithmetic with enabled delivery, disabled delivery, card service fee, and promo discount.
 - `tests/test-payment-attempt-service.php`
@@ -92,11 +99,16 @@ Rules for future work:
 - `assets/yo-checkout.js`
   Frontend checkout logic. Adds buy/cart buttons, manages cart state in browser storage, stores local order access tokens, sends protected AJAX order tokens, product reservations with read-only server filtering, latest-response-wins frontend refreshes, five-second cross-browser synchronization, and timed-badge precedence over generic unavailable state, permanent invoice-reserved card state for YOOtheme Card Default product cards, server-availability sync that greys and disables product cards which the backend already considers unavailable, customer form flow with a one-time ID for every explicit Step 1 submission, promo code application, whole-badge promo GIF tooltip created through the UIkit JavaScript API when the customer hovers, focuses, taps, or clicks the badge, shipping option selection, optional free-shipping product-card badge insertion directly before the actual product Buy button while excluding UIkit unit/currency controls, Western Bid Merchant of Record disclaimer in the Step 2 receipt, default-checked Terms confirmation, card/bank payment actions, passes selected payment method and terms confirmation before Step 3, payment polling, success step, and Google Reviews opt-in trigger. Enqueued with `filemtime()` as the script version so browser/cache layers receive the latest diagnostics and payment logic after plugin updates.
 
+- `assets/yo-manager-purchase.js`
+  Isolated v4.0.86 storefront enhancement. Adds the idempotent Need help buying? action after dynamically generated checkout buttons, builds WhatsApp/Instagram/Messenger links from the selected product, copies the product request for Instagram, opens the menu upward, closes it on outside click/Escape, and removes the action from reserved/Card Default cards.
+
+- `assets/yo-manager-purchase.css`
+  Responsive manager-action layout. Keeps regular help to the right of Buy now, positions discounted help absolutely above and right-aligned to sale controls, and keeps the upward channel menu out of product-card flow.
 - `assets/yo-checkout.css`
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, invoice-reserved overlay badges, scoped suppression of the leftover YOOtheme play-circle inside disabled Card Default reservation buttons, promo GIF tooltip display, notifications, Step 2 Western Bid disclaimer styling, distinct dark-teal bank-invoice payment button styling, optional emerald free-shipping product-card badge styling, related UI, and the v4.0.66 desktop override that widens and compacts the YOOtheme `body.home .yo-height-filter` Ready-to-Ship filter without changing mobile filter rules.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.85`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.86`.
 
 - `README.md`
   Russian-language public project overview. Describes what the plugin does, supported checkout flows, integrations, admin areas, protected working zones, test-candidate zones, verification commands, archive rules, and development rules.
@@ -397,6 +409,17 @@ YOOtheme:
 - When a product card has a stable DOM `id` or `data-feed-id`, auto-hide, reservation ownership, reservation release, and availability/payment checks prefer that `product_id` before falling back to title matching.
 - Sold-item logs should display the real KeyCRM order number when `order_id` is available, with local WordPress order ID shown only as a technical reference.
 
+## Manager-Assisted Purchase
+
+- Admin tab: Помощь менеджера.
+- Storefront switch: manager_button_enabled; disabled by default so the new action can be turned off independently of checkout.
+- Regular cards: help action follows Buy now in the same flex row.
+- Discount cards: help action is absolutely positioned above the sale controls and aligned to their right edge.
+- Menu channels: WhatsApp prefilled text, Instagram Direct plus clipboard copy, and an m.me product referral.
+- REST route: GET|POST /wp-json/yoleotard/v1/messenger-webhook.
+- GET verifies the generated messenger_verify_token; POST requires Meta X-Hub-Signature-256 computed with the server-only App Secret.
+- Messenger replies resolve title, current price, image, and product link through the trusted server-side product catalog instead of trusting browser-supplied values.
+- Public Messenger users require the Meta app/Page subscription and permissions to be published; developer-mode testing is limited to app roles.
 ## Development Notes
 
 - The main PHP file is large. Prefer extracting new areas into `includes/*.php` and loading them from the main file.

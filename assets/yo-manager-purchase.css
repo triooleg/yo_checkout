@@ -1,0 +1,129 @@
+.yo-manager-actions-host{
+  position:relative;
+}
+
+.yo-manager-actions-host:not(.has-discount){
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  width:max-content;
+  max-width:100%;
+}
+
+.yo-manager-actions-host:not(.has-discount) .yo-free-shipping-badge-wrap{
+  flex:0 0 100%;
+  margin-bottom:2px;
+}
+
+.yo-manager-help{
+  position:relative;
+  display:inline-flex;
+  flex:0 0 auto;
+  z-index:8;
+  letter-spacing:0;
+}
+
+.yo-manager-help-discount{
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 8px);
+}
+
+.yo-manager-help-toggle{
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:38px;
+  padding:7px 12px;
+  border:1px solid #66c7b3;
+  border-radius:999px;
+  background:#e2f7f1;
+  color:#0a6858;
+  box-shadow:0 7px 16px rgba(10,104,88,.15);
+  font-family:inherit;
+  font-size:14px;
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:0;
+  text-transform:none;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:background-color .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+
+.yo-manager-help-toggle:hover,
+.yo-manager-help-toggle:focus-visible,
+.yo-manager-help.is-open .yo-manager-help-toggle{
+  border-color:#0f7a68;
+  background:#0f7a68;
+  color:#fff;
+  box-shadow:0 9px 20px rgba(15,122,104,.24);
+  outline:none;
+}
+
+.yo-manager-chevron{
+  transition:transform .2s ease;
+}
+
+.yo-manager-help.is-open .yo-manager-chevron{
+  transform:rotate(180deg);
+}
+
+.yo-manager-menu{
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 8px);
+  z-index:20;
+  display:none;
+  width:190px;
+  padding:6px;
+  border:1px solid #dce5e8;
+  border-radius:8px;
+  background:#fff;
+  box-shadow:0 14px 34px rgba(7,25,75,.18);
+}
+
+.yo-manager-help.is-open .yo-manager-menu{
+  display:grid;
+  gap:3px;
+}
+
+.yo-manager-channel{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:36px;
+  padding:7px 9px;
+  border-radius:6px;
+  color:#07194b;
+  font-size:14px;
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:0;
+  text-decoration:none;
+}
+
+.yo-manager-channel:hover,
+.yo-manager-channel:focus-visible{
+  background:#f2f7f7;
+  color:#0a6858;
+  text-decoration:none;
+  outline:none;
+}
+
+@media (max-width:640px){
+  .yo-manager-actions-host:not(.has-discount){
+    width:100%;
+  }
+  .yo-manager-help-toggle{
+    min-height:36px;
+    padding:7px 10px;
+    font-size:13px;
+  }
+  .yo-manager-help-discount{
+    right:0;
+  }
+}

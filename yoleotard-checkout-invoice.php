@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.85. Prevents duplicate preview icons on reserved product cards.
- * Version: 4.0.85
+ * Description: v4.0.86. Adds manager-assisted purchasing through WhatsApp, Instagram, and Messenger.
+ * Version: 4.0.86
  * Author: YOleotard / ChatGPT
  */
 
@@ -49,6 +49,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-purchase-re
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-payment-attempt.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-submission.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-tracking-notifications.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-yo-checkout-messenger.php';
 
 
 class YO_Checkout_Invoice_Plugin {
@@ -68,6 +69,7 @@ class YO_Checkout_Invoice_Plugin {
     private $payment_attempt_service = null;
     private $checkout_submission_service = null;
     private $tracking_notifications_service = null;
+    private $messenger_service = null;
 
     public function __construct() {
         add_action('init', [$this, 'register_cpt']);
@@ -141,6 +143,16 @@ class YO_Checkout_Invoice_Plugin {
             ]);
         }
         return $this->product_catalog_service;
+    }
+
+    private function messenger_service() {
+        if (!$this->messenger_service instanceof YO_Checkout_Messenger_Service) {
+            $this->messenger_service = new YO_Checkout_Messenger_Service([
+                'settings' => function() { return self::settings(); },
+                'resolve_product' => function($product_id) { return $this->product_catalog_service()->resolve($product_id); },
+            ]);
+        }
+        return $this->messenger_service;
     }
 
     private function promo_service() {
@@ -340,7 +352,7 @@ class YO_Checkout_Invoice_Plugin {
     }
 
     public static function defaults() {
-        return [
+        return array_merge([
             'mono_token' => '',
             'mono_test_token' => '',
             'mono_token_mode' => 'live',
@@ -456,7 +468,7 @@ EUR=1',
             'auto_hide_sold_frontend_fallback' => '0',
             'reservation_minutes' => '30',
             'reservation_badge_text' => 'Reserved',
-        ];
+        ], YO_Checkout_Messenger_Service::defaults());
     }
 
     public static function settings() {
@@ -833,8 +845,11 @@ EUR=1',
 
         if (!is_array($input)) return $out;
 
+        $out = YO_Checkout_Messenger_Service::sanitize_settings($input, is_array($current) ? $current : [], $out);
+        $messenger_keys = array_keys(YO_Checkout_Messenger_Service::defaults());
         foreach ($input as $key => $value) {
             if (!array_key_exists($key, $defaults)) continue;
+            if (in_array($key, $messenger_keys, true)) continue;
             if ($key === 'promo_tooltip_gif_url') {
                 $out[$key] = is_string($value) ? esc_url_raw(trim($value)) : '';
                 continue;
@@ -868,6 +883,7 @@ EUR=1',
             'promo' => 'Промокод',
             'sold_items' => 'Скрытие / резерв',
             'google_reviews' => 'Google отзывы',
+            'manager_help' => 'Помощь менеджера',
         ];
         if (!isset($tabs[$tab])) $tab = 'bank';
         ?>
@@ -996,6 +1012,8 @@ EUR=1',
                         <?php $this->media_url_field('promo_tooltip_gif_url', 'Promo tooltip GIF'); ?>
                     </table>
                     <p class="description">If the promo code field is empty, the product badge and promo code field in checkout are hidden. The discount applies only before the expiration date. Products that already have a red sale discount do not accept an additional promo code. If a tooltip GIF is selected, the whole green promo badge displays the GIF through the current UIkit tooltip utility.</p>
+                <?php elseif ($tab === 'manager_help'): ?>
+                    <?php $this->messenger_service()->render_settings_fields(self::OPT, self::NS); ?>
                 <?php elseif ($tab === 'google_reviews'): ?>
                     <h2>Google Customer Reviews</h2>
                     <p class="description">These settings add the Google Customer Reviews survey opt-in on the final successful card-payment page. The merchant badge is optional and can be shown on the site if Google approves the account for the program.</p>
@@ -1247,6 +1265,18 @@ EUR=1',
         $css_path = plugin_dir_path(__FILE__) . 'assets/yo-checkout.css';
         $css_version = file_exists($css_path) ? (string)filemtime($css_path) : '4.0.66';
         wp_enqueue_style('yo-checkout-invoice', plugin_dir_url(__FILE__) . 'assets/yo-checkout.css', [], $css_version);
+        if ((string)($s['manager_button_enabled'] ?? '0') === '1') {
+            $manager_js_path = plugin_dir_path(__FILE__) . 'assets/yo-manager-purchase.js';
+            $manager_css_path = plugin_dir_path(__FILE__) . 'assets/yo-manager-purchase.css';
+            wp_enqueue_script('yo-manager-purchase', plugin_dir_url(__FILE__) . 'assets/yo-manager-purchase.js', ['yo-checkout-invoice'], file_exists($manager_js_path) ? (string)filemtime($manager_js_path) : '4.0.86', true);
+            wp_localize_script('yo-manager-purchase', 'YOManagerPurchase', [
+                'enabled' => true,
+                'whatsappNumber' => preg_replace('/[^0-9]/', '', (string)($s['manager_whatsapp_number'] ?? '')),
+                'instagramUsername' => preg_replace('/[^A-Za-z0-9._-]/', '', (string)($s['manager_instagram_username'] ?? '')),
+                'facebookUsername' => preg_replace('/[^A-Za-z0-9._-]/', '', (string)($s['manager_facebook_username'] ?? '')),
+            ]);
+            wp_enqueue_style('yo-manager-purchase', plugin_dir_url(__FILE__) . 'assets/yo-manager-purchase.css', ['yo-checkout-invoice'], file_exists($manager_css_path) ? (string)filemtime($manager_css_path) : '4.0.86');
+        }
     }
 
 
@@ -2428,6 +2458,7 @@ EUR=1',
     }
 
     public function rest_routes() {
+        $this->messenger_service()->register_routes(self::NS);
         register_rest_route(self::NS, '/mono-webhook', ['methods'=>'POST','callback'=>[$this,'mono_webhook'],'permission_callback'=>'__return_true']);
         register_rest_route(self::NS, '/wayforpay-form', ['methods'=>'GET','callback'=>[$this,'wayforpay_form'],'permission_callback'=>'__return_true']);
         register_rest_route(self::NS, '/wayforpay-webhook', ['methods'=>'POST','callback'=>[$this,'wayforpay_webhook'],'permission_callback'=>'__return_true']);

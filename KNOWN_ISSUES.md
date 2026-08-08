@@ -565,6 +565,22 @@ Handling:
 - Frontend cart saving/loading and item discount calculation now require the current localized promo setting to be active.
 - Bank invoice creation now removes invalid or expired promo data from the local order before bank totals, invoice files, email, and KeyCRM payment data are generated.
 
+### Meta Messenger manager handoff requires live app approval
+
+Status: new v4.0.86 test-candidate integration; local security/UI contract tests pass, live Meta testing is required.
+
+Details:
+
+- In Meta development mode, Messenger webhook and Send API tests are normally limited to people assigned an app role.
+- Public customers require the Meta app to be published with the required Messenger permission/access and the connected Page subscribed to messaging_referrals, messages, and messaging_postbacks.
+- The plugin can verify the webhook and prepare the product response locally, but it cannot confirm Meta account review, Page subscription, token lifetime, or live delivery until the configured site receives a real referral event.
+- Instagram simple deep links cannot prefill Direct text. The plugin copies the product request to the clipboard and opens Instagram Direct so the customer can paste it.
+
+Handling:
+
+- Configure and save the v4.0.86 Помощь менеджера tab, copy its callback URL and verify token into Meta, subscribe the Page fields, and test with an app-role account first.
+- Keep the storefront checkbox disabled until the three links and Messenger webhook are verified on the installed test build.
+- If Meta delivery is not ready, WhatsApp remains fully prefilled and Instagram remains available through clipboard-assisted Direct.
 ## Watch Areas
 
 - Payment finalization must remain idempotent. Repeated webhooks or polling must not create duplicate KeyCRM payments, emails, or status updates.

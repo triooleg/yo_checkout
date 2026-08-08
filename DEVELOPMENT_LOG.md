@@ -16,6 +16,52 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-09 - Manager-Assisted Purchase v4.0.86
+
+User request:
+
+- Add a compact Need help buying? action to product cards.
+- Keep it to the right of the regular Buy now button; on discounted cards place it absolutely above the sale controls and align it to the right.
+- Open an absolute upward menu for WhatsApp, Instagram, and Facebook Messenger.
+- Transfer the selected model title, price, page link, and photo information to the manager channel.
+- Add WordPress admin fields for the saved Meta credentials and a switch that can disable the storefront button.
+- Build an installable archive for testing.
+
+Implementation:
+
+- Added includes/class-yo-checkout-messenger.php for settings, Meta webhook verification, referral processing, trusted server-side product lookup, and Send API requests.
+- Added isolated assets/yo-manager-purchase.js and assets/yo-manager-purchase.css.
+- Added the Помощь менеджера settings tab with App ID, App Secret, Page ID, Page Access Token, Graph API version, generated webhook verify token, callback URL, channel addresses, and the storefront enable/disable checkbox.
+- Secret fields render empty and preserve an existing stored value when left blank; secrets are not localized to browser JavaScript.
+- WhatsApp receives a prefilled English product request. Instagram opens Direct and copies the same message for pasting. Messenger uses an m.me referral; the signed webhook returns a trusted product card with image, title, price, and product link.
+- Reserved, invoice-reserved, and YOOtheme Card Default cards do not expose the manager action.
+- Plugin header version is now 4.0.86.
+
+Files changed:
+
+- yoleotard-checkout-invoice.php
+- includes/class-yo-checkout-messenger.php
+- assets/yo-manager-purchase.js
+- assets/yo-manager-purchase.css
+- tests/test-messenger-service.php
+- tests/test-manager-purchase-ui.php
+- CHANGELOG.txt
+- DEVELOPMENT_LOG.md
+- PLUGIN_MAP.md
+- PROJECT_CONTEXT.md
+- KNOWN_ISSUES.md
+- KNOWN_WORKING_FEATURES.md
+- README.md
+
+Verification:
+
+- Focused Messenger HMAC/referral and manager UI contract tests pass.
+- Full syntax, regression, Git whitespace, secret scan, and archive checks are recorded in the following release checkpoint.
+- Browser runtime visual automation was blocked locally by the Windows ACL helper; live WordPress/YOOtheme and Meta application testing remains required.
+
+Repository rollback point:
+
+- Pending final commit and push.
 ## 2026-08-03 - v4.0.85 Test Archive
 
 User request:
