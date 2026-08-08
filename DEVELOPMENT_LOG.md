@@ -16,6 +16,31 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-09 - v4.0.86 Test Archive
+
+User request:
+
+- Build an installable test archive for the manager-assisted purchase and Meta Messenger integration.
+
+Archive handling:
+
+- Confirmed the previous exact-name archive was v4.0.85 and byte-identical to the preserved yoleotard-checkout-invoice-v4.0.85.zip.
+- Preserved v4.0.85 with SHA-256 58b29b174da1451e3e20a52a25ea811ffd2175a9addef9ab2ac4f3d99a5b3969.
+- Built plugin-archives/yoleotard-checkout-invoice.zip from the committed tracked files using Python zipfile.
+- Saved the same package as plugin-archives/yoleotard-checkout-invoice-v4.0.86.zip.
+
+Archive verification:
+
+- SHA-256: 68b81fa6deb0f82c80d0c5935f932acd582815bf1ea54ace8cf9f945b135cf6d.
+- Contains 59 tracked files plus the single yoleotard-checkout-invoice/ directory entry.
+- Contains no backslashes in ZIP paths and no additional top-level directory.
+- Embedded plugin version is 4.0.86.
+- ZipFile.testzip() passed and extraction confirmed the main file, assets/yo-manager-purchase.js, assets/yo-manager-purchase.css, and includes/class-yo-checkout-messenger.php.
+- Exact-name and v4.0.86 history archives are byte-identical.
+
+Repository rollback point:
+
+- Runtime implementation: cbced1d (Add manager-assisted purchase channels).
 ## 2026-08-09 - Manager-Assisted Purchase v4.0.86
 
 User request:
@@ -61,7 +86,7 @@ Verification:
 
 Repository rollback point:
 
-- Pending final commit and push.
+- cbced1d (Add manager-assisted purchase channels).
 ## 2026-08-03 - v4.0.85 Test Archive
 
 User request:
