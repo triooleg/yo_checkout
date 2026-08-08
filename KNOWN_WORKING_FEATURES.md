@@ -34,7 +34,7 @@ Items listed here are protected: do not change them unless the current task dire
 These areas have worked in some tests, but they are not listed as bug-free because they currently have open monitoring notes, local uncommitted fixes, or recent reported regressions:
 
 - Promo-code state and expiration handling
-- v4.0.86 manager-assisted purchase button and Meta Messenger webhook until live WordPress/Meta testing confirms public delivery
+- v4.0.87 manager-assisted purchase layout, clipboard fallbacks, and Meta Messenger webhook until live WordPress/Meta testing confirms public delivery
 
 ## Handling Rule
 

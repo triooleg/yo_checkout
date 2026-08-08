@@ -594,3 +594,10 @@ YOleotard Checkout v4.0.86
 - Keeps App Secret and Page Access Token server-side and preserves stored secrets when their admin fields are left blank.
 - Hides the helper from reserved and Card Default product cards.
 - Adds focused Messenger security and manager-button UI regression tests.
+
+YOleotard Checkout v4.0.87
+- Re-evaluates the manager button after dynamically generated discount controls appear, preventing stale below-button placement.
+- Keeps the compact help action beside regular Buy now controls and absolutely above the right edge of sale controls.
+- Restores the approved three-channel upward menu with a short heading and horizontal channel choices.
+- Copies the complete product request for both Instagram Direct and Messenger while retaining the automatic signed Messenger referral-card webhook path.
+- Shows a visible fallback notice so customers know when to paste the copied details.

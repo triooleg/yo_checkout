@@ -567,7 +567,7 @@ Handling:
 
 ### Meta Messenger manager handoff requires live app approval
 
-Status: new v4.0.86 test-candidate integration; local security/UI contract tests pass, live Meta testing is required.
+Status: v4.0.87 test-candidate integration; layout and clipboard fallback tests pass locally, live Meta referral delivery is still required.
 
 Details:
 
@@ -575,12 +575,13 @@ Details:
 - Public customers require the Meta app to be published with the required Messenger permission/access and the connected Page subscribed to messaging_referrals, messages, and messaging_postbacks.
 - The plugin can verify the webhook and prepare the product response locally, but it cannot confirm Meta account review, Page subscription, token lifetime, or live delivery until the configured site receives a real referral event.
 - Instagram simple deep links cannot prefill Direct text. The plugin copies the product request to the clipboard and opens Instagram Direct so the customer can paste it.
+- Messenger m.me links also cannot prefill arbitrary text. v4.0.87 keeps the signed webhook referral card as the automatic path and also copies the complete product request so the customer can paste it when Meta does not deliver the referral event.
 
 Handling:
 
-- Configure and save the v4.0.86 Помощь менеджера tab, copy its callback URL and verify token into Meta, subscribe the Page fields, and test with an app-role account first.
-- Keep the storefront checkbox disabled until the three links and Messenger webhook are verified on the installed test build.
-- If Meta delivery is not ready, WhatsApp remains fully prefilled and Instagram remains available through clipboard-assisted Direct.
+- Configure and save the v4.0.87 Помощь менеджера tab, copy its callback URL and verify token into Meta, subscribe the Page fields, and test with an app-role account first.
+- Verify both the automatic Messenger referral card and the visible clipboard fallback on the installed test build.
+- If Meta delivery is not ready, WhatsApp remains fully prefilled while Instagram and Messenger remain available through clipboard-assisted Direct.
 ## Watch Areas
 
 - Payment finalization must remain idempotent. Repeated webhooks or polling must not create duplicate KeyCRM payments, emails, or status updates.

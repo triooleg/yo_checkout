@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.86. Adds manager-assisted purchasing through WhatsApp, Instagram, and Messenger.
- * Version: 4.0.86
+ * Description: v4.0.87. Fixes manager-help placement and adds reliable Instagram/Messenger handoff fallbacks.
+ * Version: 4.0.87
  * Author: YOleotard / ChatGPT
  */
 
@@ -1268,14 +1268,14 @@ EUR=1',
         if ((string)($s['manager_button_enabled'] ?? '0') === '1') {
             $manager_js_path = plugin_dir_path(__FILE__) . 'assets/yo-manager-purchase.js';
             $manager_css_path = plugin_dir_path(__FILE__) . 'assets/yo-manager-purchase.css';
-            wp_enqueue_script('yo-manager-purchase', plugin_dir_url(__FILE__) . 'assets/yo-manager-purchase.js', ['yo-checkout-invoice'], file_exists($manager_js_path) ? (string)filemtime($manager_js_path) : '4.0.86', true);
+            wp_enqueue_script('yo-manager-purchase', plugin_dir_url(__FILE__) . 'assets/yo-manager-purchase.js', ['yo-checkout-invoice'], file_exists($manager_js_path) ? (string)filemtime($manager_js_path) : '4.0.87', true);
             wp_localize_script('yo-manager-purchase', 'YOManagerPurchase', [
                 'enabled' => true,
                 'whatsappNumber' => preg_replace('/[^0-9]/', '', (string)($s['manager_whatsapp_number'] ?? '')),
                 'instagramUsername' => preg_replace('/[^A-Za-z0-9._-]/', '', (string)($s['manager_instagram_username'] ?? '')),
                 'facebookUsername' => preg_replace('/[^A-Za-z0-9._-]/', '', (string)($s['manager_facebook_username'] ?? '')),
             ]);
-            wp_enqueue_style('yo-manager-purchase', plugin_dir_url(__FILE__) . 'assets/yo-manager-purchase.css', ['yo-checkout-invoice'], file_exists($manager_css_path) ? (string)filemtime($manager_css_path) : '4.0.86');
+            wp_enqueue_style('yo-manager-purchase', plugin_dir_url(__FILE__) . 'assets/yo-manager-purchase.css', ['yo-checkout-invoice'], file_exists($manager_css_path) ? (string)filemtime($manager_css_path) : '4.0.87');
         }
     }
 

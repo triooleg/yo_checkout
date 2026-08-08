@@ -61,6 +61,42 @@
     return link;
   }
 
+  function legacyCopy(message){
+    const field = document.createElement('textarea');
+    field.value = message;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch(error) {}
+    field.remove();
+    return copied;
+  }
+
+  function copyMessage(message){
+    if(navigator.clipboard?.writeText){
+      return navigator.clipboard.writeText(message).then(function(){ return true; }).catch(function(){ return legacyCopy(message); });
+    }
+    return Promise.resolve(legacyCopy(message));
+  }
+
+  function showNotice(message){
+    let notice = document.querySelector('.yo-manager-notice');
+    if(!notice){
+      notice = document.createElement('div');
+      notice.className = 'yo-manager-notice';
+      notice.setAttribute('role', 'status');
+      notice.setAttribute('aria-live', 'polite');
+      document.body.appendChild(notice);
+    }
+    notice.textContent = message;
+    notice.classList.add('is-visible');
+    window.clearTimeout(showNotice.timer);
+    showNotice.timer = window.setTimeout(function(){ notice.classList.remove('is-visible'); }, 3200);
+  }
+
   function closeAll(except){
     document.querySelectorAll('.yo-manager-help.is-open').forEach(function(help){
       if(help === except) return;
@@ -76,6 +112,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'yo-manager-help' + (discounted ? ' yo-manager-help-discount' : '');
     wrap.dataset.yoProductId = product.id;
+    wrap.dataset.yoDiscounted = discounted ? '1' : '0';
 
     const toggle = document.createElement('button');
     toggle.type = 'button';
@@ -95,25 +132,47 @@
     menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', 'Contact a YOleotard manager');
 
+    const menuTitle = document.createElement('p');
+    menuTitle.className = 'yo-manager-menu-title';
+    menuTitle.textContent = 'Choose a convenient way to contact us';
+    menu.appendChild(menuTitle);
+
+    const channelList = document.createElement('div');
+    channelList.className = 'yo-manager-channel-list';
+    menu.appendChild(channelList);
+
     const whatsappNumber = String(config.whatsappNumber || '').replace(/[^0-9]/g, '');
     if(whatsappNumber){
-      menu.appendChild(menuLink('is-whatsapp', 'WhatsApp', 'whatsapp', 'https://wa.me/' + whatsappNumber + '?text=' + encodeURIComponent(message)));
+      channelList.appendChild(menuLink('is-whatsapp', 'WhatsApp', 'whatsapp', 'https://wa.me/' + whatsappNumber + '?text=' + encodeURIComponent(message)));
     }
 
     const instagram = String(config.instagramUsername || '').replace(/[^A-Za-z0-9._-]/g, '');
     if(instagram){
       const instagramLink = menuLink('is-instagram', 'Instagram', 'instagram', 'https://ig.me/m/' + encodeURIComponent(instagram));
       instagramLink.addEventListener('click', function(){
-        if(navigator.clipboard?.writeText) navigator.clipboard.writeText(message).catch(function(){});
+        copyMessage(message).then(function(copied){
+          showNotice(copied
+            ? 'Product details copied. Paste them into Instagram Direct.'
+            : 'Instagram opened. Please send the product page link to our manager.');
+        });
       });
       instagramLink.title = 'The product message will be copied so you can paste it into Instagram Direct.';
-      menu.appendChild(instagramLink);
+      channelList.appendChild(instagramLink);
     }
 
     const facebook = String(config.facebookUsername || '').replace(/[^A-Za-z0-9._-]/g, '');
     if(facebook){
       const ref = 'yo_product_' + product.id;
-      menu.appendChild(menuLink('is-messenger', 'Messenger', 'facebook', 'https://m.me/' + encodeURIComponent(facebook) + '?ref=' + encodeURIComponent(ref)));
+      const messengerLink = menuLink('is-messenger', 'Messenger', 'facebook', 'https://m.me/' + encodeURIComponent(facebook) + '?ref=' + encodeURIComponent(ref));
+      messengerLink.addEventListener('click', function(){
+        copyMessage(message).then(function(copied){
+          showNotice(copied
+            ? 'Product details copied. Paste them into Messenger if the card is not added automatically.'
+            : 'Messenger opened. Please send the product page link to our manager.');
+        });
+      });
+      messengerLink.title = 'The product card is sent automatically when Meta delivers the referral. The text is also copied as a fallback.';
+      channelList.appendChild(messengerLink);
     }
 
     toggle.addEventListener('click', function(event){
@@ -136,13 +195,19 @@
       card.querySelectorAll('.yo-manager-actions-host').forEach(function(host){ host.classList.remove('yo-manager-actions-host', 'has-discount'); });
       return;
     }
-    if(card.querySelector('.yo-manager-help')) return;
     const saleButton = card.querySelector('.sale-new-btn, .yo-sale-new-btn, .yo-sale-btn, .uk-button-danger');
     const buyButton = saleButton || card.querySelector('.yo-main-buy-btn');
     if(!buyButton || !card.querySelector('.el-title') || !card.querySelector('img')) return;
     const host = buyButton.parentElement;
     if(!host) return;
     const discounted = !!saleButton;
+    const existing = card.querySelector('.yo-manager-help');
+    if(existing && existing.parentElement === host && existing.dataset.yoDiscounted === (discounted ? '1' : '0')) return;
+    if(existing){
+      const oldHost = existing.parentElement;
+      existing.remove();
+      if(oldHost) oldHost.classList.remove('yo-manager-actions-host', 'has-discount');
+    }
     const help = buildHelp(card, buyButton, discounted);
     if(!help) return;
     host.classList.add('yo-manager-actions-host');

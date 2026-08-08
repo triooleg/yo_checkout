@@ -16,6 +16,33 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-09 - Manager Help Placement and Channel Fallbacks v4.0.87
+
+User report:
+
+- The help action appeared below both regular and discounted purchase controls instead of matching the approved prototype.
+- The open menu did not match the prototype.
+- WhatsApp received the product data, but Instagram and Messenger did not receive prefilled details.
+
+Changes:
+
+- Re-evaluate an existing help action when dynamically generated sale controls appear after the initial card scan.
+- Keep the smaller help action beside a regular Buy now button; use an absolute, right-aligned position above discounted controls.
+- Restore the prototype menu heading and three horizontal channel choices.
+- Copy the complete model request for Instagram and Messenger with a legacy clipboard fallback and visible notice.
+- Preserve the signed Meta referral webhook as the automatic Messenger product-card path.
+
+Verification target:
+
+- PHP syntax for the main plugin and all includes.
+- JavaScript syntax for checkout and manager assets.
+- Focused manager UI and Messenger service tests plus the full PHP regression suite.
+- git diff --check and secret scan.
+
+Status:
+
+- Local test candidate; live YOOtheme placement and Meta referral delivery still require confirmation.
+
 ## 2026-08-09 - v4.0.86 Test Archive
 
 User request:
