@@ -16,6 +16,35 @@ Each task should record:
 - documentation updates
 - repository rollback point or blocker
 
+## 2026-08-09 - v4.0.87 Test Archive
+
+User request:
+
+- Build an installable test archive for the manager-help placement and channel fallback fixes.
+
+Archive handling:
+
+- Confirmed the previous exact-name ZIP contained v4.0.86.
+- Confirmed it was byte-identical to `plugin-archives/yoleotard-checkout-invoice-v4.0.86.zip` with SHA-256 `68b81fa6deb0f82c80d0c5935f932acd582815bf1ea54ace8cf9f945b135cf6d`.
+- Rebuilt `plugin-archives/yoleotard-checkout-invoice.zip` from 59 Git-tracked files.
+- Saved the same package as `plugin-archives/yoleotard-checkout-invoice-v4.0.87.zip`.
+
+Verification:
+
+- The ZIP contains 60 entries including one explicit root directory.
+- The only top-level directory is `yoleotard-checkout-invoice/`.
+- No archive path contains a backslash.
+- `ZipFile.testzip()` passed.
+- A temporary extraction created real `assets/` and `includes/` directories and included `assets/yo-manager-purchase.js`.
+- Embedded plugin version is 4.0.87.
+- Exact-name and v4.0.87 history archives are byte-identical.
+- SHA-256: `57e94d9c1553ae43230262bb50727b80e24cf0c41fe9d7f11af49286a114d94c`.
+
+Repository:
+
+- Runtime commit `195977b` and verification commit `402b17f` were already pushed to GitHub before packaging.
+- `plugin-archives/` remains local and ignored by Git.
+
 ## 2026-08-09 - Manager Help Placement and Channel Fallbacks v4.0.87
 
 User report:
