@@ -32,16 +32,17 @@ Changes:
 - Copy the complete model request for Instagram and Messenger with a legacy clipboard fallback and visible notice.
 - Preserve the signed Meta referral webhook as the automatic Messenger product-card path.
 
-Verification target:
+Verification:
 
-- PHP syntax for the main plugin and all includes.
-- JavaScript syntax for checkout and manager assets.
-- Focused manager UI and Messenger service tests plus the full PHP regression suite.
-- git diff --check and secret scan.
+- `php -l` passed for the main plugin and all 15 PHP files under includes.
+- `node --check` passed for assets/yo-checkout.js and assets/yo-manager-purchase.js.
+- All 11 PHP regression tests passed, including manager UI and Messenger service checks.
+- `git diff --check` passed; the secret scan found only documented archive SHA-256 hashes.
 
 Status:
 
 - Local test candidate; live YOOtheme placement and Meta referral delivery still require confirmation.
+- Runtime rollback point: `195977b` (`Fix manager help positioning and handoffs`).
 
 ## 2026-08-09 - v4.0.86 Test Archive
 
