@@ -601,3 +601,10 @@ YOleotard Checkout v4.0.87
 - Restores the approved three-channel upward menu with a short heading and horizontal channel choices.
 - Copies the complete product request for both Instagram Direct and Messenger while retaining the automatic signed Messenger referral-card webhook path.
 - Shows a visible fallback notice so customers know when to paste the copied details.
+
+YOleotard Checkout Invoice v4.0.88
+
+- Western Bid now sends `no_shipping=0`, identifying checkout products as physical goods so shipment tracking can be attached in the provider cabinet.
+- Western Bid invoice references now use `localID/YY-predictedKeyCRMID`, with the predicted ID calculated from the latest KeyCRM order plus one without creating an unpaid CRM order.
+- Payment startup fails closed if the KeyCRM lookup is unavailable or malformed.
+- Callback URLs encode the slash in the new reference exactly once, and paid finalization records whether the predicted and actual KeyCRM IDs matched.

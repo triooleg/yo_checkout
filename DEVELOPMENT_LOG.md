@@ -4345,3 +4345,26 @@ Verification performed:
 Repository rollback point:
 
 - Not created yet by user request. Commit/push only after the user confirms the test archive works.
+
+## 2026-09-08 - Western Bid Physical Goods and KeyCRM Reference v4.0.88
+
+### Request
+
+- Send `no_shipping=0` to Western Bid so leotards are treated as physical products.
+- Build provider invoice references as `localID/YY-predictedKeyCRMID`, where the KeyCRM component is the latest order ID plus one.
+- Keep the existing rule that card orders enter KeyCRM only after confirmed payment.
+
+### Implementation
+
+- Added a read-only descending KeyCRM order lookup and fail-closed next-ID calculation.
+- Added the unique local payment-attempt ID to every Western Bid reference.
+- Corrected callback query construction for the slash-containing invoice value.
+- Added prediction reconciliation metadata after the paid KeyCRM order is created.
+- Added focused tests for physical-goods payloads, invoice formatting, callback encoding, KeyCRM response parsing, and lookup failures.
+
+### Verification
+
+- `php -l` passed for the main plugin and every PHP service under `includes/`.
+- All PHP regression tests under `tests/` passed, including the new KeyCRM next-ID and Western Bid reference tests.
+- `node --check` passed for `assets/yo-checkout.js` and `assets/yo-manager-purchase.js`.
+- `git diff --check` passed with line-ending warnings only.

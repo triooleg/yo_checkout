@@ -582,6 +582,16 @@ Handling:
 - Configure and save the v4.0.87 Помощь менеджера tab, copy its callback URL and verify token into Meta, subscribe the Page fields, and test with an app-role account first.
 - Verify both the automatic Messenger referral card and the visible clipboard fallback on the installed test build.
 - If Meta delivery is not ready, WhatsApp remains fully prefilled while Instagram and Messenger remain available through clipboard-assisted Direct.
+
+## Western Bid Predicted KeyCRM Number (v4.0.88)
+
+Status: local test candidate; live verification required.
+
+- KeyCRM does not expose an order-number reservation endpoint. Western Bid starts before the paid KeyCRM order is created, so v4.0.88 reads the latest KeyCRM order and uses `latest ID + 1` only as a prediction.
+- The invoice format is `localID/YY-predictedKeyCRMID`. The unique local ID keeps the Western Bid reference unambiguous if another KeyCRM order is created before payment finalization.
+- After confirmed payment, metadata `western_bid_keycrm_prediction_match` records whether the prediction matched. On mismatch, `western_bid_actual_keycrm_order_id` stores the actual ID.
+- The Western Bid start fails closed when KeyCRM cannot return a valid latest order ID; it does not invent an invoice number.
+
 ## Watch Areas
 
 - Payment finalization must remain idempotent. Repeated webhooks or polling must not create duplicate KeyCRM payments, emails, or status updates.

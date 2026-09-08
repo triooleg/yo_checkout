@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.87. Fixes manager-help placement and adds reliable Instagram/Messenger handoff fallbacks.
- * Version: 4.0.87
+ * Description: v4.0.88. Sends physical-goods Western Bid payloads with local and predicted KeyCRM invoice references.
+ * Version: 4.0.88
  * Author: YOleotard / ChatGPT
  */
 
@@ -277,6 +277,7 @@ class YO_Checkout_Invoice_Plugin {
                 'cart_items_from_order_data' => function($d) { return $this->cart_items_from_order_data($d); },
                 'clean_product_title_for_display' => function($title) { return $this->clean_product_title_for_display($title); },
                 'country_to_iso2' => function($country) { return $this->country_to_iso2($country); },
+                'next_keycrm_order_id' => function() { return $this->keycrm_service()->next_order_id(); },
                 'queue_deferred_payment_finalizer' => function($local_id, $invoice_id, $source) { return $this->queue_deferred_payment_finalizer($local_id, $invoice_id, $source); },
                 'append_checkout_debug_log' => function($debug_id, $message, $context = []) { return $this->append_checkout_debug_log($debug_id, $message, $context); },
             ]);
@@ -3835,6 +3836,15 @@ EUR=1',
             }
 
             if ($created_order_id) {
+                if ($provider === 'western_bid') {
+                    $expected_order_id = absint(get_post_meta($local_id, 'western_bid_expected_keycrm_order_id', true));
+                    if ($expected_order_id) {
+                        update_post_meta($local_id, 'western_bid_keycrm_prediction_match', $expected_order_id === $created_order_id ? '1' : '0');
+                        if ($expected_order_id !== $created_order_id) {
+                            update_post_meta($local_id, 'western_bid_actual_keycrm_order_id', $created_order_id);
+                        }
+                    }
+                }
                 if (get_post_meta($local_id, 'keycrm_paid_payment_added', true) !== '1') {
                     $this->keycrm_add_payment($local_id, 'paid', 'Paid via ' . $label . ' transaction ' . $invoice_id);
                     update_post_meta($local_id, 'keycrm_paid_payment_added', '1');

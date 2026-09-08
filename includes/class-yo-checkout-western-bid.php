@@ -56,8 +56,16 @@ class YO_Checkout_Western_Bid_Service {
         $local_id = absint($local_id);
         if (!$local_id) return new WP_Error('western_bid_order_missing', 'Order not found');
 
-        $invoice = 'YO-WB-' . $local_id . '-' . time();
+        $next_keycrm_order_id = $this->call('next_keycrm_order_id');
+        if (is_wp_error($next_keycrm_order_id)) return $next_keycrm_order_id;
+        $next_keycrm_order_id = absint($next_keycrm_order_id);
+        if (!$next_keycrm_order_id) {
+            return new WP_Error('western_bid_keycrm_order_missing', 'Could not determine the next KeyCRM order ID');
+        }
+
+        $invoice = $local_id . '/' . wp_date('y') . '-' . $next_keycrm_order_id;
         update_post_meta($local_id, 'western_bid_invoice', $invoice);
+        update_post_meta($local_id, 'western_bid_expected_keycrm_order_id', $next_keycrm_order_id);
         update_post_meta($local_id, 'payment_provider', 'western_bid');
         update_post_meta($local_id, 'payment_type', 'card');
         update_option('yo_western_bid_order_' . $invoice, $local_id, false);
@@ -68,7 +76,7 @@ class YO_Checkout_Western_Bid_Service {
 
         $page_url = add_query_arg([
             'action' => 'yo_checkout_western_bid_form',
-            'invoice' => rawurlencode($invoice),
+            'invoice' => $invoice,
         ], admin_url('admin-ajax.php'));
 
         return [
@@ -236,8 +244,8 @@ class YO_Checkout_Western_Bid_Service {
             'email' => $email,
             'phone' => $phone,
             'currency_code' => $creds['currency'],
-            'return' => add_query_arg(['action' => 'yo_checkout_western_bid_return', 'invoice' => rawurlencode($invoice)], admin_url('admin-ajax.php')),
-            'cancel_return' => add_query_arg(['action' => 'yo_checkout_western_bid_return', 'invoice' => rawurlencode($invoice), 'status' => 'cancelled'], admin_url('admin-ajax.php')),
+            'return' => add_query_arg(['action' => 'yo_checkout_western_bid_return', 'invoice' => $invoice], admin_url('admin-ajax.php')),
+            'cancel_return' => add_query_arg(['action' => 'yo_checkout_western_bid_return', 'invoice' => $invoice, 'status' => 'cancelled'], admin_url('admin-ajax.php')),
             'notify_url' => rest_url($this->call('rest_namespace') . '/western-bid-webhook'),
             'gate' => $creds['gate'],
             'first_name' => sanitize_text_field($first_name),
@@ -251,7 +259,7 @@ class YO_Checkout_Western_Bid_Service {
             'zip' => $zip,
             'zip_code' => $zip,
             'address_override' => '1',
-            'no_shipping' => '1',
+            'no_shipping' => '0',
         ];
 
         $index = 1;

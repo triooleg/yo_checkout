@@ -124,6 +124,7 @@ $service = new YO_Checkout_Western_Bid_Service([
 $invoice = 'YO-WB-1001-1234567890';
 $shipping_fields = $service->purchase_fields(1001, $invoice);
 assert_not_error($shipping_fields, 'Shipping-enabled payload should be created');
+assert_same('0', $shipping_fields['no_shipping'], 'Western Bid must classify the order as physical goods');
 assert_same('316.94', $shipping_fields['amount'], 'Western Bid amount must exclude delivery');
 assert_same('30.10', $shipping_fields['shipping'], 'Delivery must be sent through the Western Bid shipping field');
 assert_same('316.94', item_lines_total($shipping_fields), 'Western Bid amount must equal item line totals');
@@ -133,6 +134,7 @@ assert_same(md5('merchant' . 'secret' . '316.94' . $invoice), $shipping_fields['
 $no_shipping_invoice = 'YO-WB-1002-1234567891';
 $no_shipping_fields = $service->purchase_fields(1002, $no_shipping_invoice);
 assert_not_error($no_shipping_fields, 'Shipping-disabled payload should be created');
+assert_same('0', $no_shipping_fields['no_shipping'], 'Physical-goods classification must not depend on the delivery price');
 assert_same('1.00', $no_shipping_fields['amount'], 'Shipping-disabled amount must remain unchanged');
 assert_same('0.00', $no_shipping_fields['shipping'], 'Shipping-disabled payload must send zero delivery');
 assert_same('1.00', item_lines_total($no_shipping_fields), 'Shipping-disabled item lines must match amount');

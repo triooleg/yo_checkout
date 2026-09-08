@@ -1,6 +1,6 @@
 # YOleotard Checkout Project Context
 
-Last updated: 2026-08-09
+Last updated: 2026-09-08
 
 ## Required Reading Before Changes
 
@@ -39,7 +39,7 @@ Plugin name:
 
 Current plugin version in the main PHP header:
 
-- `4.0.87`
+- `4.0.88`
 
 Main business goal:
 

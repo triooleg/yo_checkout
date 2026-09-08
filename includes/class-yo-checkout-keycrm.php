@@ -1090,6 +1090,21 @@ class YO_Checkout_KeyCRM_Service {
             return $body;
         }
 
+    public function next_order_id() {
+            $body = $this->keycrm_request('GET', '/order?limit=1&sort=-id', []);
+            if (is_wp_error($body)) {
+                return new WP_Error('keycrm_next_order_lookup_failed', 'Could not read the latest KeyCRM order', $body->get_error_data());
+            }
+
+            $rows = isset($body['data']) && is_array($body['data']) ? $body['data'] : [];
+            $latest_id = isset($rows[0]['id']) ? absint($rows[0]['id']) : 0;
+            if (!$latest_id) {
+                return new WP_Error('keycrm_next_order_missing', 'KeyCRM did not return the latest order ID', $body);
+            }
+
+            return $latest_id + 1;
+        }
+
     public function keycrm_add_payment($local_id, $status, $description) {
             $s = $this->settings(); $d=$this->get_order_data($local_id);
             $provider = get_post_meta($local_id, 'payment_provider', true) ?: 'monobank';

@@ -1,6 +1,6 @@
 # YOleotard Checkout Plugin Map
 
-Last updated: 2026-08-09
+Last updated: 2026-09-08
 
 ## Purpose
 
@@ -23,7 +23,7 @@ Rules for future work:
 ## File Structure
 
 - `yoleotard-checkout-invoice.php`
-  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, Step 2 Western Bid Merchant of Record disclaimer display, default-enabled Terms confirmation and distinct bank-invoice button, optional Shipping tab free-shipping product-card badge settings, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.87`.
+  Main WordPress plugin file. Contains plugin metadata, compatibility fallbacks, class `YO_Checkout_Invoice_Plugin`, admin settings, top-level admin menu, purchase report page, frontend modal rendering, AJAX handlers, REST webhooks, shipping logic, payment finalization, invoice generation, order-access checks, promo GIF media setting, bank-invoice Card Default marking hook, server availability response fields for storefront reserved-card sync, checkout-draft reuse protection for completed bank invoice records, tracking notification submenu wiring, Step 2 Western Bid Merchant of Record disclaimer display, default-enabled Terms confirmation and distinct bank-invoice button, optional Shipping tab free-shipping product-card badge settings, and thin wrappers for extracted services. Current visible version in the plugin header is `4.0.88`.
 
 - `includes/class-yo-checkout-product-catalog.php`
   Server-side product catalog service added in Phase 1. Resolves trusted product data by stable `product_id` from the configured YOOtheme product source page, currently the same page ID used by sold-item auto-hide. When a product is resolved, checkout order snapshots use the server-resolved title, current price, original price, product discount, weight, and image. If a product cannot be resolved during the transition, checkout keeps the sanitized browser payload for compatibility and records `product_catalog_status` / `product_catalog_summary` diagnostics. v4.0.53 limits reads to small product-specific fragments and does not unserialize/JSON-encode the full YOOtheme meta tree during checkout creation. v4.0.54 also trusts title-derived matching when the stored Builder data has no literal `product_id` but the found card title generates the requested canonical product ID.
@@ -44,13 +44,13 @@ Rules for future work:
   Monobank payment service. Owns Monobank invoice creation, live/test token selection, per-order token-mode persistence, invoice status requests with the same saved token mode, local invoice-to-order mapping helpers, webhook `X-Sign` verification through the cached Monobank merchant public key, webhook amount/currency checks where provider fields are available, and webhook handling. v4.0.81 uses the local website payment-attempt reference in Monobank payloads until payment is confirmed; no KeyCRM order exists at provider start. Shared payment finalization remains in the main plugin and creates KeyCRM only after trusted success confirmation.
 
 - `includes/class-yo-checkout-keycrm.php`
-  KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names. v4.0.81 removes the pre-payment card-order path: Monobank and Western Bid card orders are created only by the successful-payment finalizer, while bank invoice continues to create an unpaid KeyCRM order immediately.
+  KeyCRM service. Owns KeyCRM marker/reuse lookup, buyer/order creation and update, product synchronization helpers, payment records, order comments, paid-card order creation, and raw KeyCRM API requests. The main plugin keeps thin wrapper methods so existing checkout/payment flows continue to call the same method names. v4.0.81 removes the pre-payment card-order path: Monobank and Western Bid card orders are created only by the successful-payment finalizer, while bank invoice continues to create an unpaid KeyCRM order immediately. v4.0.88 adds a read-only latest-order lookup used to calculate a predicted next KeyCRM ID for Western Bid references without creating an unpaid KeyCRM order.
 
 - `includes/class-yo-checkout-email.php`
   Customer email service. Owns shared HTML email rendering, product thumbnail blocks, bank invoice email sending, paid-card email sending, email headers, and email-specific sent/error meta updates. The main plugin keeps thin wrapper methods so existing invoice/card flows continue to call the same method names.
 
 - `includes/class-yo-checkout-western-bid.php`
-  Western Bid card-payment service. Owns Western Bid credentials access, local invoice/reference mapping, auto-submit payment form generation, return-page parent message, notify/webhook hash verification, paid amount/currency/status checks, safe notify meta snapshots, and queueing the shared deferred payment finalizer after verified completed payments. v4.0.78 makes provider `amount` equal the exact item/service-fee line total excluding delivery, sends delivery separately through `shipping`, calculates the purchase hash from the non-shipping amount, and rejects internally inconsistent payload totals before redirect.
+  Western Bid card-payment service. Owns Western Bid credentials access, local invoice/reference mapping, auto-submit payment form generation, return-page parent message, notify/webhook hash verification, paid amount/currency/status checks, safe notify meta snapshots, and queueing the shared deferred payment finalizer after verified completed payments. v4.0.78 makes provider `amount` equal the exact item/service-fee line total excluding delivery, sends delivery separately through `shipping`, calculates the purchase hash from the non-shipping amount, and rejects internally inconsistent payload totals before redirect. v4.0.88 sends `no_shipping=0` for physical goods and builds references as `localID/YY-predictedKeyCRMID`; the local ID keeps the provider reference unique even if a concurrent KeyCRM order makes the prediction differ from the final ID.
 
 - `includes/class-yo-checkout-order-access.php`
   Guest order-access service. Owns local checkout access-token generation, server-side token hashing, posted-token reading, legacy no-token compatibility, and reusable response fields for protected public AJAX order actions.
@@ -75,6 +75,10 @@ Rules for future work:
   Static UI contract test for the approved button label, three manager channels, upward absolute menu, and regular/discount positioning rules.
 - `tests/test-western-bid-shipping-payload.php`
   Focused CLI regression test for Western Bid payload arithmetic with enabled delivery, disabled delivery, card service fee, and promo discount.
+- `tests/test-western-bid-invoice-reference.php`
+  Focused CLI regression test for the `localID/YY-predictedKeyCRMID` reference, one-pass slash encoding, mapping persistence, and fail-closed KeyCRM lookup handling.
+- `tests/test-keycrm-next-order-id.php`
+  Focused CLI regression test for the descending latest-order KeyCRM query and `latest ID + 1` calculation.
 - `tests/test-payment-attempt-service.php`
   CLI regression test for separate sequential payment-attempt records, root/source numbering, copied checkout data, excluded provider/status/token/KeyCRM metadata, and paid-attempt rejection.
 - `tests/test-card-keycrm-timing.php`
@@ -108,7 +112,7 @@ Rules for future work:
   Frontend checkout styles for modal steps, cart, payment iframe, receipts, mobile behavior, promo/reservation badges, invoice-reserved overlay badges, scoped suppression of the leftover YOOtheme play-circle inside disabled Card Default reservation buttons, promo GIF tooltip display, notifications, Step 2 Western Bid disclaimer styling, distinct dark-teal bank-invoice payment button styling, optional emerald free-shipping product-card badge styling, related UI, and the v4.0.66 desktop override that widens and compacts the YOOtheme `body.home .yo-height-filter` Ready-to-Ship filter without changing mobile filter rules.
 
 - `CHANGELOG.txt`
-  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.87`.
+  Single append-only version notes file for plugin functional changes. Current visible version in plugin header is `4.0.88`.
 
 - `README.md`
   Russian-language public project overview. Describes what the plugin does, supported checkout flows, integrations, admin areas, protected working zones, test-candidate zones, verification commands, archive rules, and development rules.
