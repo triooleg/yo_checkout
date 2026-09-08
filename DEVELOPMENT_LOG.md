@@ -4372,3 +4372,22 @@ Repository rollback point:
 ### Repository rollback point
 
 - Functional change committed as `3ab849d` (`Fix Western Bid physical order references`) and pushed to `origin/main`.
+
+## 2026-09-08 - v4.0.88 Test Archive
+
+User request:
+
+- Build an installable test archive for the Western Bid physical-goods and predicted KeyCRM reference changes.
+
+Archive handling:
+
+- Confirmed the previous exact-name ZIP contained v4.0.87 and its versioned history copy already existed.
+- Built `plugin-archives/yoleotard-checkout-invoice.zip` from 61 Git-tracked files.
+- Saved the byte-identical history copy as `plugin-archives/yoleotard-checkout-invoice-v4.0.88.zip`.
+
+Verification:
+
+- Both ZIP files have SHA-256 `6e42e501efe137cc96c4e688cc55be64149f368d71b77b2fef6e82e856a2a41c`.
+- The archive contains 62 entries including one explicit root directory.
+- The only top-level directory is `yoleotard-checkout-invoice/`, and no entry contains a backslash.
+- Embedded plugin version is 4.0.88; test extraction produced real `assets/` and `includes/` directories plus the main plugin file.
