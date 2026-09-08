@@ -4368,3 +4368,7 @@ Repository rollback point:
 - All PHP regression tests under `tests/` passed, including the new KeyCRM next-ID and Western Bid reference tests.
 - `node --check` passed for `assets/yo-checkout.js` and `assets/yo-manager-purchase.js`.
 - `git diff --check` passed with line-ending warnings only.
+
+### Repository rollback point
+
+- Functional change committed as `3ab849d` (`Fix Western Bid physical order references`) and pushed to `origin/main`.
