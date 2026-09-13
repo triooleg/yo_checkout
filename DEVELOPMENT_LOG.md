@@ -4415,3 +4415,18 @@ Verification:
 - All PHP regression tests passed, including the new Card Default scope and Monobank order-reference tests.
 - `node --check` passed for both frontend JavaScript assets.
 - `git diff --check` passed with line-ending warnings only.
+
+## 2026-09-14 - v4.0.89 Test Archive
+
+Archive handling:
+
+- Preserved the existing v4.0.88 history archive.
+- Built `plugin-archives/yoleotard-checkout-invoice.zip` from 63 Git-tracked files.
+- Saved the byte-identical history copy as `plugin-archives/yoleotard-checkout-invoice-v4.0.89.zip`.
+
+Verification:
+
+- Both ZIP files have SHA-256 `b7d7b08588451bbefa754f5aa761cf55c7c41e2089ec361b3b59d2f0ac24bbe1`.
+- The archive contains 64 entries including one explicit root directory.
+- The only top-level directory is `yoleotard-checkout-invoice/`, and no entry contains a backslash.
+- Embedded plugin version is 4.0.89; test extraction produced real `assets/` and `includes/` directories plus the main plugin file.
