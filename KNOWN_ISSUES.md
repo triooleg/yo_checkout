@@ -592,6 +592,16 @@ Status: local test candidate; live verification required.
 - After confirmed payment, metadata `western_bid_keycrm_prediction_match` records whether the prediction matched. On mismatch, `western_bid_actual_keycrm_order_id` stores the actual ID.
 - The Western Bid start fails closed when KeyCRM cannot return a valid latest order ID; it does not invent an invoice number.
 
+## Card Default Reservation Scope and Monobank Predicted Number (v4.0.89)
+
+Status: local test candidate; live verification required.
+
+- Permanent bank-invoice Reserved UI now requires `uk-card-default` on the product card itself. Nested Card Default UI panels no longer reserve a parent or neighboring product card.
+- Server availability responses cannot apply an untimed permanent Reserved overlay to a product card whose own panel style is not Card Default.
+- Monobank now uses `localID/YY-predictedKeyCRMID` in `merchantPaymInfo.reference`, payment purpose, and the checkout response order number.
+- The KeyCRM component remains a prediction from latest ID plus one, not a reservation. Metadata `monobank_keycrm_prediction_match` and, on mismatch, `monobank_actual_keycrm_order_id` support post-payment reconciliation.
+- Monobank payment startup fails closed if the read-only KeyCRM next-ID lookup fails. Live payment-form acceptance and paid-order reconciliation still require provider testing.
+
 ## Watch Areas
 
 - Payment finalization must remain idempotent. Repeated webhooks or polling must not create duplicate KeyCRM payments, emails, or status updates.

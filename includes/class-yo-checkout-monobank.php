@@ -192,8 +192,19 @@ class YO_Checkout_Monobank_Service {
         update_post_meta($local_id, 'card_fee_amount', $fee['fee']);
         update_post_meta($local_id, 'card_total_amount', $fee['total']);
 
-        $checkout_ref = !empty($data['order_id']) ? $data['order_id'] : ('WEB-' . $local_id);
-        $merchant_reference = !empty($data['order_id']) ? ('keycrm_order_' . $checkout_ref) : ('website_checkout_' . $local_id);
+        if (!empty($data['order_id'])) {
+            $checkout_ref = (string)$data['order_id'];
+        } else {
+            $next_keycrm_order_id = $this->call('next_keycrm_order_id');
+            if (is_wp_error($next_keycrm_order_id)) return $next_keycrm_order_id;
+            $next_keycrm_order_id = absint($next_keycrm_order_id);
+            if (!$next_keycrm_order_id) {
+                return new WP_Error('keycrm_next_order_id_missing', 'Could not determine the next KeyCRM order ID');
+            }
+            $checkout_ref = $local_id . '/' . wp_date('y') . '-' . $next_keycrm_order_id;
+            update_post_meta($local_id, 'monobank_expected_keycrm_order_id', $next_keycrm_order_id);
+        }
+        $merchant_reference = $checkout_ref;
         $item_label = $this->checkout_item_label($data);
         $destination = 'Payment for ' . $item_label . ' #' . $checkout_ref;
         if (function_exists('mb_substr')) {

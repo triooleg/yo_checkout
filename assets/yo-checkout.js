@@ -574,11 +574,11 @@
         }
       });
     }
+    function hasOwnCardDefaultPanel(card){
+      return !!(card && card.classList && card.classList.contains('uk-card-default'));
+    }
     function isInvoiceReservedCard(card){
-      if(!card) return false;
-      if(card.classList.contains('yo-invoice-reserved-card')) return true;
-      if(card.classList.contains('uk-card-default')) return true;
-      return !!card.querySelector('.uk-card-default');
+      return hasOwnCardDefaultPanel(card);
     }
     function clearInvoiceReservedState(card){
       if(!card) return;
@@ -621,7 +621,7 @@
       if(!card) return;
       // A temporary reservation countdown is more specific than the generic
       // server-unavailable state. Do not leave its untimed badge on top.
-      if(card.dataset.yoServerUnavailable === '1' && !card.classList.contains('uk-card-default') && !card.querySelector('.uk-card-default')){
+      if(card.dataset.yoServerUnavailable === '1' && !hasOwnCardDefaultPanel(card)){
         clearInvoiceReservedState(card);
       }
       card.classList.add('yo-reserved-card');
@@ -1144,8 +1144,13 @@
         if(available){
           if(card.dataset.yoServerUnavailable === '1'){
             delete card.dataset.yoServerUnavailable;
-            if(!card.classList.contains('uk-card-default') && !card.querySelector('.uk-card-default')) clearInvoiceReservedState(card);
+            if(!hasOwnCardDefaultPanel(card)) clearInvoiceReservedState(card);
           }
+          return;
+        }
+        if(!hasOwnCardDefaultPanel(card)){
+          delete card.dataset.yoServerUnavailable;
+          clearInvoiceReservedState(card);
           return;
         }
         card.dataset.yoServerUnavailable = '1';

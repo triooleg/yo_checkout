@@ -4391,3 +4391,27 @@ Verification:
 - The archive contains 62 entries including one explicit root directory.
 - The only top-level directory is `yoleotard-checkout-invoice/`, and no entry contains a backslash.
 - Embedded plugin version is 4.0.88; test extraction produced real `assets/` and `includes/` directories plus the main plugin file.
+
+## 2026-09-14 - Card Default Reservation Scope and Monobank Reference v4.0.89
+
+### Request
+
+- Keep permanent Reserved state only on the purchased product card whose YOOtheme Panel Style is Card Default.
+- Prevent a similar neighboring product from receiving the same Reserved overlay.
+- Use the Western Bid-style `localID/YY-predictedKeyCRMID` order number for Monobank.
+
+### Implementation
+
+- Scoped storefront Card Default detection to the product `.el-item` itself instead of searching all descendants.
+- Prevented server availability validation from adding a permanent invoice reservation to cards without their own Card Default style.
+- Added the read-only KeyCRM next-order callback to Monobank and used the predicted ID in its merchant reference and checkout order number.
+- Added Monobank prediction-versus-actual reconciliation metadata after confirmed payment creates the KeyCRM order.
+- Kept the protected timing rule: Monobank and Western Bid do not create an unpaid KeyCRM order before provider confirmation.
+
+### Verification
+
+- Live storefront HTML confirmed `Solar Prism` uses `el-item uk-card uk-card-default` while neighboring `Solar Flame` uses `el-item uk-panel`.
+- PHP syntax checks passed for the main plugin, every service under `includes/`, and every regression test.
+- All PHP regression tests passed, including the new Card Default scope and Monobank order-reference tests.
+- `node --check` passed for both frontend JavaScript assets.
+- `git diff --check` passed with line-ending warnings only.

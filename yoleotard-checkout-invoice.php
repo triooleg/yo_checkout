@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.88. Sends physical-goods Western Bid payloads with local and predicted KeyCRM invoice references.
- * Version: 4.0.88
+ * Description: v4.0.89. Scopes invoice reservations to Card Default product panels and aligns Monobank order references with KeyCRM predictions.
+ * Version: 4.0.89
  * Author: YOleotard / ChatGPT
  */
 
@@ -258,6 +258,7 @@ class YO_Checkout_Invoice_Plugin {
                 'settings' => function() { return self::settings(); },
                 'get_order_data' => function($local_id) { return $this->get_order_data($local_id); },
                 'card_fee_data' => function($local_id, $provider) { return $this->card_fee_data($local_id, $provider); },
+                'next_keycrm_order_id' => function() { return $this->keycrm_service()->next_order_id(); },
                 'process_successful_card_payment' => function($local_id, $invoice_id) { return $this->process_successful_card_payment($local_id, $invoice_id); },
                 'queue_deferred_payment_finalizer' => function($local_id, $invoice_id, $source) { return $this->queue_deferred_payment_finalizer($local_id, $invoice_id, $source); },
                 'append_checkout_debug_log' => function($debug_id, $message, $context = []) { return $this->append_checkout_debug_log($debug_id, $message, $context); },
@@ -3836,12 +3837,13 @@ EUR=1',
             }
 
             if ($created_order_id) {
-                if ($provider === 'western_bid') {
-                    $expected_order_id = absint(get_post_meta($local_id, 'western_bid_expected_keycrm_order_id', true));
+                if (in_array($provider, ['western_bid', 'monobank'], true)) {
+                    $prediction_prefix = $provider === 'western_bid' ? 'western_bid' : 'monobank';
+                    $expected_order_id = absint(get_post_meta($local_id, $prediction_prefix . '_expected_keycrm_order_id', true));
                     if ($expected_order_id) {
-                        update_post_meta($local_id, 'western_bid_keycrm_prediction_match', $expected_order_id === $created_order_id ? '1' : '0');
+                        update_post_meta($local_id, $prediction_prefix . '_keycrm_prediction_match', $expected_order_id === $created_order_id ? '1' : '0');
                         if ($expected_order_id !== $created_order_id) {
-                            update_post_meta($local_id, 'western_bid_actual_keycrm_order_id', $created_order_id);
+                            update_post_meta($local_id, $prediction_prefix . '_actual_keycrm_order_id', $created_order_id);
                         }
                     }
                 }

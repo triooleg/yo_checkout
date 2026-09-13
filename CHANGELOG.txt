@@ -608,3 +608,11 @@ YOleotard Checkout Invoice v4.0.88
 - Western Bid invoice references now use `localID/YY-predictedKeyCRMID`, with the predicted ID calculated from the latest KeyCRM order plus one without creating an unpaid CRM order.
 - Payment startup fails closed if the KeyCRM lookup is unavailable or malformed.
 - Callback URLs encode the slash in the new reference exactly once, and paid finalization records whether the predicted and actual KeyCRM IDs matched.
+
+YOleotard Checkout Invoice v4.0.89
+
+- Limits permanent bank-invoice Reserved state to product cards whose own YOOtheme panel style is Card Default.
+- Prevents nested Card Default elements and server availability results from reserving a neighboring card whose own style is None.
+- Gives Monobank the same `localID/YY-predictedKeyCRMID` order reference scheme used by Western Bid.
+- Stores the predicted Monobank KeyCRM ID and reconciles it with the actual order ID after confirmed payment.
+- Stops Monobank payment startup when the read-only KeyCRM next-order lookup fails instead of inventing a reference.
