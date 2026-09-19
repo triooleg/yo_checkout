@@ -590,7 +590,7 @@ Status: local test candidate; live verification required.
 - KeyCRM does not expose an order-number reservation endpoint. Western Bid starts before the paid KeyCRM order is created, so v4.0.88 reads the latest KeyCRM order and uses `latest ID + 1` only as a prediction.
 - The invoice format is `localID/YY-predictedKeyCRMID`. The unique local ID keeps the Western Bid reference unambiguous if another KeyCRM order is created before payment finalization.
 - After confirmed payment, metadata `western_bid_keycrm_prediction_match` records whether the prediction matched. On mismatch, `western_bid_actual_keycrm_order_id` stores the actual ID.
-- The Western Bid start fails closed when KeyCRM cannot return a valid latest order ID; it does not invent an invoice number.
+- v4.0.88 originally failed closed when KeyCRM could not return a valid latest order ID. v4.0.90 keeps the live lookup as the preferred source but falls back to a remembered or locally confirmed real KeyCRM ID.
 
 ## Card Default Reservation Scope and Monobank Predicted Number (v4.0.89)
 
@@ -600,7 +600,17 @@ Status: local test candidate; live verification required.
 - Server availability responses cannot apply an untimed permanent Reserved overlay to a product card whose own panel style is not Card Default.
 - Monobank now uses `localID/YY-predictedKeyCRMID` in `merchantPaymInfo.reference`, payment purpose, and the checkout response order number.
 - The KeyCRM component remains a prediction from latest ID plus one, not a reservation. Metadata `monobank_keycrm_prediction_match` and, on mismatch, `monobank_actual_keycrm_order_id` support post-payment reconciliation.
-- Monobank payment startup fails closed if the read-only KeyCRM next-ID lookup fails. Live payment-form acceptance and paid-order reconciliation still require provider testing.
+- v4.0.89 originally failed Monobank startup when the read-only KeyCRM next-ID lookup failed. v4.0.90 adds the same locally confirmed fallback used by Western Bid; live payment-form acceptance and paid-order reconciliation still require provider testing.
+
+## Card Payment Startup Depends on KeyCRM Availability (v4.0.90)
+
+Status: fixed locally; live Monobank and Western Bid payment-form verification required.
+
+- Live purchase-report evidence on 2026-09-19 showed repeated Western Bid attempts stopping before a provider reference was saved, while a Monobank attempt between them received an invoice ID. Both providers shared the new KeyCRM latest-order lookup.
+- KeyCRM documents a 20 requests-per-minute token limit. Treating this diagnostic prediction lookup as a hard payment dependency could therefore block otherwise valid card payments during a transient error or rate limit.
+- v4.0.90 sends KeyCRM GET requests without a JSON body, caches a successful latest ID for 15 seconds, remembers actual paid KeyCRM IDs, and falls back to the greatest locally confirmed KeyCRM order ID.
+- The fallback changes only the predicted suffix. The unique local payment-attempt ID remains authoritative, and KeyCRM order creation still happens only after confirmed card payment.
+- If neither KeyCRM nor any local confirmed KeyCRM history can provide a numeric ID, startup still stops instead of fabricating a prediction.
 
 ## Watch Areas
 

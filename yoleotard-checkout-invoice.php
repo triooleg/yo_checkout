@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: YOleotard Checkout + Monobank + Western Bid + IBAN Invoice
- * Description: v4.0.89. Scopes invoice reservations to Card Default product panels and aligns Monobank order references with KeyCRM predictions.
- * Version: 4.0.89
+ * Description: v4.0.90. Keeps card payment startup available during transient KeyCRM next-order lookup failures.
+ * Version: 4.0.90
  * Author: YOleotard / ChatGPT
  */
 
@@ -3837,6 +3837,7 @@ EUR=1',
             }
 
             if ($created_order_id) {
+                $this->keycrm_service()->remember_latest_order_id($created_order_id);
                 if (in_array($provider, ['western_bid', 'monobank'], true)) {
                     $prediction_prefix = $provider === 'western_bid' ? 'western_bid' : 'monobank';
                     $expected_order_id = absint(get_post_meta($local_id, $prediction_prefix . '_expected_keycrm_order_id', true));

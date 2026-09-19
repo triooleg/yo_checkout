@@ -4430,3 +4430,32 @@ Verification:
 - The archive contains 64 entries including one explicit root directory.
 - The only top-level directory is `yoleotard-checkout-invoice/`, and no entry contains a backslash.
 - Embedded plugin version is 4.0.89; test extraction produced real `assets/` and `includes/` directories plus the main plugin file.
+
+## 2026-09-19 - Resilient Card Payment Startup v4.0.90
+
+### Request
+
+- Investigate and fix the card-selection connection error affecting both Monobank and Western Bid.
+
+### Findings
+
+- The live Purchases Report showed Western Bid attempts reaching `card_payment_selected` but stopping before `western_bid_invoice` was stored.
+- A Monobank attempt between those failures obtained a provider invoice ID, ruling out a permanent failure of both payment providers.
+- Both paths had become hard-dependent on the same read-only KeyCRM latest-order request introduced for the predicted reference suffix.
+- The KeyCRM API documents a 20 requests-per-minute limit, so a temporary API error or rate limit could block payment startup even though no CRM order needed to be created yet.
+
+### Implementation
+
+- Removed JSON bodies from KeyCRM GET/HEAD requests.
+- Added a 15-second cache for successful latest-order reads.
+- Remembered actual paid KeyCRM order IDs after successful finalization.
+- Added fallback to the greatest remembered or locally confirmed KeyCRM order ID when the live lookup fails.
+- Kept the unique local ID in every provider reference and preserved post-payment prediction reconciliation.
+- Changed the card-start catch handler to show the existing detailed AJAX diagnostic instead of only `Connection error`.
+
+### Verification
+
+- PHP syntax checks passed for the main plugin, every service under `includes/`, and every regression test.
+- All PHP regression tests passed, including live lookup, cached lookup, HTTP 429 fallback, local-order fallback, Monobank reference, Western Bid reference, and post-payment KeyCRM timing coverage.
+- `node --check` passed for both frontend JavaScript assets.
+- `git diff --check` passed with line-ending warnings only.

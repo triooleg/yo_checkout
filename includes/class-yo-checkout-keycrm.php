@@ -1083,26 +1083,65 @@ class YO_Checkout_KeyCRM_Service {
     public function keycrm_request($method, $path, $payload, $s=null) {
             $s = $s ?: $this->settings();
             if (empty($s['keycrm_token'])) return new WP_Error('no_token','KeyCRM token is empty');
-            $resp = wp_remote_request('https://openapi.keycrm.app/v1' . $path, ['method'=>$method,'headers'=>['Authorization'=>'Bearer '.$s['keycrm_token'],'Content-Type'=>'application/json','Accept'=>'application/json'],'body'=>wp_json_encode($payload),'timeout'=>30]);
+            $request_args = ['method'=>$method,'headers'=>['Authorization'=>'Bearer '.$s['keycrm_token'],'Content-Type'=>'application/json','Accept'=>'application/json'],'timeout'=>30];
+            if (!in_array(strtoupper((string)$method), ['GET', 'HEAD'], true)) {
+                $request_args['body'] = wp_json_encode($payload);
+            }
+            $resp = wp_remote_request('https://openapi.keycrm.app/v1' . $path, $request_args);
+            if (is_wp_error($resp)) return $resp;
             $body = json_decode(wp_remote_retrieve_body($resp), true);
             $code = wp_remote_retrieve_response_code($resp);
             if ($code < 200 || $code >= 300) return new WP_Error('keycrm_http','KeyCRM HTTP error', ['code'=>$code,'body'=>$body]);
             return $body;
         }
 
+    private function latest_local_keycrm_order_id() {
+            if ($this->order_post_type === '' || !function_exists('get_posts')) return 0;
+            $ids = get_posts([
+                'post_type' => $this->order_post_type,
+                'post_status' => 'any',
+                'posts_per_page' => 1,
+                'fields' => 'ids',
+                'meta_key' => 'order_id',
+                'orderby' => 'meta_value_num',
+                'order' => 'DESC',
+                'no_found_rows' => true,
+            ]);
+            if (!$ids) return 0;
+            return absint(get_post_meta(absint($ids[0]), 'order_id', true));
+        }
+
+    public function remember_latest_order_id($order_id) {
+            $order_id = absint($order_id);
+            if (!$order_id) return;
+            $stored = absint(get_option('yo_checkout_keycrm_latest_order_id', 0));
+            if ($order_id > $stored) update_option('yo_checkout_keycrm_latest_order_id', $order_id, false);
+            set_transient('yo_checkout_keycrm_latest_order_id', max($order_id, $stored), 15);
+        }
+
     public function next_order_id() {
+            $cached_latest_id = absint(get_transient('yo_checkout_keycrm_latest_order_id'));
+            if ($cached_latest_id) return $cached_latest_id + 1;
+
             $body = $this->keycrm_request('GET', '/order?limit=1&sort=-id', []);
+            if (!is_wp_error($body)) {
+                $rows = isset($body['data']) && is_array($body['data']) ? $body['data'] : [];
+                $latest_id = isset($rows[0]['id']) ? absint($rows[0]['id']) : 0;
+                if ($latest_id) {
+                    $this->remember_latest_order_id($latest_id);
+                    return $latest_id + 1;
+                }
+            }
+
+            $remembered_id = absint(get_option('yo_checkout_keycrm_latest_order_id', 0));
+            $local_id = $this->latest_local_keycrm_order_id();
+            $fallback_id = max($remembered_id, $local_id);
+            if ($fallback_id) return $fallback_id + 1;
+
             if (is_wp_error($body)) {
                 return new WP_Error('keycrm_next_order_lookup_failed', 'Could not read the latest KeyCRM order', $body->get_error_data());
             }
-
-            $rows = isset($body['data']) && is_array($body['data']) ? $body['data'] : [];
-            $latest_id = isset($rows[0]['id']) ? absint($rows[0]['id']) : 0;
-            if (!$latest_id) {
-                return new WP_Error('keycrm_next_order_missing', 'KeyCRM did not return the latest order ID', $body);
-            }
-
-            return $latest_id + 1;
+            return new WP_Error('keycrm_next_order_missing', 'KeyCRM did not return the latest order ID', $body);
         }
 
     public function keycrm_add_payment($local_id, $status, $description) {
